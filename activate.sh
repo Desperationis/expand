@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#
+
 expand_bootstrap() {
 	# Navigate to same directory as this script
 	cd "$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
@@ -9,12 +9,14 @@ expand_bootstrap() {
 	bash bootstrap/install_pip.bash
 	bash bootstrap/install_venv.bash
 
-	# TODO: Check if venv exists. If it already does just activate it
-
-	python3 -m venv venv
-	. venv/bin/activate
-
-	pip3 install -r requirements.txt
+	if ! [[ -d venv ]]
+	then
+		python3 -m venv venv
+		. venv/bin/activate
+		pip3 install -r requirements.txt
+	else
+		. venv/bin/activate
+	fi
 }
 
 if ! [ "$(id -u)" = "0" ]; then
