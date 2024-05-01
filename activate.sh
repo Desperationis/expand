@@ -23,5 +23,7 @@ if ! [ "$(id -u)" = "0" ]; then
 	echo -e "\033[1;31mThis script must be directly run as root, not as sudo.\033[0m"
 else
 	expand_bootstrap
+	ACTIVATED_EXPAND=""
+	export ACTIVATED_EXPAND 
 fi
 
