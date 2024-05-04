@@ -6,9 +6,12 @@ import time
 from rich import print
 import logging
 
+"""
 if "ACTIVATED_EXPAND" not in os.environ:
     print("[bold bright_red]Please run activate.sh as root first.[/bold bright_red]")
     sys.exit(1)
+"""
+
 
 logging.basicConfig(
     filename="expand.log",
@@ -43,17 +46,27 @@ def end():
 
 errorStr = ""
 
-try:
-    setup()
-    while True:
-        time.sleep(1)
+def main():
+
+    try:
+        setup()
+        while True:
+            stdscr.erase()
+
+            # Draw HERE
+
+            stdscr.refresh()
 
 
-except Exception as e:
-    errorStr = traceback.format_exc()
 
-finally:
-    end()
-    if len(errorStr) > 0:
-        logging.error(errorStr)
+            time.sleep(1)
+
+
+    except Exception as e:
+        errorStr = traceback.format_exc()
+
+    finally:
+        end()
+        if len(errorStr) > 0:
+            logging.error(errorStr)
 
