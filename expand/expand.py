@@ -5,6 +5,7 @@ import traceback
 import time
 from rich import print
 import logging
+from .components import *
 
 """
 if "ACTIVATED_EXPAND" not in os.environ:
@@ -44,9 +45,9 @@ def end():
     curses.endwin()
 
 
-errorStr = ""
 
 def main():
+    error_str = ""
 
     try:
         setup()
@@ -54,6 +55,8 @@ def main():
             stdscr.erase()
 
             # Draw HERE
+            text = textcomponent("test", flags=textcomponent.TEXT_CENTERED)
+            text.draw(stdscr)
 
             stdscr.refresh()
 
@@ -63,10 +66,10 @@ def main():
 
 
     except Exception as e:
-        errorStr = traceback.format_exc()
+        error_str = traceback.format_exc()
 
     finally:
         end()
-        if len(errorStr) > 0:
-            logging.error(errorStr)
+        if len(error_str) > 0:
+            logging.error(error_str)
 
