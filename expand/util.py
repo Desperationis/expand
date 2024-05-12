@@ -1,5 +1,7 @@
 import os
 import math
+import requests
+import re
 import humanize
 from datetime import datetime, timedelta
 from abc import ABC, abstractmethod
@@ -57,7 +59,26 @@ def get_failing_probes(probes: list[CompatibilityProbe]) -> list[CompatibilityPr
     return list(filter(lambda probe: not probe.is_compatible(), probes))
 
 
+def filter_str_for_urls(string) -> set[str]:
+    """
+    Search for urls in string via regex. Ignores whitespace.
+    """
+
+    links = re.findall(r"(https?://\S+)", string)
+    links = [link.replace('"', "") for link in links]
+    return set(links)
 
 
-
+def is_url_up(url) -> bool:
+    """
+    Returns true if url returns 200 HTTP Status Code on HEAD.
+    """
+    try:
+        response = requests.head(url, allow_redirects=True)
+        if response.status_code == 200:
+            return True
+        else:
+            return False
+    except requests.ConnectionError:
+        return False
 
