@@ -51,6 +51,9 @@ Maecenas https://cdimage.kali.org/kali-weekly/kali-linux-2024-W19-installer-amd6
 """
     assert expand.filter_str_for_urls(content) == {"http://google.com", "https://robotics.net/yoursite?query=%20yourmom", "https://cdimage.kali.org/kali-weekly/kali-linux-2024-W19-installer-amd64.iso"}
 
+    content="download: (\"https://robotics.net/yoursite?query=%20yourmom\")"
+    assert expand.filter_str_for_urls(content) == {"https://robotics.net/yoursite?query=%20yourmom"}
+
 
 
 

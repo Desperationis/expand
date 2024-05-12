@@ -66,6 +66,9 @@ def filter_str_for_urls(string) -> set[str]:
 
     links = re.findall(r"(https?://\S+)", string)
     links = [link.replace('"', "") for link in links]
+    links = [link.replace('\'', "") for link in links]
+    links = [link.replace(')', "") for link in links]
+    links = [link.replace('(', "") for link in links]
     return set(links)
 
 
