@@ -17,6 +17,15 @@ class brect:
         return self.x + self.w - 1
 
 
+    def colliding(self, rect) -> bool:
+        """Whether this box is overlapping with another bounding box."""
+
+        return not (self.x + self.w <= rect.x or
+                    self.x >= rect.x + rect.w or
+                    self.y + self.h <= rect.y or
+                    self.y >= rect.y + rect.h)
+
+
 
 
 

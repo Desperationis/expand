@@ -25,11 +25,13 @@ class curses_cli:
         if not self.is_setup:
             self.setup()
 
-        text = textcomponent("th✔️is is tEn characters long", rect=brect(10,10,10,10), flags=textcomponent.BOLD, color=curses.color_pair(1))
+        text = textcomponent("theisistEncharacterslong", rect=brect(0,0,10,10), flags=textcomponent.BOLD, color=curses.color_pair(1))
+        group = groupcomponent(brect(10, 10, 50, 5))
+        group.add(text)
 
         while True:
             self.stdscr.erase()
-            
+
             text.draw(self.stdscr)
 
             c = self.stdscr.getch()

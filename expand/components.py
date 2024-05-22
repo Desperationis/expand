@@ -7,13 +7,82 @@ from .brect import brect
 
 
 class component(ABC):
+    def __init__(self, rect: brect):
+        self.rect = rect
+
     @abstractmethod
-    def draw(self, stdscr):
+    def draw(self, stdscr, parent_rect = None):
         pass
 
     @abstractmethod
     def handleinput(self, c: int):
         pass
+
+    @staticmethod
+    def debug_draw_brect(stdscr, rect, color=None):
+        """
+        Draw the bounding box to the canvas. Keep in mind that anything
+        directly outside the box is considered out of bounds. If a piece of
+        text draws OVER the box, it is in bounds. For this reason, please call
+        this before the component renders.
+        """
+
+        if color is None:
+            color = curses.color_pair(0)
+
+        stdscr.addstr(rect.y, rect.x, "^" * rect.w, color)
+        stdscr.addstr(rect.y + rect.h - 1, rect.x, "_" * rect.w, color)
+
+        for i in range(rect.h):
+            stdscr.addstr(rect.y + i, rect.x, "|", color)
+            stdscr.addstr(rect.y + i, rect.x + rect.w - 1, "|", color)
+
+
+
+
+class groupcomponent(component):
+    def __init__(self, rect):
+        super().__init__(rect)
+
+        self.rect: brect = rect
+        self.components = []
+
+    def add(self, component: component):
+        """
+        Read this section carefully. 
+
+        g = groupcomponent(brect(3, 4, 10, 10)) 
+        c = textcomponent(brect(1,2, 5, 5))
+        g.add(c)
+
+        This places textcomponent in the absolute position (4, 6), because this
+        function assumes that the component you are adding has coordinates
+        relative to the group coordinate.
+        
+        What if bounding box of added element is bigger than the group?
+
+        g = groupcomponent(brect(3, 4, 10, 10)) 
+        c = textcomponent(brect(1,2, 500, 500))
+        g.add(c)
+    
+        In this case, everything will still work as normal. It is expected that
+        the draw() function of textcomponent alone is able to use the bounding
+        box of the group to restrict rendering.
+        """
+
+        self.components.append(component)
+
+    def draw(self, stdscr, parent_rect = None):
+        self.debug_draw_brect(stdscr, self.rect)
+
+        for c in self.components:
+            c.draw(stdscr, self.rect)
+
+    def handleinput(self, c: int):
+        for component in self.components:
+            component.handleinput(c)
+
+
 
 
 class textcomponent(component):
@@ -42,6 +111,8 @@ class textcomponent(component):
 
 
     def __init__(self, text, rect, flags=NONE, color=NONE):
+        super().__init__(rect)
+
         self.text = text
         self.flags = flags
         self.rect: brect = rect
@@ -51,9 +122,10 @@ class textcomponent(component):
     @staticmethod
     def get_cropped_text(text: str, rect: brect) -> str:
         """
-        Return cropped text that can fit in bounding box.
+        Return cropped text that can fit in bounding box. With unicode
+        characters (i.e. emojis), this function might cut it shorter than what
+        is liked.
         """
-
         return text[:rect.w]
 
 
@@ -68,7 +140,7 @@ class textcomponent(component):
         To get the absolute position of where the text should be drawn, the
         code would look something like this:
 
-            x, y = calculate_alignmen_offset(text, rect, flags)
+            x, y = calculate_alignment_offset(text, rect, flags)
             stdscr.addstr(rect.y + y, rect.x + x, text)
         """
 
@@ -119,16 +191,26 @@ class textcomponent(component):
         return attrs
 
 
-    def draw(self, stdscr):
-        displayed_text = self.get_cropped_text(self.text, self.rect)
-        o_x, o_y = self.calculate_alignment_offset(displayed_text, self.rect, self.flags)
-        x = self.rect.x + o_x
-        y = self.rect.y + o_y
+    def draw(self, stdscr, parent_rect=None):
+        rect = self.rect
+        if parent_rect is not None:
+            rect.w = parent_rect.w - rect.x
+            rect.h = parent_rect.w - rect.y
+            rect.x += parent_rect.x
+            rect.y += parent_rect.y
+
+        displayed_text = self.get_cropped_text(self.text, rect)
+        o_x, o_y = self.calculate_alignment_offset(displayed_text, rect, self.flags)
+        x = rect.x + o_x
+        y = rect.y + o_y
         attrs = self.lookup_text_attr(self.flags)
 
         if self.color is not None:
             attrs |= self.color
 
+        self.debug_draw_brect(stdscr, self.rect)
+        logging.debug(self.text[:10])
+        logging.debug(displayed_text)
         stdscr.addstr(y, x, displayed_text, attrs)
 
     def handleinput(self, c):

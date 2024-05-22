@@ -98,4 +98,19 @@ def test_textcomponent():
     assert c("ABCDEFGHIJKLMNLOP", brect(0, 0, 10, 10001), textcomponent.ALIGN_V_BOTTOM) == (0,10000)
 
 
+    assert textcomponent.get_cropped_text("hellothere", brect(100, -1, 5, 1)) == "hello"
+
+
+def test_bounding_collision():
+    from expand import brect
+    assert brect(0,0,10,10).colliding(brect(0,0,10,10)) == True
+    assert brect(0,0,10,10).colliding(brect(9,9,10,10)) == True
+    assert brect(-1,2,10,10).colliding(brect(-5,2,10,10)) == True
+    assert brect(-1,2,10000,10000).colliding(brect(928,231,1,1)) == True
+
+
+    assert brect(0,0,10,10).colliding(brect(10,10,10,10)) == False
+    assert brect(0,0,10,10).colliding(brect(11,10,10,10)) == False
+    assert brect(0,0,10,10).colliding(brect(10,11,10,10)) == False
+    assert brect(-10,-10,10,10).colliding(brect(0,0,10,10)) == False
 
