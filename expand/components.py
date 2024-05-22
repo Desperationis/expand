@@ -200,7 +200,7 @@ class textcomponent(component):
 
 
     def draw(self, stdscr, parent_rect=None):
-        rect = self.rect
+        rect = self.rect.copy()
         if parent_rect is not None:
             rect.w = min(parent_rect.w - rect.x, rect.w)
             rect.h = min(parent_rect.h - rect.y, rect.h)
@@ -219,7 +219,11 @@ class textcomponent(component):
         self.debug_draw_brect(stdscr, rect)
         logging.debug(self.text[:10])
         logging.debug(displayed_text)
-        stdscr.addstr(y, x, displayed_text, attrs)
+
+        try:
+            stdscr.addstr(y, x, displayed_text, attrs)
+        except curses.error:
+            pass
 
     def handleinput(self, c):
         pass

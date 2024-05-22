@@ -25,8 +25,8 @@ class curses_cli:
         if not self.is_setup:
             self.setup()
 
-        text = textcomponent("theisistEncharacterslong", rect=brect(0,-5,100,2), flags=textcomponent.BOLD | textcomponent.ALIGN_H_RIGHT | textcomponent.ALIGN_V_BOTTOM, color=curses.color_pair(1))
-        group = groupcomponent(brect(10, 10, 50, 5))
+        text = textcomponent("theisistEncharacterslong", rect=brect(0,5,100,10), flags=textcomponent.BOLD | textcomponent.ALIGN_H_RIGHT | textcomponent.ALIGN_V_BOTTOM, color=curses.color_pair(1))
+        group = groupcomponent(brect(10, 10, 50, 20))
         group.add(text)
 
         while True:

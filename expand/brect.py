@@ -26,6 +26,8 @@ class brect:
                     self.y >= rect.y + rect.h)
 
 
+    def copy(self):
+        return brect(self.x, self.y, self.w, self.h)
 
 
 
