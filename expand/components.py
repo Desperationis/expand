@@ -30,13 +30,21 @@ class component(ABC):
         if color is None:
             color = curses.color_pair(0)
 
-        stdscr.addstr(rect.y, rect.x, "^" * rect.w, color)
-        stdscr.addstr(rect.y + rect.h - 1, rect.x, "_" * rect.w, color)
+        # We use try and except so that we can easily see if the boundary is
+        # out of bounds or not.
+        try:
+            stdscr.addstr(rect.y, rect.x, "^" * rect.w, color)
+            stdscr.addstr(rect.y + rect.h - 1, rect.x, "_" * rect.w, color)
+        except curses.error:
+            pass
 
-        for i in range(rect.h):
-            stdscr.addstr(rect.y + i, rect.x, "|", color)
-            stdscr.addstr(rect.y + i, rect.x + rect.w - 1, "|", color)
+        try:
+            for i in range(rect.h):
+                stdscr.addstr(rect.y + i, rect.x, "|", color)
+                stdscr.addstr(rect.y + i, rect.x + rect.w - 1, "|", color)
 
+        except curses.error:
+            pass
 
 
 
@@ -194,8 +202,8 @@ class textcomponent(component):
     def draw(self, stdscr, parent_rect=None):
         rect = self.rect
         if parent_rect is not None:
-            rect.w = parent_rect.w - rect.x
-            rect.h = parent_rect.w - rect.y
+            rect.w = min(parent_rect.w - rect.x, rect.w)
+            rect.h = min(parent_rect.h - rect.y, rect.h)
             rect.x += parent_rect.x
             rect.y += parent_rect.y
 
@@ -208,7 +216,7 @@ class textcomponent(component):
         if self.color is not None:
             attrs |= self.color
 
-        self.debug_draw_brect(stdscr, self.rect)
+        self.debug_draw_brect(stdscr, rect)
         logging.debug(self.text[:10])
         logging.debug(displayed_text)
         stdscr.addstr(y, x, displayed_text, attrs)
