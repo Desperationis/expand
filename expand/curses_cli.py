@@ -25,17 +25,19 @@ class curses_cli:
         if not self.is_setup:
             self.setup()
 
+        text = textcomponent("th✔️is is tEn characters long", rect=brect(10,10,10,10), flags=textcomponent.BOLD, color=curses.color_pair(1))
+
         while True:
             self.stdscr.erase()
-
-            # Draw HERE
-            text = textcomponent("test", flags=textcomponent.TEXT_CENTERED)
+            
             text.draw(self.stdscr)
+
+            c = self.stdscr.getch()
+            text.handleinput(c) 
 
             self.stdscr.refresh()
 
 
-            time.sleep(1)
 
 
 

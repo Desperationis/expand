@@ -1,7 +1,9 @@
 import expand
 import datetime
 
+
 def test_ansible():
+
     class TestProbe(expand.CompatibilityProbe):
         def is_compatible(self) -> bool:
             return False
@@ -55,7 +57,45 @@ Maecenas https://cdimage.kali.org/kali-weekly/kali-linux-2024-W19-installer-amd6
     assert expand.filter_str_for_urls(content) == {"https://robotics.net/yoursite?query=%20yourmom"}
 
 
+def test_textcomponent():
+    from expand import textcomponent, brect
+    
+    def c(text, rect, flags):
+        text = textcomponent.get_cropped_text(text, rect)
+        return textcomponent.calculate_alignment_offset(text, rect, flags)
 
+    assert c("ABCDEFGHIJKLMNLOP", brect(0, 0, 10, 10), textcomponent.NONE) == (0,0)
+    assert c("ABCDEFGHIJKLMNLOP", brect(-2, 40, 1, 10), textcomponent.NONE) == (0,0)
+    assert c("ABCDEFGHIJKLMNLOP", brect(1, 1, 1, 4), textcomponent.NONE) == (0,0)
+    assert c("ABCDEFGHIJKLMNLOP", brect(0, 0, 100, 100), textcomponent.NONE) == (0,0)
+
+    assert c("ABCDEFGHIJKLMNLOP", brect(0, 0, 10, 10), textcomponent.ALIGN_H_LEFT) == (0,0)
+    assert c("ABCDEFGHIJKLMNLOP", brect(-2, 40, 1, 10), textcomponent.ALIGN_H_LEFT) == (0,0)
+    assert c("ABCDEFGHIJKLMNLOP", brect(1, 1, 1, 4), textcomponent.ALIGN_H_LEFT) == (0,0)
+    assert c("ABCDEFGHIJKLMNLOP", brect(0, 0, 100, 100), textcomponent.ALIGN_H_LEFT) == (0,0)
+
+    assert c("ABCDEFGHIJKLMNLOP", brect(0, 0, 10, 10), textcomponent.ALIGN_V_TOP) == (0,0)
+    assert c("ABCDEFGHIJKLMNLOP", brect(-2, 40, 1, 10), textcomponent.ALIGN_V_TOP) == (0,0)
+    assert c("ABCDEFGHIJKLMNLOP", brect(1, 1, 1, 4), textcomponent.ALIGN_V_TOP) == (0,0)
+    assert c("ABCDEFGHIJKLMNLOP", brect(0, 0, 100, 100), textcomponent.ALIGN_V_TOP) == (0,0)
+
+    assert c("ABCDEFGHIJKLMNLOP", brect(0, 0, 10, 10), textcomponent.ALIGN_H_RIGHT) == (0,0)
+    assert c("ABCDEFGHIJKLMNLOP", brect(0, 0, 100, 10), textcomponent.ALIGN_H_RIGHT) == (83,0)
+
+    assert c("ABCDEFGHIJKLMNLOP", brect(0, 0, 10, 10), textcomponent.ALIGN_H_MIDDLE) == (0,0)
+    assert c("ABCDEFGHIJKLMNLOP", brect(0, 0, 19, 10), textcomponent.ALIGN_H_MIDDLE) == (1,0)
+    assert c("ABCDEFGHIJKLMNLOP", brect(0, 0, 21, 10), textcomponent.ALIGN_H_MIDDLE) == (2,0)
+    assert c("ABCDEFGHIJKLMNLOP", brect(0, 0, 27, 10), textcomponent.ALIGN_H_MIDDLE) == (5,0)
+
+    assert c("ABCDEFGHIJKLMNLOP", brect(0, 0, 100, 10), textcomponent.ALIGN_V_MIDDLE) == (0,4)
+    assert c("ABCDEFGHIJKLMNLOP", brect(0, 0, 100, 1), textcomponent.ALIGN_V_MIDDLE) == (0,0)
+    assert c("ABCDEFGHIJKLMNLOP", brect(0, 0, 10, 10), textcomponent.ALIGN_V_MIDDLE) == (0,4)
+    assert c("ABCDEFGHIJKLMNLOP", brect(0, 0, 10, 1), textcomponent.ALIGN_V_MIDDLE) == (0,0)
+
+
+    assert c("ABCDEFGHIJKLMNLOP", brect(0, 0, 100, 10), textcomponent.ALIGN_V_BOTTOM) == (0,9)
+    assert c("ABCDEFGHIJKLMNLOP", brect(0, 0, 100, 1), textcomponent.ALIGN_V_BOTTOM) == (0,0)
+    assert c("ABCDEFGHIJKLMNLOP", brect(0, 0, 10, 10001), textcomponent.ALIGN_V_BOTTOM) == (0,10000)
 
 
 

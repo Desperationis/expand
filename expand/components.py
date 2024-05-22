@@ -1,18 +1,12 @@
 import curses
+import logging
 from abc import ABC, abstractmethod
 from typing import Optional
 from .enums import CHOICE, SCENES, SelectedOption
 from .brect import brect
-import string
-import logging
-import threading
-import subprocess
 
 
 class component(ABC):
-    def __init__(self, offset=(0, 0)):
-        self.offset = offset
-
     @abstractmethod
     def draw(self, stdscr):
         pass
@@ -23,73 +17,155 @@ class component(ABC):
 
 
 class textcomponent(component):
-    NONE = 0b00000000
-    TEXT_CENTERED = 0b00000001
-    BOTTOM = 0b00000010
-    MIDDLE = 0b00000100
-    BAR = 0b00001000
 
-    def __init__(self, text, flags=NONE, offset=(0, 0)):
-        super().__init__(offset)
+    # Standard Text, no modication in display
+    NONE = 0
+
+    # Center the text horizontally
+    ALIGN_H_LEFT = 1 << 1
+    ALIGN_H_MIDDLE = 1 << 2
+    ALIGN_H_RIGHT = 1 << 3
+
+    # Center the text vertically
+    ALIGN_V_TOP = 1 << 4
+    ALIGN_V_MIDDLE = 1 << 5
+    ALIGN_V_BOTTOM = 1 << 6
+
+    # Special Effects / Text Attributes
+    # NOTE: These may not work depending on the terminal you are using.
+    REVERSE = 1 << 7
+    BLINK = 1 << 8
+    BOLD = 1 << 9
+    DIM = 1 << 10
+    STANDOUT = 1 << 11
+    UNDERLINE = 1 << 12
+
+
+    def __init__(self, text, rect, flags=NONE, color=NONE):
         self.text = text
         self.flags = flags
+        self.rect: brect = rect
+        self.color = color
+
+
+    @staticmethod
+    def get_cropped_text(text: str, rect: brect) -> str:
+        """
+        Return cropped text that can fit in bounding box.
+        """
+
+        return text[:rect.w]
+
+
+    @staticmethod
+    def calculate_alignment_offset(text: str, rect: brect, flags):
+        """
+        Let's say `text` is in the top left of `rect`. If `ALIGN_V_MIDDLE` or
+        any of the other flags in textcomponent is enabled in `flags`, this
+        method calculates the x and y offset relative to the origin (top left)
+        of `rect` the text should be drawn. 
+
+        To get the absolute position of where the text should be drawn, the
+        code would look something like this:
+
+            x, y = calculate_alignmen_offset(text, rect, flags)
+            stdscr.addstr(rect.y + y, rect.x + x, text)
+        """
+
+        x, y, w, h = rect.x, rect.y, rect.w, rect.h
+        offset_x, offset_y = 0, 0
+
+        if flags & textcomponent.ALIGN_V_TOP:
+            pass
+        elif flags & textcomponent.ALIGN_V_MIDDLE:
+            offset_y = (h - 1) // 2
+        elif flags & textcomponent.ALIGN_V_BOTTOM:
+            offset_y = h - 1
+
+        if flags & textcomponent.ALIGN_H_LEFT:
+            pass
+        elif flags & textcomponent.ALIGN_H_MIDDLE:
+            offset_x = (w - len(text)) // 2
+        elif flags & textcomponent.ALIGN_H_RIGHT:
+            offset_x = w - len(text) 
+
+        
+        return offset_x, offset_y
+
+    @staticmethod
+    def lookup_text_attr(flags):
+        """
+        Given a list of flags from `textcomponent`, get the conjoined "Special
+        Effects" flags in ncurses format.
+        """
+
+        lookup = {
+            textcomponent.REVERSE: curses.A_REVERSE,
+            textcomponent.BLINK: curses.A_BLINK,
+            textcomponent.BOLD: curses.A_BOLD,
+            textcomponent.DIM: curses.A_DIM,
+            textcomponent.STANDOUT: curses.A_STANDOUT,
+            textcomponent.UNDERLINE: curses.A_UNDERLINE
+        }
+
+        attrs = 0
+        for flag in lookup:
+            if flags & flag:
+                attrs |= lookup[flag]
+
+        if attrs == 0:
+            attrs = curses.A_NORMAL
+
+        return attrs
+
 
     def draw(self, stdscr):
-        x = self.offset[0]
-        y = self.offset[1]
-        rows, cols = stdscr.getmaxyx()
-        textAttr = curses.A_NORMAL
+        displayed_text = self.get_cropped_text(self.text, self.rect)
+        o_x, o_y = self.calculate_alignment_offset(displayed_text, self.rect, self.flags)
+        x = self.rect.x + o_x
+        y = self.rect.y + o_y
+        attrs = self.lookup_text_attr(self.flags)
 
-        if self.flags & self.BOTTOM:
-            y = rows - 1
+        if self.color is not None:
+            attrs |= self.color
 
-        if self.flags & self.TEXT_CENTERED:
-            x = (cols - 1) // 2 - len(self.text) // 2
-
-        if self.flags & self.MIDDLE:
-            y = (rows - 1) // 2
-
-        if self.flags & self.BAR:
-            leftPadding = 0
-            rightPadding = (cols - 1) - len(self.text) - x
-
-            if self.flags & self.TEXT_CENTERED:
-                leftPadding = x
-                x = 0
-
-            self.text = " " * leftPadding + self.text + " " * rightPadding
-            textAttr = curses.A_REVERSE
-
-        try:
-            stdscr.addstr(y, x, self.text, textAttr)
-        except curses.error:
-            pass
+        stdscr.addstr(y, x, displayed_text, attrs)
 
     def handleinput(self, c):
         pass
 
 
+
+
+
+
+
+
+
+
+
+"""
 class choicecomponent(component):
-    def __init__(self, choices: list[str], back=False, rect=brect(0, 0, 10, 10)):
+    def __init__(self, offset=(0, 0)):
+        super().__init__(offset)
+
+
+class choicecomponent(component):
+    def __init__(self, choices: list[str], rect=brect(0, 0, 10, 10)):
         super().__init__((0, 0))
         self.choices = choices
         self.choice = SelectedOption()
-        self.back = back
         self.brect = rect
         self.selectChar = "> "
 
-        self.elements = []
+        self.elements = self.choices
         self.elementIndex = 0
 
-        self.elements.extend(self.choices)
-        if back:
-            self.elements.append(CHOICE.BACK)
 
     def draw(self, stdscr):
-        # -1 for back button
-        numChoicesVisible = self.brect.h - 1
+        numChoicesVisible = self.brect.h
 
-        startingIndex = max(0, (self.elementIndex + 1) - numChoicesVisible)
+        startingIndex = max(0, (self.elementIndex) - numChoicesVisible)
 
         for i in range(startingIndex, len(self.elements)):
             option = self.elements[i]
@@ -124,7 +200,6 @@ class choicecomponent(component):
         return self.elements[self.elementIndex] == CHOICE.BACK
 
     def getChoice(self) -> SelectedOption:
-        """If nothing selected, CHOICE.NONE + None"""
         return self.choice
 
     def handleinput(self, c: int):
@@ -153,3 +228,5 @@ class choicecomponent(component):
             self.choice = SelectedOption(CHOICE.QUIT)
 
         self.elementIndex = self.elementIndex % len(self.elements)
+
+"""
