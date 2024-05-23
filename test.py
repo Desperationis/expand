@@ -62,7 +62,7 @@ def test_textcomponent():
     
     def c(text, rect, flags):
         text = textcomponent.get_cropped_text(text, rect)
-        return textcomponent.calculate_alignment_offset(text, rect, flags)
+        return textcomponent.calculate_text_alignment_offset(text, rect, flags)
 
     assert c("ABCDEFGHIJKLMNLOP", brect(0, 0, 10, 10), textcomponent.NONE) == (0,0)
     assert c("ABCDEFGHIJKLMNLOP", brect(-2, 40, 1, 10), textcomponent.NONE) == (0,0)
@@ -108,6 +108,21 @@ def test_textcomponent():
     assert c("ABCDEFGHIJKLMNLOP", brect(0, -1, 10, 10001), textcomponent.ALIGN_V_BOTTOM) == (0,10000 + 1)
 
     assert textcomponent.get_cropped_text("hellothere", brect(100, -1, 5, 1)) == "hello"
+
+def test_component_alignment():
+    from expand import component, brect
+
+    assert component.calculate_alignment_offset(rect=brect(0, 0, 10, 10), container_rect=brect(0, 0, 100, 100), alignment=(-1, -1)) == (0,0)
+    assert component.calculate_alignment_offset(rect=brect(224, -12, 10, 10), container_rect=brect(0, 0, 100, 100), alignment=(-1, -1)) == (-224,12)
+    assert component.calculate_alignment_offset(rect=brect(224, -12, 10, 10), container_rect=brect(20, 22, 100, 100), alignment=(-1, -1)) == (-204,34)
+
+    assert component.calculate_alignment_offset(rect=brect(0, 0, 10, 10), container_rect=brect(0, 0, 100, 100), alignment=(-1, 1)) == (0,100 - 10)
+    assert component.calculate_alignment_offset(rect=brect(224, -12, 10, 10), container_rect=brect(0, 0, 100, 100), alignment=(-1, 1)) == (-224,100 + 12 - 10)
+    assert component.calculate_alignment_offset(rect=brect(224, -12, 10, 10), container_rect=brect(20, 22, 100, 100), alignment=(-1, 1)) == (-204,100 + 12 + 22 - 10)
+
+    assert component.calculate_alignment_offset(rect=brect(0, 0, 10, 10), container_rect=brect(0, 0, 100, 100), alignment=(-1, 0)) == (0,50 - 5)
+    assert component.calculate_alignment_offset(rect=brect(224, -12, 10, 10), container_rect=brect(0, 0, 100, 100), alignment=(-1, 0)) == (-224,50 + 12 - 5)
+    assert component.calculate_alignment_offset(rect=brect(224, -12, 10, 10), container_rect=brect(20, 22, 100, 100), alignment=(-1, 0)) == (-204,50 + 12 + 22 - 5)
 
 
 def test_bounding_collision():

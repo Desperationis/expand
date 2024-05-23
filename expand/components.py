@@ -47,6 +47,51 @@ class component(ABC):
             pass
 
 
+    @staticmethod
+    def calculate_alignment_offset(rect: brect, container_rect: brect, alignment: tuple[int, int]):
+        """
+        Returns an offset (o_x, o_y) such that:
+
+            x = rect.x + o_x
+            y = rect.y + o_y
+
+        correctly aligns `rect` with `container_rect`. 
+
+        Alignment is passed as a tuple (o_h, o_v) such that:
+
+            (-1, -1) is topleft alignment
+            (0, -1) is top alignment
+            (1, -1) is topright alignment
+
+            (-1, 0) is left alignment
+            (0, 0) is middle alignment
+            (1, 0) is right alignment
+
+            (-1, 1) is bottomleft alignment
+            (0, 1) is bottom alignment
+            (1, 1) is bottomright alignment
+        """
+
+        x, y, w, h = rect.x, rect.y, rect.w, rect.h
+        offset_x, offset_y = 0, 0
+
+        if alignment[1] == -1:
+            offset_y = container_rect.y - y
+        elif alignment[1] == 0:
+            offset_y = container_rect.y + container_rect.h // 2 - h // 2 - y
+        elif alignment[1] == 1:
+            offset_y = container_rect.y + container_rect.h - y - h
+
+        if alignment[0] == -1:
+            offset_x = container_rect.x - x
+        elif alignment[0] == 0:
+            offset_x = container_rect.x + container_rect.w // 2 - w // 2 - x
+        elif alignment[0] == 1:
+            offset_x = container_rect.x + container_rect.w - x - w
+
+        
+        return offset_x, offset_y
+
 
 class groupcomponent(component):
     def __init__(self, rect):
@@ -141,39 +186,37 @@ class textcomponent(component):
 
 
     @staticmethod
-    def calculate_alignment_offset(text: str, rect: brect, flags):
-        """
-        Returns an offset (o_x, o_y) such that:
+    def calculate_text_alignment_offset(text: str, container_rect: brect, flags):
+        if flags & (textcomponent.ALIGN_V_TOP | textcomponent.ALIGN_V_MIDDLE | textcomponent.ALIGN_V_BOTTOM | textcomponent.ALIGN_H_LEFT | textcomponent.ALIGN_H_MIDDLE | textcomponent.ALIGN_H_RIGHT) == 0:
+            return (0, 0)
 
-            x = rect.x + o_x
-            y = rect.y + o_y
-
-        has the correct behavior. For example, if rect.x = 56 and rect.y = 10
-        in a rect with width 70 and height 30 and flags ALIGN_V_BOTTOM |
-        ALIGN_H_LEFT are set, then o_x and o_y will have values such that 
-        x = 0, y = 30. If only ALIGN_H_LEFT was set, then x = 0 and y = 10. If
-        only ALIGN_V_BOTTOM was set, then x = 56 and y = 30
-        """
-
-        x, y, w, h = rect.x, rect.y, rect.w, rect.h
-        offset_x, offset_y = 0, 0
+        text_bbox = brect(container_rect.x, container_rect.y, len(text), 1)
+        o_x, o_y = 0, 0
 
         if flags & textcomponent.ALIGN_V_TOP:
-            offset_y = -y
+            o_y = -1
         elif flags & textcomponent.ALIGN_V_MIDDLE:
-            offset_y = (h - 1) // 2 - y
+            o_y = 0
         elif flags & textcomponent.ALIGN_V_BOTTOM:
-            offset_y = h - 1 - y
+            o_y = 1
 
         if flags & textcomponent.ALIGN_H_LEFT:
-            offset_x = -x
+            o_x = -1
         elif flags & textcomponent.ALIGN_H_MIDDLE:
-            offset_x = (w - len(text)) // 2 - x
+            o_x = 0
         elif flags & textcomponent.ALIGN_H_RIGHT:
-            offset_x = w - len(text) - x
+            o_x = 1
 
+        alignment = component.calculate_alignment_offset(text_bbox, container_rect, (o_x, o_y))
+
+        if flags & (textcomponent.ALIGN_V_TOP | textcomponent.ALIGN_V_MIDDLE | textcomponent.ALIGN_V_BOTTOM) == 0:
+            return alignment[0], 0
+
+        if flags & (textcomponent.ALIGN_H_LEFT | textcomponent.ALIGN_H_MIDDLE | textcomponent.ALIGN_H_RIGHT) == 0:
+            return 0, alignment[0]
+
+        return alignment
         
-        return offset_x, offset_y
 
     @staticmethod
     def lookup_text_attr(flags):
@@ -216,9 +259,9 @@ class textcomponent(component):
 
         displayed_text = self.get_cropped_text(self.text, rect)
         if parent_rect is None:
-            o_x, o_y = self.calculate_alignment_offset(displayed_text, rect, self.flags)
+            o_x, o_y = self.calculate_text_alignment_offset(displayed_text, rect, self.flags)
         else:
-            o_x, o_y = self.calculate_alignment_offset(displayed_text, parent_rect, self.flags)
+            o_x, o_y = self.calculate_text_alignment_offset(displayed_text, parent_rect, self.flags)
 
         x = rect.x + o_x
         y = rect.y + o_y
