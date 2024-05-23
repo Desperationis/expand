@@ -70,33 +70,42 @@ def test_textcomponent():
     assert c("ABCDEFGHIJKLMNLOP", brect(0, 0, 100, 100), textcomponent.NONE) == (0,0)
 
     assert c("ABCDEFGHIJKLMNLOP", brect(0, 0, 10, 10), textcomponent.ALIGN_H_LEFT) == (0,0)
-    assert c("ABCDEFGHIJKLMNLOP", brect(-2, 40, 1, 10), textcomponent.ALIGN_H_LEFT) == (0,0)
-    assert c("ABCDEFGHIJKLMNLOP", brect(1, 1, 1, 4), textcomponent.ALIGN_H_LEFT) == (0,0)
+    assert c("ABCDEFGHIJKLMNLOP", brect(-2, 40, 1, 10), textcomponent.ALIGN_H_LEFT) == (2,0)
+    assert c("ABCDEFGHIJKLMNLOP", brect(1, 1, 1, 4), textcomponent.ALIGN_H_LEFT) == (-1,0)
     assert c("ABCDEFGHIJKLMNLOP", brect(0, 0, 100, 100), textcomponent.ALIGN_H_LEFT) == (0,0)
 
     assert c("ABCDEFGHIJKLMNLOP", brect(0, 0, 10, 10), textcomponent.ALIGN_V_TOP) == (0,0)
-    assert c("ABCDEFGHIJKLMNLOP", brect(-2, 40, 1, 10), textcomponent.ALIGN_V_TOP) == (0,0)
-    assert c("ABCDEFGHIJKLMNLOP", brect(1, 1, 1, 4), textcomponent.ALIGN_V_TOP) == (0,0)
+    assert c("ABCDEFGHIJKLMNLOP", brect(-2, 40, 1, 10), textcomponent.ALIGN_V_TOP) == (0,-40)
+    assert c("ABCDEFGHIJKLMNLOP", brect(1, 1, 1, 4), textcomponent.ALIGN_V_TOP) == (0,-1)
     assert c("ABCDEFGHIJKLMNLOP", brect(0, 0, 100, 100), textcomponent.ALIGN_V_TOP) == (0,0)
 
     assert c("ABCDEFGHIJKLMNLOP", brect(0, 0, 10, 10), textcomponent.ALIGN_H_RIGHT) == (0,0)
     assert c("ABCDEFGHIJKLMNLOP", brect(0, 0, 100, 10), textcomponent.ALIGN_H_RIGHT) == (83,0)
-
     assert c("ABCDEFGHIJKLMNLOP", brect(0, 0, 10, 10), textcomponent.ALIGN_H_MIDDLE) == (0,0)
     assert c("ABCDEFGHIJKLMNLOP", brect(0, 0, 19, 10), textcomponent.ALIGN_H_MIDDLE) == (1,0)
     assert c("ABCDEFGHIJKLMNLOP", brect(0, 0, 21, 10), textcomponent.ALIGN_H_MIDDLE) == (2,0)
     assert c("ABCDEFGHIJKLMNLOP", brect(0, 0, 27, 10), textcomponent.ALIGN_H_MIDDLE) == (5,0)
-
     assert c("ABCDEFGHIJKLMNLOP", brect(0, 0, 100, 10), textcomponent.ALIGN_V_MIDDLE) == (0,4)
     assert c("ABCDEFGHIJKLMNLOP", brect(0, 0, 100, 1), textcomponent.ALIGN_V_MIDDLE) == (0,0)
     assert c("ABCDEFGHIJKLMNLOP", brect(0, 0, 10, 10), textcomponent.ALIGN_V_MIDDLE) == (0,4)
     assert c("ABCDEFGHIJKLMNLOP", brect(0, 0, 10, 1), textcomponent.ALIGN_V_MIDDLE) == (0,0)
-
-
     assert c("ABCDEFGHIJKLMNLOP", brect(0, 0, 100, 10), textcomponent.ALIGN_V_BOTTOM) == (0,9)
     assert c("ABCDEFGHIJKLMNLOP", brect(0, 0, 100, 1), textcomponent.ALIGN_V_BOTTOM) == (0,0)
     assert c("ABCDEFGHIJKLMNLOP", brect(0, 0, 10, 10001), textcomponent.ALIGN_V_BOTTOM) == (0,10000)
 
+    assert c("ABCDEFGHIJKLMNLOP", brect(1092, 0, 10, 10), textcomponent.ALIGN_H_RIGHT) == (-1092,0)
+    assert c("ABCDEFGHIJKLMNLOP", brect(234982, 0, 100, 10), textcomponent.ALIGN_H_RIGHT) == (83 - 234982,0)
+    assert c("ABCDEFGHIJKLMNLOP", brect(-12, 0, 10, 10), textcomponent.ALIGN_H_MIDDLE) == (12,0)
+    assert c("ABCDEFGHIJKLMNLOP", brect(12, 0, 19, 10), textcomponent.ALIGN_H_MIDDLE) == (-12 + 1,0)
+    assert c("ABCDEFGHIJKLMNLOP", brect(234, 0, 21, 10), textcomponent.ALIGN_H_MIDDLE) == (2 - 234,0)
+    assert c("ABCDEFGHIJKLMNLOP", brect(-234, 0, 27, 10), textcomponent.ALIGN_H_MIDDLE) == (5 + 234,0)
+    assert c("ABCDEFGHIJKLMNLOP", brect(0, 10, 100, 10), textcomponent.ALIGN_V_MIDDLE) == (0,-6)
+    assert c("ABCDEFGHIJKLMNLOP", brect(0, -1, 100, 1), textcomponent.ALIGN_V_MIDDLE) == (0,1)
+    assert c("ABCDEFGHIJKLMNLOP", brect(0, -3, 10, 10), textcomponent.ALIGN_V_MIDDLE) == (0,7)
+    assert c("ABCDEFGHIJKLMNLOP", brect(0, 23, 10, 1), textcomponent.ALIGN_V_MIDDLE) == (0,-23)
+    assert c("ABCDEFGHIJKLMNLOP", brect(0, 234, 100, 10), textcomponent.ALIGN_V_BOTTOM) == (0,9 - 234)
+    assert c("ABCDEFGHIJKLMNLOP", brect(0, 1002, 100, 1), textcomponent.ALIGN_V_BOTTOM) == (0,-1002)
+    assert c("ABCDEFGHIJKLMNLOP", brect(0, -1, 10, 10001), textcomponent.ALIGN_V_BOTTOM) == (0,10000 + 1)
 
     assert textcomponent.get_cropped_text("hellothere", brect(100, -1, 5, 1)) == "hello"
 

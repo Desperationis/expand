@@ -126,6 +126,9 @@ class textcomponent(component):
         self.rect: brect = rect
         self.color = color
 
+    def copy(self):
+        return textcomponent(self.text, self.rect, self.flags, self.color)
+
 
     @staticmethod
     def get_cropped_text(text: str, rect: brect) -> str:
@@ -140,34 +143,34 @@ class textcomponent(component):
     @staticmethod
     def calculate_alignment_offset(text: str, rect: brect, flags):
         """
-        Let's say `text` is in the top left of `rect`. If `ALIGN_V_MIDDLE` or
-        any of the other flags in textcomponent is enabled in `flags`, this
-        method calculates the x and y offset relative to the origin (top left)
-        of `rect` the text should be drawn. 
+        Returns an offset (o_x, o_y) such that:
 
-        To get the absolute position of where the text should be drawn, the
-        code would look something like this:
+            x = rect.x + o_x
+            y = rect.y + o_y
 
-            x, y = calculate_alignment_offset(text, rect, flags)
-            stdscr.addstr(rect.y + y, rect.x + x, text)
+        has the correct behavior. For example, if rect.x = 56 and rect.y = 10
+        in a rect with width 70 and height 30 and flags ALIGN_V_BOTTOM |
+        ALIGN_H_LEFT are set, then o_x and o_y will have values such that 
+        x = 0, y = 30. If only ALIGN_H_LEFT was set, then x = 0 and y = 10. If
+        only ALIGN_V_BOTTOM was set, then x = 56 and y = 30
         """
 
         x, y, w, h = rect.x, rect.y, rect.w, rect.h
         offset_x, offset_y = 0, 0
 
         if flags & textcomponent.ALIGN_V_TOP:
-            pass
+            offset_y = -y
         elif flags & textcomponent.ALIGN_V_MIDDLE:
-            offset_y = (h - 1) // 2
+            offset_y = (h - 1) // 2 - y
         elif flags & textcomponent.ALIGN_V_BOTTOM:
-            offset_y = h - 1
+            offset_y = h - 1 - y
 
         if flags & textcomponent.ALIGN_H_LEFT:
-            pass
+            offset_x = -x
         elif flags & textcomponent.ALIGN_H_MIDDLE:
-            offset_x = (w - len(text)) // 2
+            offset_x = (w - len(text)) // 2 - x
         elif flags & textcomponent.ALIGN_H_RIGHT:
-            offset_x = w - len(text) 
+            offset_x = w - len(text) - x
 
         
         return offset_x, offset_y
@@ -207,19 +210,29 @@ class textcomponent(component):
             rect.x += parent_rect.x
             rect.y += parent_rect.y
 
+            if not rect.colliding(parent_rect):
+                print(f"Out of bounds: {(rect.x, rect.y)} from parent {(parent_rect.x, parent_rect.y)}")
+                return
+
         displayed_text = self.get_cropped_text(self.text, rect)
-        o_x, o_y = self.calculate_alignment_offset(displayed_text, rect, self.flags)
+        if parent_rect is None:
+            o_x, o_y = self.calculate_alignment_offset(displayed_text, rect, self.flags)
+        else:
+            o_x, o_y = self.calculate_alignment_offset(displayed_text, parent_rect, self.flags)
+
         x = rect.x + o_x
         y = rect.y + o_y
+        logging.debug(f"Offset{(o_x, o_y)}")
+        logging.debug(f"Here is the y: {rect.y}")
         attrs = self.lookup_text_attr(self.flags)
 
         if self.color is not None:
             attrs |= self.color
 
-        self.debug_draw_brect(stdscr, rect)
-        logging.debug(self.text[:10])
-        logging.debug(displayed_text)
-
+        #self.debug_draw_brect(stdscr, rect)
+        #logging.debug(self.text[:10])
+        #logging.debug(displayed_text)
+        
         try:
             stdscr.addstr(y, x, displayed_text, attrs)
         except curses.error:

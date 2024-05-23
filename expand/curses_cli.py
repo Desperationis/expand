@@ -25,17 +25,53 @@ class curses_cli:
         if not self.is_setup:
             self.setup()
 
-        text = textcomponent("theisistEncharacterslong", rect=brect(0,5,100,10), flags=textcomponent.BOLD | textcomponent.ALIGN_H_RIGHT | textcomponent.ALIGN_V_BOTTOM, color=curses.color_pair(1))
-        group = groupcomponent(brect(10, 10, 50, 20))
-        group.add(text)
+
+        def gen_fake_data():
+            choices = [
+                    "alacritty.yaml",
+                    "nvim.yaml",
+                    "installcomputer.yaml",
+                    "supercool.yaml",
+                ]
+            #THIS IS ONLY TO MAKE FAKE DATA
+            tmp = []
+            for i in range(1, 7):
+                for c in choices:
+                    tmp.append(f"{i}_{c.split('.')[0]}.yaml")
+               
+            choices += tmp
+
+            return choices
+
+        choices = list(map(lambda a: textcomponent(a[1], rect=brect(0, a[0], len(a[1]), 1), flags=textcomponent.ALIGN_H_MIDDLE), enumerate(gen_fake_data())))
+
+        cursor = 0
+        def increment_cursor(amount):
+            nonlocal cursor
+            cursor += amount
+            cursor %= len(choices)
 
         while True:
             self.stdscr.erase()
 
+            # We keep making new groups to catch window resizes
+            rows, cols = self.stdscr.getmaxyx()
+            group = groupcomponent(brect(0, 0, cols, rows))
+            for i, text in enumerate(choices):
+                copy = text.copy()
+                if i == cursor:
+                    copy.flags |= textcomponent.REVERSE
+                group.add(copy)
+
+
+            logging.debug(group.components)
             group.draw(self.stdscr)
 
             c = self.stdscr.getch()
-            text.handleinput(c) 
+            if c == curses.KEY_UP or c == ord("k"):
+                increment_cursor(-1)
+            elif c == curses.KEY_DOWN or c == ord("j"):
+                increment_cursor(1)
 
             self.stdscr.refresh()
 
