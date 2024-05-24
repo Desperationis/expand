@@ -53,11 +53,14 @@ class curses_cli:
             rows, cols = self.stdscr.getmaxyx()
             root_container = Container("root", brect(0, 0, cols, rows))
             sub_container = Container("sub", brect(100,100, cols//4, rows//4))
-            root_container.add_children(sub_container)
+            root_container.add_child("sub")
+            text = TextComponent("text1", "hi there", flags=(TextComponent.ALIGN_H_MIDDLE | TextComponent.ALIGN_V_TOP))
+            sub_container.add_child("text1")
             
             offset = brect.calculate_alignment_offset(sub_container.rect, root_container.rect, (0, 1))
             sub_container.rect.x += offset[0]
             sub_container.rect.y += offset[1]
+            PubSub.invoke_to(ParentBRectMessage("sub", sub_container.rect), "text1")
 
             """
             group = groupcomponent(brect(0, 0, cols, rows))

@@ -157,6 +157,13 @@ class RunawayMessage(Message):
     def get_child_id(self) -> str:
         return self.data
 
+class ParentBRectMessage(Message):
+    def __init__(self, sender_id: str, data: brect):
+        super().__init__(sender_id, data)
+
+    def get_brect(self) -> brect:
+        return self.data
+
 class PubSub:
     _instance = None
     listeners = {}
@@ -213,11 +220,13 @@ class Container:
         self.id = id
         self.rect = rect
         self.parent_id = None
+        self.parent_rect = None
         self.children = set()
 
         PubSub.add_listener(self.id, AdoptionMessage, lambda m: self.set_parent(m.get_parent_id()))
         PubSub.add_listener(self.id, RunawayMessage, lambda m: self.remove_child(m.get_child_id()))
         PubSub.add_listener(self.id, DrawMessage, lambda m: self.draw(m.stdscr()))
+        PubSub.add_listener(self.id, ParentBRectMessage, lambda m: self.update_parent_rect_cache(m.get_brect()))
 
     def set_parent(self, parent_id):
         if self.parent_id == parent_id:
@@ -227,14 +236,20 @@ class Container:
             PubSub.invoke_to(RunawayMessage(self.id), self.parent_id)
         self.parent_id = parent_id
 
-    def add_child(self, child_id):
+
+    def update_parent_rect_cache(self, brect):
+        self.parent_rect = brect
+
+    def add_child(self, child_id: str):
+        if not isinstance(child_id, str):
+            raise Exception()
+
         self.children.add(child_id)
         PubSub.invoke_to(AdoptionMessage(self.id), child_id)
+        PubSub.invoke_to(ParentBRectMessage(self.id, self.rect.copy()), child_id)
 
     def remove_child(self, child_id):
         self.children.remove(child_id)
-
-        
 
     def debug_draw_brect(self, stdscr, color=None):
         """
@@ -270,5 +285,145 @@ class Container:
         logging.debug(self.children)
         for child_id in self.children:
             PubSub.invoke_to(DrawMessage(self.id, stdscr), child_id)
+
+
+class TextComponent(Container):
+    # Standard Text, no modication in display
+    NONE = 0
+
+    # Center the text horizontally
+    ALIGN_H_LEFT = 1 << 1
+    ALIGN_H_MIDDLE = 1 << 2
+    ALIGN_H_RIGHT = 1 << 3
+
+    # Center the text vertically
+    ALIGN_V_TOP = 1 << 4
+    ALIGN_V_MIDDLE = 1 << 5
+    ALIGN_V_BOTTOM = 1 << 6
+
+    # Special Effects / Text Attributes
+    # NOTE: These may not work depending on the terminal you are using.
+    REVERSE = 1 << 7
+    BLINK = 1 << 8
+    BOLD = 1 << 9
+    DIM = 1 << 10
+    STANDOUT = 1 << 11
+    UNDERLINE = 1 << 12
+
+
+    def __init__(self, id, text, flags=NONE, color=NONE):
+        rect = brect(0, 0, len(text), 1)
+        super().__init__(id, rect)
+
+        self.text = text
+        self.flags = flags
+        self.color = color
+
+    def copy(self, new_id):
+        return TextComponent(new_id, self.text, self.flags, self.color)
+
+    @staticmethod
+    def get_cropped_text(text: str, rect: brect) -> str:
+        """
+        Return cropped text that can fit in bounding box. With unicode
+        characters (i.e. emojis), this function might cut it shorter than what
+        is liked.
+        """
+        return text[:rect.w]
+
+    @staticmethod
+    def calculate_text_alignment_offset(text: str, container_rect: brect, flags):
+        if flags & (TextComponent.ALIGN_V_TOP | TextComponent.ALIGN_V_MIDDLE | TextComponent.ALIGN_V_BOTTOM | TextComponent.ALIGN_H_LEFT | TextComponent.ALIGN_H_MIDDLE | TextComponent.ALIGN_H_RIGHT) == 0:
+            return (0, 0)
+
+        text_bbox = brect(container_rect.x, container_rect.y, len(text), 1)
+        o_x, o_y = 0, 0
+
+        if flags & TextComponent.ALIGN_V_TOP:
+            o_y = -1
+        elif flags & TextComponent.ALIGN_V_MIDDLE:
+            o_y = 0
+        elif flags & TextComponent.ALIGN_V_BOTTOM:
+            o_y = 1
+
+        if flags & TextComponent.ALIGN_H_LEFT:
+            o_x = -1
+        elif flags & TextComponent.ALIGN_H_MIDDLE:
+            o_x = 0
+        elif flags & TextComponent.ALIGN_H_RIGHT:
+            o_x = 1
+
+        alignment = brect.calculate_alignment_offset(text_bbox, container_rect, (o_x, o_y))
+
+        if flags & (TextComponent.ALIGN_V_TOP | TextComponent.ALIGN_V_MIDDLE | TextComponent.ALIGN_V_BOTTOM) == 0:
+            return alignment[0], 0
+
+        if flags & (TextComponent.ALIGN_H_LEFT | TextComponent.ALIGN_H_MIDDLE | TextComponent.ALIGN_H_RIGHT) == 0:
+            return 0, alignment[0]
+
+        return alignment
+
+    @staticmethod
+    def lookup_text_attr(flags):
+        """
+        Given a list of flags from `TextComponent`, get the conjoined "Special
+        Effects" flags in ncurses format.
+        """
+
+        lookup = {
+            TextComponent.REVERSE: curses.A_REVERSE,
+            TextComponent.BLINK: curses.A_BLINK,
+            TextComponent.BOLD: curses.A_BOLD,
+            TextComponent.DIM: curses.A_DIM,
+            TextComponent.STANDOUT: curses.A_STANDOUT,
+            TextComponent.UNDERLINE: curses.A_UNDERLINE
+        }
+
+        attrs = 0
+        for flag in lookup:
+            if flags & flag:
+                attrs |= lookup[flag]
+
+        if attrs == 0:
+            attrs = curses.A_NORMAL
+
+        return attrs
+
+
+    def draw(self, stdscr):
+        rect = self.rect.copy()
+        if self.parent_rect is not None:
+            rect.w = min(self.parent_rect.w - rect.x, rect.w)
+            rect.h = min(self.parent_rect.h - rect.y, rect.h)
+            logging.debug(f"PARENT COORDS: {self.parent_rect.x} {self.parent_rect.y}")
+            rect.x += self.parent_rect.x
+            rect.y += self.parent_rect.y
+            if not rect.colliding(self.parent_rect):
+                print(f"Out of bounds: {(rect.x, rect.y)} from parent {(self.parent_rect.x, self.parent_rect.y)}")
+                return
+
+        displayed_text = self.get_cropped_text(self.text, rect)
+        if self.parent_rect is None:
+            o_x, o_y = self.calculate_text_alignment_offset(displayed_text, rect, self.flags)
+        else:
+            o_x, o_y = self.calculate_text_alignment_offset(displayed_text, self.parent_rect, self.flags)
+
+        x = rect.x + o_x
+        y = rect.y + o_y
+        logging.debug(f"Offset{(o_x, o_y)}")
+        logging.debug(f"Here is the y: {rect.y}")
+        attrs = self.lookup_text_attr(self.flags)
+
+        if self.color is not None:
+            attrs |= self.color
+
+        #self.debug_draw_brect(stdscr, rect)
+        #logging.debug(self.text[:10])
+        #logging.debug(displayed_text)
+
+        try:
+            stdscr.addstr(y, x, displayed_text, attrs)
+        except curses.error:
+            pass
 
 

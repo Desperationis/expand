@@ -379,8 +379,11 @@ class textcomponent(component):
         else:
             o_x, o_y = self.calculate_text_alignment_offset(displayed_text, parent_rect, self.flags)
 
-        x = rect.x + o_x
-        y = rect.y + o_y
+        rect.x += o_x
+        rect.y += o_y
+
+        x = rect.x 
+        y = rect.y 
         logging.debug(f"Offset{(o_x, o_y)}")
         logging.debug(f"Here is the y: {rect.y}")
         attrs = self.lookup_text_attr(self.flags)
