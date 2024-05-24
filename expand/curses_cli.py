@@ -84,6 +84,8 @@ class curses_cli:
             elif c == curses.KEY_DOWN or c == ord("j"):
                 increment_cursor(1)
             """
+            
+            root_container.destroy()
 
             self.stdscr.refresh()
 

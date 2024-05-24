@@ -157,6 +157,10 @@ class RunawayMessage(Message):
     def get_child_id(self) -> str:
         return self.data
 
+class SuicideMessage(Message):
+    def __init__(self, sender_id: str):
+        super().__init__(sender_id, sender_id)
+
 class ParentBRectMessage(Message):
     def __init__(self, sender_id: str, data: brect):
         super().__init__(sender_id, data)
@@ -189,13 +193,26 @@ class PubSub:
             PubSub.listeners[event_class] = []
         PubSub.listeners[event_class].append(callback)
 
-        # For private lookup
+        # For private lookup / garbage cleanup
         if id not in PubSub.id_to_callback:
             PubSub.id_to_callback[id] = {}
         if event_class not in PubSub.id_to_callback[id]:
             PubSub.id_to_callback[id][event_class] = []
 
         PubSub.id_to_callback[id][event_class].append(callback)
+
+    @staticmethod
+    def remove_listener(id):
+        if id not in PubSub.id_to_callback:
+            return
+
+        for event_class in PubSub.id_to_callback[id]:
+            for callback in PubSub.id_to_callback[id][event_class]:
+                PubSub.listeners[event_class].remove(callback)
+
+        PubSub.id_to_callback[id].clear()
+        del PubSub.id_to_callback[id]
+
 
     @staticmethod
     def invoke_to(message, id):
@@ -227,6 +244,13 @@ class Container:
         PubSub.add_listener(self.id, RunawayMessage, lambda m: self.remove_child(m.get_child_id()))
         PubSub.add_listener(self.id, DrawMessage, lambda m: self.draw(m.stdscr()))
         PubSub.add_listener(self.id, ParentBRectMessage, lambda m: self.update_parent_rect_cache(m.get_brect()))
+        PubSub.add_listener(self.id, SuicideMessage, lambda m: self.destroy())
+
+    def destroy(self):
+        PubSub.remove_listener(self.id)
+        for child in self.children:
+            PubSub.invoke_to(SuicideMessage(self.id), child)
+
 
     def set_parent(self, parent_id):
         if self.parent_id == parent_id:
@@ -395,11 +419,9 @@ class TextComponent(Container):
         if self.parent_rect is not None:
             rect.w = min(self.parent_rect.w - rect.x, rect.w)
             rect.h = min(self.parent_rect.h - rect.y, rect.h)
-            logging.debug(f"PARENT COORDS: {self.parent_rect.x} {self.parent_rect.y}")
             rect.x += self.parent_rect.x
             rect.y += self.parent_rect.y
             if not rect.colliding(self.parent_rect):
-                print(f"Out of bounds: {(rect.x, rect.y)} from parent {(self.parent_rect.x, self.parent_rect.y)}")
                 return
 
         displayed_text = self.get_cropped_text(self.text, rect)
@@ -410,8 +432,6 @@ class TextComponent(Container):
 
         x = rect.x + o_x
         y = rect.y + o_y
-        logging.debug(f"Offset{(o_x, o_y)}")
-        logging.debug(f"Here is the y: {rect.y}")
         attrs = self.lookup_text_attr(self.flags)
 
         if self.color is not None:
