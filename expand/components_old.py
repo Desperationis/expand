@@ -34,7 +34,7 @@ from .brect import brect
     coordinate. 
 
     So let's make some more rules:
-        * Every component must know its parent.
+        * Every component must know its parent, and only have one parent.
         * Every component knows its global position.
 
     But now there's other issue. If we want to be reactive, who takes
@@ -77,7 +77,7 @@ from .brect import brect
 
         2. Containers can have other containers inside them.
 
-        3. Every component must know its parent.
+        3. Every component must know its parent, and only have one parent.
 
         4. Every component must know its global position.
 

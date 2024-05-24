@@ -51,8 +51,9 @@ class curses_cli:
 
             # We keep making new groups to catch window resizes
             rows, cols = self.stdscr.getmaxyx()
-            root_container = Container(brect(0, 0, cols, rows))
-            sub_container = Container(brect(100,100, cols//4, rows//4))
+            root_container = Container("root", brect(0, 0, cols, rows))
+            sub_container = Container("sub", brect(100,100, cols//4, rows//4))
+            root_container.add_children(sub_container)
             
             offset = brect.calculate_alignment_offset(sub_container.rect, root_container.rect, (0, 1))
             sub_container.rect.x += offset[0]
@@ -71,8 +72,7 @@ class curses_cli:
             group.draw(self.stdscr)
             """
 
-            root_container.draw(self.stdscr)
-            sub_container.draw(self.stdscr)
+            PubSub.invoke_to(DrawMessage("root", self.stdscr), "root")
 
             c = self.stdscr.getch()
             """

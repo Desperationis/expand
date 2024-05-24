@@ -258,3 +258,28 @@ def test_pubsub2():
     assert called[7] == False
     assert called[8] == True
     assert called[9] == False
+
+def test_container_children():
+    from expand import PubSub, Container, brect
+
+    PubSub.reset()
+    c = Container("root", brect(0, 0, 50, 50))
+    z = Container("root2", brect(0, 0, 50, 50))
+    s = Container("sub", brect(0, 0, 50, 50))
+
+    c.add_child(s.id)
+
+    assert c.children == {"sub"}
+    assert z.children == set()
+    assert s.parent_id == "root"
+
+    z.add_child(s.id)
+    assert c.children == set()
+    assert z.children == {"sub"}
+    assert s.parent_id == "root2"
+
+    z.add_child(s.id)
+    assert c.children == set()
+    assert z.children == {"sub"}
+    assert s.parent_id == "root2"
+

@@ -1,7 +1,7 @@
 import curses
 import logging
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import Optional, Self
 from .enums import CHOICE, SCENES, SelectedOption
 from .brect import brect
 
@@ -140,7 +140,22 @@ class KeyMessage(Message):
 
     
 class DrawMessage(Message):
-    pass
+    def stdscr(self):
+        return self.data
+
+class AdoptionMessage(Message):
+    def __init__(self, sender_id: str):
+        super().__init__(sender_id, sender_id)
+
+    def get_parent_id(self) -> str:
+        return self.data
+
+class RunawayMessage(Message):
+    def __init__(self, sender_id: str):
+        super().__init__(sender_id, sender_id)
+
+    def get_child_id(self) -> str:
+        return self.data
 
 class PubSub:
     _instance = None
@@ -195,8 +210,30 @@ class PubSub:
 
 class Container:
     def __init__(self, id, rect: brect):
-        self.rect = rect
         self.id = id
+        self.rect = rect
+        self.parent_id = None
+        self.children = set()
+
+        PubSub.add_listener(self.id, AdoptionMessage, lambda m: self.set_parent(m.get_parent_id()))
+        PubSub.add_listener(self.id, RunawayMessage, lambda m: self.remove_child(m.get_child_id()))
+        PubSub.add_listener(self.id, DrawMessage, lambda m: self.draw(m.stdscr()))
+
+    def set_parent(self, parent_id):
+        if self.parent_id == parent_id:
+            return
+
+        if self.parent_id != None:
+            PubSub.invoke_to(RunawayMessage(self.id), self.parent_id)
+        self.parent_id = parent_id
+
+    def add_child(self, child_id):
+        self.children.add(child_id)
+        PubSub.invoke_to(AdoptionMessage(self.id), child_id)
+
+    def remove_child(self, child_id):
+        self.children.remove(child_id)
+
         
 
     def debug_draw_brect(self, stdscr, color=None):
@@ -228,10 +265,10 @@ class Container:
         except curses.error:
             pass
 
-    def draw(self, stdscr, message: DrawMessage):
-        if message.get_recipient_id() != self.id:
-            return
-
+    def draw(self, stdscr):
         self.debug_draw_brect(stdscr)
+        logging.debug(self.children)
+        for child_id in self.children:
+            PubSub.invoke_to(DrawMessage(self.id, stdscr), child_id)
 
 
