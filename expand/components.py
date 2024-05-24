@@ -1,10 +1,3 @@
-import curses
-import logging
-from abc import ABC, abstractmethod
-from typing import Optional, Self
-from .enums import CHOICE, SCENES, SelectedOption
-from .brect import brect
-
 """
     We will start with two strict rule:
         * Containers can only draw within themselves.
@@ -122,6 +115,13 @@ from .brect import brect
     is the same thing but can display its own little checks independently.
 """
 
+
+import curses
+import logging
+from abc import ABC
+from typing import Any
+from .brect import brect
+
 class Message(ABC):
     def __init__(self, sender_id: str, data):
         self._sender_id = sender_id
@@ -129,6 +129,9 @@ class Message(ABC):
 
     def get_sender_id(self) -> str:
         return self._sender_id
+
+    def get_data(self) -> Any:
+        return self.data
 
 
 class KeyMessage(Message):
@@ -138,10 +141,11 @@ class KeyMessage(Message):
     def get_key(self) -> str:
         return self.data
 
-    
+
 class DrawMessage(Message):
     def stdscr(self):
         return self.data
+
 
 class AdoptionMessage(Message):
     def __init__(self, sender_id: str):
@@ -150,6 +154,7 @@ class AdoptionMessage(Message):
     def get_parent_id(self) -> str:
         return self.data
 
+
 class RunawayMessage(Message):
     def __init__(self, sender_id: str):
         super().__init__(sender_id, sender_id)
@@ -157,9 +162,11 @@ class RunawayMessage(Message):
     def get_child_id(self) -> str:
         return self.data
 
+
 class SuicideMessage(Message):
     def __init__(self, sender_id: str):
         super().__init__(sender_id, sender_id)
+
 
 class ParentBRectMessage(Message):
     def __init__(self, sender_id: str, data: brect):
@@ -168,13 +175,14 @@ class ParentBRectMessage(Message):
     def get_brect(self) -> brect:
         return self.data
 
+
 class PubSub:
     _instance = None
     listeners = {}
     id_to_callback = {}
-    
+
     def __new__(cls):
-        if not hasattr(cls, 'instance'):
+        if not hasattr(cls, "instance"):
             cls._instance = super(PubSub, cls).__new__(cls)
 
         return cls._instance
@@ -213,7 +221,6 @@ class PubSub:
         PubSub.id_to_callback[id].clear()
         del PubSub.id_to_callback[id]
 
-
     @staticmethod
     def invoke_to(message, id):
         if id not in PubSub.id_to_callback:
@@ -240,17 +247,24 @@ class Container:
         self.parent_rect = None
         self.children = set()
 
-        PubSub.add_listener(self.id, AdoptionMessage, lambda m: self.set_parent(m.get_parent_id()))
-        PubSub.add_listener(self.id, RunawayMessage, lambda m: self.remove_child(m.get_child_id()))
+        PubSub.add_listener(
+            self.id, AdoptionMessage, lambda m: self.set_parent(m.get_parent_id())
+        )
+        PubSub.add_listener(
+            self.id, RunawayMessage, lambda m: self.remove_child(m.get_child_id())
+        )
         PubSub.add_listener(self.id, DrawMessage, lambda m: self.draw(m.stdscr()))
-        PubSub.add_listener(self.id, ParentBRectMessage, lambda m: self.update_parent_rect_cache(m.get_brect()))
+        PubSub.add_listener(
+            self.id,
+            ParentBRectMessage,
+            lambda m: self.update_parent_rect_cache(m.get_brect()),
+        )
         PubSub.add_listener(self.id, SuicideMessage, lambda m: self.destroy())
 
     def destroy(self):
         PubSub.remove_listener(self.id)
         for child in self.children:
             PubSub.invoke_to(SuicideMessage(self.id), child)
-
 
     def set_parent(self, parent_id):
         if self.parent_id == parent_id:
@@ -259,7 +273,6 @@ class Container:
         if self.parent_id != None:
             PubSub.invoke_to(RunawayMessage(self.id), self.parent_id)
         self.parent_id = parent_id
-
 
     def update_parent_rect_cache(self, brect):
         self.parent_rect = brect
@@ -334,7 +347,6 @@ class TextComponent(Container):
     STANDOUT = 1 << 11
     UNDERLINE = 1 << 12
 
-
     def __init__(self, id, text, flags=NONE, color=NONE):
         rect = brect(0, 0, len(text), 1)
         super().__init__(id, rect)
@@ -353,11 +365,22 @@ class TextComponent(Container):
         characters (i.e. emojis), this function might cut it shorter than what
         is liked.
         """
-        return text[:rect.w]
+        return text[: rect.w]
 
     @staticmethod
     def calculate_text_alignment_offset(text: str, container_rect: brect, flags):
-        if flags & (TextComponent.ALIGN_V_TOP | TextComponent.ALIGN_V_MIDDLE | TextComponent.ALIGN_V_BOTTOM | TextComponent.ALIGN_H_LEFT | TextComponent.ALIGN_H_MIDDLE | TextComponent.ALIGN_H_RIGHT) == 0:
+        if (
+            flags
+            & (
+                TextComponent.ALIGN_V_TOP
+                | TextComponent.ALIGN_V_MIDDLE
+                | TextComponent.ALIGN_V_BOTTOM
+                | TextComponent.ALIGN_H_LEFT
+                | TextComponent.ALIGN_H_MIDDLE
+                | TextComponent.ALIGN_H_RIGHT
+            )
+            == 0
+        ):
             return (0, 0)
 
         text_bbox = brect(container_rect.x, container_rect.y, len(text), 1)
@@ -377,12 +400,30 @@ class TextComponent(Container):
         elif flags & TextComponent.ALIGN_H_RIGHT:
             o_x = 1
 
-        alignment = brect.calculate_alignment_offset(text_bbox, container_rect, (o_x, o_y))
+        alignment = brect.calculate_alignment_offset(
+            text_bbox, container_rect, (o_x, o_y)
+        )
 
-        if flags & (TextComponent.ALIGN_V_TOP | TextComponent.ALIGN_V_MIDDLE | TextComponent.ALIGN_V_BOTTOM) == 0:
+        if (
+            flags
+            & (
+                TextComponent.ALIGN_V_TOP
+                | TextComponent.ALIGN_V_MIDDLE
+                | TextComponent.ALIGN_V_BOTTOM
+            )
+            == 0
+        ):
             return alignment[0], 0
 
-        if flags & (TextComponent.ALIGN_H_LEFT | TextComponent.ALIGN_H_MIDDLE | TextComponent.ALIGN_H_RIGHT) == 0:
+        if (
+            flags
+            & (
+                TextComponent.ALIGN_H_LEFT
+                | TextComponent.ALIGN_H_MIDDLE
+                | TextComponent.ALIGN_H_RIGHT
+            )
+            == 0
+        ):
             return 0, alignment[0]
 
         return alignment
@@ -400,7 +441,7 @@ class TextComponent(Container):
             TextComponent.BOLD: curses.A_BOLD,
             TextComponent.DIM: curses.A_DIM,
             TextComponent.STANDOUT: curses.A_STANDOUT,
-            TextComponent.UNDERLINE: curses.A_UNDERLINE
+            TextComponent.UNDERLINE: curses.A_UNDERLINE,
         }
 
         attrs = 0
@@ -412,7 +453,6 @@ class TextComponent(Container):
             attrs = curses.A_NORMAL
 
         return attrs
-
 
     def draw(self, stdscr):
         rect = self.rect.copy()
@@ -426,9 +466,13 @@ class TextComponent(Container):
 
         displayed_text = self.get_cropped_text(self.text, rect)
         if self.parent_rect is None:
-            o_x, o_y = self.calculate_text_alignment_offset(displayed_text, rect, self.flags)
+            o_x, o_y = self.calculate_text_alignment_offset(
+                displayed_text, rect, self.flags
+            )
         else:
-            o_x, o_y = self.calculate_text_alignment_offset(displayed_text, self.parent_rect, self.flags)
+            o_x, o_y = self.calculate_text_alignment_offset(
+                displayed_text, self.parent_rect, self.flags
+            )
 
         x = rect.x + o_x
         y = rect.y + o_y
@@ -437,13 +481,11 @@ class TextComponent(Container):
         if self.color is not None:
             attrs |= self.color
 
-        #self.debug_draw_brect(stdscr, rect)
-        #logging.debug(self.text[:10])
-        #logging.debug(displayed_text)
+        # self.debug_draw_brect(stdscr, rect)
+        # logging.debug(self.text[:10])
+        # logging.debug(displayed_text)
 
         try:
             stdscr.addstr(y, x, displayed_text, attrs)
         except curses.error:
             pass
-
-
