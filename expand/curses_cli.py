@@ -43,19 +43,22 @@ class curses_cli:
 
             return choices
 
-        choices = list(map(lambda a: textcomponent(a[1], rect=brect(0, a[0], len(a[1]), 1), flags=textcomponent.ALIGN_H_MIDDLE), enumerate(gen_fake_data())))
+        #choices = list(map(lambda a: textcomponent(a[1], rect=brect(0, a[0], len(a[1]), 1), flags=textcomponent.ALIGN_H_MIDDLE), enumerate(gen_fake_data())))
 
-        cursor = 0
-        def increment_cursor(amount):
-            nonlocal cursor
-            cursor += amount
-            cursor %= len(choices)
 
         while True:
             self.stdscr.erase()
 
             # We keep making new groups to catch window resizes
             rows, cols = self.stdscr.getmaxyx()
+            root_container = Container(brect(0, 0, cols, rows))
+            sub_container = Container(brect(100,100, cols//4, rows//4))
+            
+            offset = brect.calculate_alignment_offset(sub_container.rect, root_container.rect, (0, 1))
+            sub_container.rect.x += offset[0]
+            sub_container.rect.y += offset[1]
+
+            """
             group = groupcomponent(brect(0, 0, cols, rows))
             for i, text in enumerate(choices):
                 copy = text.copy()
@@ -66,12 +69,18 @@ class curses_cli:
 
             logging.debug(group.components)
             group.draw(self.stdscr)
+            """
+
+            root_container.draw(self.stdscr)
+            sub_container.draw(self.stdscr)
 
             c = self.stdscr.getch()
+            """
             if c == curses.KEY_UP or c == ord("k"):
                 increment_cursor(-1)
             elif c == curses.KEY_DOWN or c == ord("j"):
                 increment_cursor(1)
+            """
 
             self.stdscr.refresh()
 

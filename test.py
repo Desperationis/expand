@@ -138,3 +138,123 @@ def test_bounding_collision():
     assert brect(0,0,10,10).colliding(brect(10,11,10,10)) == False
     assert brect(-10,-10,10,10).colliding(brect(0,0,10,10)) == False
 
+
+def test_pubsub():
+    from expand import PubSub, KeyMessage
+
+    PubSub.reset()
+
+    called = [False] * 10
+
+    def flip(i):
+        called[i] = not called[i]
+
+    PubSub.add_listener("1", KeyMessage, lambda a: flip(0))
+    PubSub.add_listener("2", KeyMessage, lambda a: flip(4))
+    PubSub.add_listener("3", KeyMessage, lambda a: flip(8))
+
+    for i in called:
+        assert not i
+
+    PubSub.invoke_global(KeyMessage("a", "a"))
+
+    assert called[0] == True
+    assert called[1] == False
+    assert called[2] == False
+    assert called[3] == False
+    assert called[4] == True
+    assert called[5] == False
+    assert called[6] == False
+    assert called[7] == False
+    assert called[8] == True
+    assert called[9] == False
+
+
+def test_pubsub2():
+    from expand import PubSub, KeyMessage
+
+    PubSub.reset()
+
+    called = [False] * 10
+
+    def flip(i):
+        called[i] = not called[i]
+
+    PubSub.add_listener("1", KeyMessage, lambda a: flip(0))
+    PubSub.add_listener("2", KeyMessage, lambda a: flip(4))
+    PubSub.add_listener("3", KeyMessage, lambda a: flip(8))
+
+    for i in called:
+        assert not i
+
+    PubSub.invoke_to(KeyMessage("a", "a"), "1")
+
+    assert called[0] == True
+    assert called[1] == False
+    assert called[2] == False
+    assert called[3] == False
+    assert called[4] == False
+    assert called[5] == False
+    assert called[6] == False
+    assert called[7] == False
+    assert called[8] == False
+    assert called[9] == False
+
+
+
+    PubSub.invoke_to(KeyMessage("a", "a"), "1")
+
+    assert called[0] == False
+    assert called[1] == False
+    assert called[2] == False
+    assert called[3] == False
+    assert called[4] == False
+    assert called[5] == False
+    assert called[6] == False
+    assert called[7] == False
+    assert called[8] == False
+    assert called[9] == False
+
+    PubSub.invoke_to(KeyMessage("a", "a"), "2")
+
+    assert called[0] == False
+    assert called[1] == False
+    assert called[2] == False
+    assert called[3] == False
+    assert called[4] == True
+    assert called[5] == False
+    assert called[6] == False
+    assert called[7] == False
+    assert called[8] == False
+    assert called[9] == False
+
+
+    PubSub.invoke_to(KeyMessage("a", "a"), "3")
+
+    assert called[0] == False
+    assert called[1] == False
+    assert called[2] == False
+    assert called[3] == False
+    assert called[4] == True
+    assert called[5] == False
+    assert called[6] == False
+    assert called[7] == False
+    assert called[8] == True
+    assert called[9] == False
+
+
+
+    PubSub.add_listener("1", KeyMessage, lambda a: flip(0))
+    PubSub.invoke_to(KeyMessage("a", "a"), "1")
+
+
+    assert called[0] == False
+    assert called[1] == False
+    assert called[2] == False
+    assert called[3] == False
+    assert called[4] == True
+    assert called[5] == False
+    assert called[6] == False
+    assert called[7] == False
+    assert called[8] == True
+    assert called[9] == False
