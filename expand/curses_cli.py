@@ -45,7 +45,7 @@ class curses_cli:
             )
             TextComponent(
                 "text3",
-                "HAHAHAHAH",
+                "HAHAHAHAHHAHAH",
                 flags=(TextComponent.ALIGN_H_MIDDLE),
             )
             TextComponent(
@@ -65,7 +65,7 @@ class curses_cli:
             )
             sub_container.rect.x += offset[0]
             sub_container.rect.y += offset[1]
-            PubSub.invoke_to(ParentBRectMessage("sub", sub_container.rect), "text1")
+            PubSub.invoke_to(ParentRectMessage("sub", sub_container.rect), "text1")
 
             """
             group = groupcomponent(brect(0, 0, cols, rows))

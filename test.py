@@ -160,7 +160,7 @@ def test_bounding_collision():
 
 
 def test_pubsub():
-    from expand import PubSub, KeyMessage
+    from expand import PubSub, SuicideMessage
 
     PubSub.reset()
 
@@ -169,14 +169,14 @@ def test_pubsub():
     def flip(i):
         called[i] = not called[i]
 
-    PubSub.add_listener("1", KeyMessage, lambda a: flip(0))
-    PubSub.add_listener("2", KeyMessage, lambda a: flip(4))
-    PubSub.add_listener("3", KeyMessage, lambda a: flip(8))
+    PubSub.add_listener("1", SuicideMessage, lambda a: flip(0))
+    PubSub.add_listener("2", SuicideMessage, lambda a: flip(4))
+    PubSub.add_listener("3", SuicideMessage, lambda a: flip(8))
 
     for i in called:
         assert not i
 
-    PubSub.invoke_global(KeyMessage("a", "a"))
+    PubSub.invoke_global(SuicideMessage())
 
     assert called[0] == True
     assert called[1] == False
@@ -191,7 +191,7 @@ def test_pubsub():
 
 
 def test_pubsub2():
-    from expand import PubSub, KeyMessage
+    from expand import PubSub, SuicideMessage
 
     PubSub.reset()
 
@@ -200,14 +200,14 @@ def test_pubsub2():
     def flip(i):
         called[i] = not called[i]
 
-    PubSub.add_listener("1", KeyMessage, lambda a: flip(0))
-    PubSub.add_listener("2", KeyMessage, lambda a: flip(4))
-    PubSub.add_listener("3", KeyMessage, lambda a: flip(8))
+    PubSub.add_listener("1", SuicideMessage, lambda a: flip(0))
+    PubSub.add_listener("2", SuicideMessage, lambda a: flip(4))
+    PubSub.add_listener("3", SuicideMessage, lambda a: flip(8))
 
     for i in called:
         assert not i
 
-    PubSub.invoke_to(KeyMessage("a", "a"), "1")
+    PubSub.invoke_to(SuicideMessage(), "1")
 
     assert called[0] == True
     assert called[1] == False
@@ -222,7 +222,7 @@ def test_pubsub2():
 
 
 
-    PubSub.invoke_to(KeyMessage("a", "a"), "1")
+    PubSub.invoke_to(SuicideMessage(), "1")
 
     assert called[0] == False
     assert called[1] == False
@@ -235,7 +235,7 @@ def test_pubsub2():
     assert called[8] == False
     assert called[9] == False
 
-    PubSub.invoke_to(KeyMessage("a", "a"), "2")
+    PubSub.invoke_to(SuicideMessage(), "2")
 
     assert called[0] == False
     assert called[1] == False
@@ -249,7 +249,7 @@ def test_pubsub2():
     assert called[9] == False
 
 
-    PubSub.invoke_to(KeyMessage("a", "a"), "3")
+    PubSub.invoke_to(SuicideMessage(), "3")
 
     assert called[0] == False
     assert called[1] == False
@@ -264,8 +264,8 @@ def test_pubsub2():
 
 
 
-    PubSub.add_listener("1", KeyMessage, lambda a: flip(0))
-    PubSub.invoke_to(KeyMessage("a", "a"), "1")
+    PubSub.add_listener("1", SuicideMessage, lambda a: flip(0))
+    PubSub.invoke_to(SuicideMessage(), "1")
 
 
     assert called[0] == False

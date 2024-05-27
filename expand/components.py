@@ -123,6 +123,11 @@ from typing import Any
 from .brect import brect
 
 class Message(ABC):
+    """
+    This object is transmitted on any PubSub message. All children just add
+    order to this object.
+    """
+
     def __init__(self, sender_id: str, data):
         self._sender_id = sender_id
         self.data = data
@@ -134,20 +139,21 @@ class Message(ABC):
         return self.data
 
 
-class KeyMessage(Message):
-    def __init__(self, sender_id: str, data: str):
-        super().__init__(sender_id, data)
-
-    def get_key(self) -> str:
-        return self.data
-
-
 class DrawMessage(Message):
+    """
+    This message orders a component to draw itself immediately.
+    """
+
     def stdscr(self):
         return self.data
 
 
 class AdoptionMessage(Message):
+    """
+    This message orders a component to switch parents. The new parent will be
+    the sender of this message.
+    """
+
     def __init__(self, sender_id: str):
         super().__init__(sender_id, sender_id)
 
@@ -156,6 +162,12 @@ class AdoptionMessage(Message):
 
 
 class RunawayMessage(Message):
+    """
+    When a component switches to a new parent, they send their old parent this
+    message to let them know they aren't with them anymore. The child is the
+    sender.
+    """
+
     def __init__(self, sender_id: str):
         super().__init__(sender_id, sender_id)
 
@@ -164,20 +176,37 @@ class RunawayMessage(Message):
 
 
 class SuicideMessage(Message):
-    def __init__(self, sender_id: str):
-        super().__init__(sender_id, sender_id)
+    """
+    This message was included to help with garbage collection. Normally
+    Component instances would disappear when out of scope like regular python
+    objects, but since PubSub holds callbacks to components they remain alive. 
+
+    This message tells the component to deregister from PubSub entirely. This
+    in essence makes the component "dead", as it doesn't react to the program
+    anymore and can be freed by python.
+    """
+
+    def __init__(self):
+        super().__init__("DEAD", "DEAD")
 
 
-class ParentBRectMessage(Message):
+class ParentRectMessage(Message):
+    """
+    When a component updates the coordinates or dimensions of their rect, this
+    message is sent to their children so that they can take note of that.
+    """
+
     def __init__(self, sender_id: str, data: brect):
         super().__init__(sender_id, data)
 
-    def get_brect(self) -> brect:
+    def get_rect(self) -> brect:
         return self.data
 
 class NudgeMessage(Message):
     """
-    This "nudges" a component to a certain coordinate on the screen.
+    This messages orders a component to immediately move to a position.
+    However, this doesn't necessarily mean the component will stay at this
+    position and could update itself to move to a different one.
     """
 
     def __init__(self, sender_id: str, data: tuple[int, int]):
@@ -267,22 +296,21 @@ class Container:
         PubSub.add_listener(self.id, DrawMessage, lambda m: self.draw(m.stdscr()))
         PubSub.add_listener(
             self.id,
-            ParentBRectMessage,
-            lambda m: self.update_parent_rect_cache(m.get_brect()),
+            ParentRectMessage,
+            lambda m: self.update_parent_rect_cache(m.get_rect()),
         )
         PubSub.add_listener(self.id, SuicideMessage, lambda m: self.destroy())
 
         PubSub.add_listener(self.id, NudgeMessage, lambda m: self.move_to(m.get_coordinates()))
 
     def move_to(self, coordinate: tuple[int, int]):
-        logging.debug(f"{self.id} moving to {coordinate}")
         self.rect.x = coordinate[0]
         self.rect.y = coordinate[1]
 
     def destroy(self):
         PubSub.remove_listener(self.id)
         for child in self.children:
-            PubSub.invoke_to(SuicideMessage(self.id), child)
+            PubSub.invoke_to(SuicideMessage(), child)
 
     def set_parent(self, parent_id):
         if self.parent_id == parent_id:
@@ -301,7 +329,7 @@ class Container:
 
         self.children.add(child_id)
         PubSub.invoke_to(AdoptionMessage(self.id), child_id)
-        PubSub.invoke_to(ParentBRectMessage(self.id, self.rect.copy()), child_id)
+        PubSub.invoke_to(ParentRectMessage(self.id, self.rect.copy()), child_id)
 
     def remove_child(self, child_id):
         self.children.remove(child_id)
@@ -337,7 +365,6 @@ class Container:
 
     def draw(self, stdscr):
         self.debug_draw_brect(stdscr)
-        logging.debug(self.children)
         for child_id in self.children:
             PubSub.invoke_to(DrawMessage(self.id, stdscr), child_id)
 
@@ -550,13 +577,10 @@ class BranchComponent(Container):
         self.rect.h += 1
 
         PubSub.invoke_to(NudgeMessage(self.id, (self.rect.x, self.rect.y + len(self.children) - 1)), child_id)
-        PubSub.invoke_to(ParentBRectMessage(self.id, self.rect.copy()), child_id)
+        PubSub.invoke_to(ParentRectMessage(self.id, self.rect.copy()), child_id)
 
 
     def draw(self, stdscr):
-        rect = self.rect.copy()
-        self.rect.h = 2
-
         self.debug_draw_brect(stdscr)
 
         for child_id in self.children:
