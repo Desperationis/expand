@@ -121,165 +121,15 @@ import logging
 from abc import ABC
 from typing import Any
 from .brect import brect
-
-class Message(ABC):
-    """
-    This object is transmitted on any PubSub message. All children just add
-    order to this object.
-    """
-
-    def __init__(self, sender_id: str, data):
-        self._sender_id = sender_id
-        self.data = data
-
-    def get_sender_id(self) -> str:
-        return self._sender_id
-
-    def get_data(self) -> Any:
-        return self.data
-
-
-class DrawMessage(Message):
-    """
-    This message orders a component to draw itself immediately.
-    """
-
-    def stdscr(self):
-        return self.data
-
-
-class AdoptionMessage(Message):
-    """
-    This message orders a component to switch parents. The new parent will be
-    the sender of this message.
-    """
-
-    def __init__(self, sender_id: str):
-        super().__init__(sender_id, sender_id)
-
-    def get_parent_id(self) -> str:
-        return self.data
-
-
-class RunawayMessage(Message):
-    """
-    When a component switches to a new parent, they send their old parent this
-    message to let them know they aren't with them anymore. The child is the
-    sender.
-    """
-
-    def __init__(self, sender_id: str):
-        super().__init__(sender_id, sender_id)
-
-    def get_child_id(self) -> str:
-        return self.data
-
-
-class SuicideMessage(Message):
-    """
-    This message was included to help with garbage collection. Normally
-    Component instances would disappear when out of scope like regular python
-    objects, but since PubSub holds callbacks to components they remain alive. 
-
-    This message tells the component to deregister from PubSub entirely. This
-    in essence makes the component "dead", as it doesn't react to the program
-    anymore and can be freed by python.
-    """
-
-    def __init__(self):
-        super().__init__("DEAD", "DEAD")
-
-
-class ParentRectMessage(Message):
-    """
-    When a component updates the coordinates or dimensions of their rect, this
-    message is sent to their children so that they can take note of that.
-    """
-
-    def __init__(self, sender_id: str, data: brect):
-        super().__init__(sender_id, data)
-
-    def get_rect(self) -> brect:
-        return self.data
-
-class NudgeMessage(Message):
-    """
-    This messages orders a component to immediately move to a position.
-    However, this doesn't necessarily mean the component will stay at this
-    position and could update itself to move to a different one.
-    """
-
-    def __init__(self, sender_id: str, data: tuple[int, int]):
-        super().__init__(sender_id, data)
-
-    def get_coordinates(self) -> tuple[int, int]:
-        return self.data
-
-
-class PubSub:
-    _instance = None
-    listeners = {}
-    id_to_callback = {}
-
-    def __new__(cls):
-        if not hasattr(cls, "instance"):
-            cls._instance = super(PubSub, cls).__new__(cls)
-
-        return cls._instance
-
-    @staticmethod
-    def reset():
-        PubSub.listeners.clear()
-        PubSub.id_to_callback.clear()
-        PubSub._instance = None
-
-    @staticmethod
-    def add_listener(id, event_class, callback):
-        # Global Listeners
-        event_class = hash(event_class)
-        if event_class not in PubSub.listeners:
-            PubSub.listeners[event_class] = []
-        PubSub.listeners[event_class].append(callback)
-
-        # For private lookup / garbage cleanup
-        if id not in PubSub.id_to_callback:
-            PubSub.id_to_callback[id] = {}
-        if event_class not in PubSub.id_to_callback[id]:
-            PubSub.id_to_callback[id][event_class] = []
-
-        PubSub.id_to_callback[id][event_class].append(callback)
-
-    @staticmethod
-    def remove_listener(id):
-        if id not in PubSub.id_to_callback:
-            return
-
-        for event_class in PubSub.id_to_callback[id]:
-            for callback in PubSub.id_to_callback[id][event_class]:
-                PubSub.listeners[event_class].remove(callback)
-
-        PubSub.id_to_callback[id].clear()
-        del PubSub.id_to_callback[id]
-
-    @staticmethod
-    def invoke_to(message, id):
-        if id not in PubSub.id_to_callback:
-            return
-
-        class_type = hash(type(message))
-        if class_type in PubSub.id_to_callback[id]:
-            for l in PubSub.id_to_callback[id][class_type]:
-                l(message)
-
-    @staticmethod
-    def invoke_global(message):
-        class_type = hash(type(message))
-        if PubSub.listeners[class_type]:
-            for l in PubSub.listeners[class_type]:
-                l(message)
+from .pubsub import *
 
 
 class Container:
+    """
+    This represents a blank square that dynamically knows its parent and
+    responds to PubSub messages.
+    """
+
     def __init__(self, id, rect: brect):
         self.id = id
         self.rect = rect
@@ -301,7 +151,21 @@ class Container:
         )
         PubSub.add_listener(self.id, SuicideMessage, lambda m: self.destroy())
 
-        PubSub.add_listener(self.id, NudgeMessage, lambda m: self.move_to(m.get_coordinates()))
+        PubSub.add_listener(
+            self.id, NudgeMessage, lambda m: self.move_to(m.get_coordinates())
+        )
+
+    def update(self):
+        """
+        This changes the component in some way. Usually, this should be called
+        when a parent's rect has changed and the child needs to update its
+        position and dimensions in some way.
+        """
+        pass
+
+
+
+    ########################## Everything Below Are Callbacks #####################
 
     def move_to(self, coordinate: tuple[int, int]):
         self.rect.x = coordinate[0]
@@ -364,6 +228,10 @@ class Container:
             pass
 
     def draw(self, stdscr):
+        """
+        DO NOT PUT CODE THAT CHANGES `rect` HERE. PUT IT IN UPDATE.
+        """
+
         self.debug_draw_brect(stdscr)
         for child_id in self.children:
             PubSub.invoke_to(DrawMessage(self.id, stdscr), child_id)
@@ -415,7 +283,7 @@ class TextComponent(Container):
         characters (i.e. emojis), this function might cut it shorter than what
         is liked.
         """
-        return text[:rect.w]
+        return text[: rect.w]
 
     @staticmethod
     def calculate_text_alignment_offset(text_rect: brect, container_rect: brect, flags):
@@ -506,26 +374,28 @@ class TextComponent(Container):
     @staticmethod
     def get_aligned_rect(rect: brect, container_rect: brect, flags) -> brect:
         """
-        Given a `rect`, return a new `rect` such that x and y are aligned to
-        `container_rect` given the alignment flags in `flags`. If no alignment
-        flags are set, returns a carbon copy of rect `rect` without
-        modification.
+            Given a `rect`, return a new `rect` such that x and y are aligned to
+            `container_rect` given the alignment flags in `flags`. If no alignment
+            flags are set, returns a carbon copy of rect `rect` without
+            modification.
 
-    TODO
-        If after alignment `rect` has negative coordinates relative to the
-        parent, they are corrected to the top/left of the parent.
+        TODO
+            If after alignment `rect` has negative coordinates relative to the
+            parent, they are corrected to the top/left of the parent.
 
-        If after alignment and correction `rect` has dimensions that would make
-        it too big to fit in its aligned position, this will return a rect that
-        is `rect` with cropped width and height.
+            If after alignment and correction `rect` has dimensions that would make
+            it too big to fit in its aligned position, this will return a rect that
+            is `rect` with cropped width and height.
 
         """
 
         if flags == TextComponent.NONE:
             return rect.copy()
-        
+
         rect_copy = rect.copy()
-        offset = TextComponent.calculate_text_alignment_offset(rect_copy, container_rect, flags)
+        offset = TextComponent.calculate_text_alignment_offset(
+            rect_copy, container_rect, flags
+        )
 
         # Align Rect
         rect_copy.x += offset[0]
@@ -537,12 +407,14 @@ class TextComponent(Container):
             rect_copy.y = container_rect.y
 
         # Crop rect if too big
-        rect_copy.w = max(min(container_rect.w - (rect_copy.x - container_rect.x), rect_copy.w), 0)
-        rect_copy.h = max(min(container_rect.h - (rect_copy.y - container_rect.y), rect_copy.h), 0)
+        rect_copy.w = max(
+            min(container_rect.w - (rect_copy.x - container_rect.x), rect_copy.w), 0
+        )
+        rect_copy.h = max(
+            min(container_rect.h - (rect_copy.y - container_rect.y), rect_copy.h), 0
+        )
 
         return rect_copy
-
-
 
     def draw(self, stdscr):
         if self.parent_rect is not None:
@@ -550,7 +422,6 @@ class TextComponent(Container):
 
             if not self.rect.colliding(self.parent_rect):
                 return None
-
 
         displayed_text = self.get_cropped_text(self.text, self.rect)
         attrs = self.lookup_text_attr(self.flags)
@@ -576,15 +447,14 @@ class BranchComponent(Container):
 
         self.rect.h += 1
 
-        PubSub.invoke_to(NudgeMessage(self.id, (self.rect.x, self.rect.y + len(self.children) - 1)), child_id)
+        PubSub.invoke_to(
+            NudgeMessage(self.id, (self.rect.x, self.rect.y + len(self.children) - 1)),
+            child_id,
+        )
         PubSub.invoke_to(ParentRectMessage(self.id, self.rect.copy()), child_id)
-
 
     def draw(self, stdscr):
         self.debug_draw_brect(stdscr)
 
         for child_id in self.children:
             PubSub.invoke_to(DrawMessage(self.id, stdscr), child_id)
-
-
-
