@@ -25,25 +25,6 @@ class curses_cli:
         if not self.is_setup:
             self.setup()
 
-        def gen_fake_data():
-            choices = [
-                "alacritty.yaml",
-                "nvim.yaml",
-                "installcomputer.yaml",
-                "supercool.yaml",
-            ]
-            # THIS IS ONLY TO MAKE FAKE DATA
-            tmp = []
-            for i in range(1, 7):
-                for c in choices:
-                    tmp.append(f"{i}_{c.split('.')[0]}.yaml")
-
-            choices += tmp
-
-            return choices
-
-        # choices = list(map(lambda a: textcomponent(a[1], rect=brect(0, a[0], len(a[1]), 1), flags=textcomponent.ALIGN_H_MIDDLE), enumerate(gen_fake_data())))
-
         while True:
             self.stdscr.erase()
 
@@ -54,10 +35,30 @@ class curses_cli:
             root_container.add_child("sub")
             TextComponent(
                 "text1",
-                "hi there",
+                "hi there cutie patotie",
                 flags=(TextComponent.ALIGN_H_MIDDLE | TextComponent.ALIGN_V_TOP),
             )
+            TextComponent(
+                "text2",
+                "HEHEHEHEHEHE",
+                flags=(TextComponent.ALIGN_H_MIDDLE),
+            )
+            TextComponent(
+                "text3",
+                "HAHAHAHAH",
+                flags=(TextComponent.ALIGN_H_MIDDLE),
+            )
+            TextComponent(
+                "text4",
+                "EEEEEEEEEEEEEEEEEEE",
+                flags=(TextComponent.ALIGN_H_MIDDLE),
+            )
+            b = BranchComponent("branch", brect(10, 3, 10, 10))
+            root_container.add_child("branch")
             sub_container.add_child("text1")
+            b.add_child("text2")
+            b.add_child("text3")
+            b.add_child("text4")
 
             offset = brect.calculate_alignment_offset(
                 sub_container.rect, root_container.rect, (0, 1)

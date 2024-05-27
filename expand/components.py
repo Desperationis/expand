@@ -175,6 +175,17 @@ class ParentBRectMessage(Message):
     def get_brect(self) -> brect:
         return self.data
 
+class NudgeMessage(Message):
+    """
+    This "nudges" a component to a certain coordinate on the screen.
+    """
+
+    def __init__(self, sender_id: str, data: tuple[int, int]):
+        super().__init__(sender_id, data)
+
+    def get_coordinates(self) -> tuple[int, int]:
+        return self.data
+
 
 class PubSub:
     _instance = None
@@ -261,6 +272,13 @@ class Container:
         )
         PubSub.add_listener(self.id, SuicideMessage, lambda m: self.destroy())
 
+        PubSub.add_listener(self.id, NudgeMessage, lambda m: self.move_to(m.get_coordinates()))
+
+    def move_to(self, coordinate: tuple[int, int]):
+        logging.debug(f"{self.id} moving to {coordinate}")
+        self.rect.x = coordinate[0]
+        self.rect.y = coordinate[1]
+
     def destroy(self):
         PubSub.remove_listener(self.id)
         for child in self.children:
@@ -325,6 +343,11 @@ class Container:
 
 
 class TextComponent(Container):
+    """
+    A container that tightly wraps around a single line of text and can
+    self-arrange itself when given a parent.
+    """
+
     # Standard Text, no modication in display
     NONE = 0
 
@@ -365,10 +388,10 @@ class TextComponent(Container):
         characters (i.e. emojis), this function might cut it shorter than what
         is liked.
         """
-        return text[: rect.w]
+        return text[:rect.w]
 
     @staticmethod
-    def calculate_text_alignment_offset(text: str, container_rect: brect, flags):
+    def calculate_text_alignment_offset(text_rect: brect, container_rect: brect, flags):
         if (
             flags
             & (
@@ -383,7 +406,6 @@ class TextComponent(Container):
         ):
             return (0, 0)
 
-        text_bbox = brect(container_rect.x, container_rect.y, len(text), 1)
         o_x, o_y = 0, 0
 
         if flags & TextComponent.ALIGN_V_TOP:
@@ -401,7 +423,7 @@ class TextComponent(Container):
             o_x = 1
 
         alignment = brect.calculate_alignment_offset(
-            text_bbox, container_rect, (o_x, o_y)
+            text_rect, container_rect, (o_x, o_y)
         )
 
         if (
@@ -424,7 +446,7 @@ class TextComponent(Container):
             )
             == 0
         ):
-            return 0, alignment[0]
+            return 0, alignment[1]
 
         return alignment
 
@@ -454,38 +476,91 @@ class TextComponent(Container):
 
         return attrs
 
+    @staticmethod
+    def get_aligned_rect(rect: brect, container_rect: brect, flags) -> brect:
+        """
+        Given a `rect`, return a new `rect` such that x and y are aligned to
+        `container_rect` given the alignment flags in `flags`. If no alignment
+        flags are set, returns a carbon copy of rect `rect` without
+        modification.
+
+    TODO
+        If after alignment `rect` has negative coordinates relative to the
+        parent, they are corrected to the top/left of the parent.
+
+        If after alignment and correction `rect` has dimensions that would make
+        it too big to fit in its aligned position, this will return a rect that
+        is `rect` with cropped width and height.
+
+        """
+
+        if flags == TextComponent.NONE:
+            return rect.copy()
+        
+        rect_copy = rect.copy()
+        offset = TextComponent.calculate_text_alignment_offset(rect_copy, container_rect, flags)
+
+        # Align Rect
+        rect_copy.x += offset[0]
+        rect_copy.y += offset[1]
+
+        if rect_copy.x - container_rect.x < 0:
+            rect_copy.x = container_rect.x
+        if rect_copy.y - container_rect.y < 0:
+            rect_copy.y = container_rect.y
+
+        # Crop rect if too big
+        rect_copy.w = max(min(container_rect.w - (rect_copy.x - container_rect.x), rect_copy.w), 0)
+        rect_copy.h = max(min(container_rect.h - (rect_copy.y - container_rect.y), rect_copy.h), 0)
+
+        return rect_copy
+
+
+
     def draw(self, stdscr):
-        rect = self.rect.copy()
         if self.parent_rect is not None:
-            rect.w = min(self.parent_rect.w - rect.x, rect.w)
-            rect.h = min(self.parent_rect.h - rect.y, rect.h)
-            rect.x += self.parent_rect.x
-            rect.y += self.parent_rect.y
-            if not rect.colliding(self.parent_rect):
-                return
+            self.rect = self.get_aligned_rect(self.rect, self.parent_rect, self.flags)
 
-        displayed_text = self.get_cropped_text(self.text, rect)
-        if self.parent_rect is None:
-            o_x, o_y = self.calculate_text_alignment_offset(
-                displayed_text, rect, self.flags
-            )
-        else:
-            o_x, o_y = self.calculate_text_alignment_offset(
-                displayed_text, self.parent_rect, self.flags
-            )
+            if not self.rect.colliding(self.parent_rect):
+                return None
 
-        x = rect.x + o_x
-        y = rect.y + o_y
+
+        displayed_text = self.get_cropped_text(self.text, self.rect)
         attrs = self.lookup_text_attr(self.flags)
 
         if self.color is not None:
             attrs |= self.color
 
-        # self.debug_draw_brect(stdscr, rect)
-        # logging.debug(self.text[:10])
-        # logging.debug(displayed_text)
+        self.debug_draw_brect(stdscr, curses.color_pair(1))
 
         try:
-            stdscr.addstr(y, x, displayed_text, attrs)
+            stdscr.addstr(self.rect.y, self.rect.x, displayed_text, attrs)
         except curses.error:
             pass
+
+
+class BranchComponent(Container):
+    def __init__(self, id, rect: brect):
+        rect.h = 0
+        super().__init__(id, rect)
+
+    def add_child(self, child_id: str):
+        super().add_child(child_id)
+
+        self.rect.h += 1
+
+        PubSub.invoke_to(NudgeMessage(self.id, (self.rect.x, self.rect.y + len(self.children) - 1)), child_id)
+        PubSub.invoke_to(ParentBRectMessage(self.id, self.rect.copy()), child_id)
+
+
+    def draw(self, stdscr):
+        rect = self.rect.copy()
+        self.rect.h = 2
+
+        self.debug_draw_brect(stdscr)
+
+        for child_id in self.children:
+            PubSub.invoke_to(DrawMessage(self.id, stdscr), child_id)
+
+
+

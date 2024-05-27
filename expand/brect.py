@@ -75,6 +75,12 @@ class brect:
         
         return offset_x, offset_y
 
+    def __repr__(self) -> str:
+        return f"brect({self.x}, {self.y}, {self.w}, {self.h})"
+
+    def __eq__(self, value) -> bool:
+        return value.x == self.x and value.y == self.y and value.w == self.w and value.h == self.h
+
 
 
 
