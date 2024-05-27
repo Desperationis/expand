@@ -442,10 +442,10 @@ class BranchComponent(Container):
         rect.h = 0
         super().__init__(id, rect)
 
+        self.expanded = False
+
     def add_child(self, child_id: str):
         super().add_child(child_id)
-
-        self.rect.h += 1
 
         PubSub.invoke_to(
             NudgeMessage(self.id, (self.rect.x, self.rect.y + len(self.children) - 1)),
@@ -454,7 +454,13 @@ class BranchComponent(Container):
         PubSub.invoke_to(ParentRectMessage(self.id, self.rect.copy()), child_id)
 
     def draw(self, stdscr):
+        if self.expanded:
+            self.rect.h = len(self.children)
+        else:
+            self.rect.h = 1
+
         self.debug_draw_brect(stdscr)
 
         for child_id in self.children:
+            PubSub.invoke_to(ParentRectMessage(self.id, self.rect.copy()), child_id)
             PubSub.invoke_to(DrawMessage(self.id, stdscr), child_id)
