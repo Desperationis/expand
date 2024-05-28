@@ -1,15 +1,13 @@
+"""
+Functions that help `expand` work.
+"""
+
 import os
-import math
-import requests
-import logging
 import re
+import logging
+import requests
 import humanize
 from datetime import datetime, timedelta
-from abc import ABC, abstractmethod
-import platform
-import os
-import subprocess
-from shutil import which
 from expand.probes import *
 
 
@@ -48,7 +46,6 @@ def timedelta_pretty(time_difference: timedelta):
     return humanize.naturaltime(time_difference)
 
 
-
 def get_failing_probes(probes: list[CompatibilityProbe]) -> list[CompatibilityProbe]:
     """
     Run every probe in a list of `probes` and return the failing probes.
@@ -72,11 +69,12 @@ def filter_str_for_urls(string) -> set[str]:
 
 def get_probes_from_file(file_path: str):
     """
-    Given an ansible file, return the list of probes by parsing the first line. If the ansible file doesn't have a list, raise Exception.
+    Given an ansible file, return the list of probes by parsing the first line.
+    If the ansible file doesn't have a list, raise Exception.
     """
 
-    with open(file_path, "r") as f:
-        first_line = f.readline()
+    with open(file_path, "r", encoding="UTF-8") as file:
+        first_line = file.readline()
         if first_line.startswith("#"):
             # Literally run it as python code
             first_line = first_line[1:].strip()
@@ -85,11 +83,8 @@ def get_probes_from_file(file_path: str):
             logging.debug(result)
 
             return result
-        
-        raise Exception(f"Probes not found in {file_path}")
 
-
-
+        raise LookupError(f"Probes not found in {file_path}")
 
 
 def is_url_up(url) -> bool:
@@ -97,13 +92,11 @@ def is_url_up(url) -> bool:
     Returns true if url returns 200 HTTP Status Code on HEAD.
     """
     try:
-        response = requests.head(url, allow_redirects=True)
-        if response.status_code == 200:
-            return True
-        else:
-            return False
+        response = requests.head(url, allow_redirects=True, timeout=5)
+        return response.status_code == 200
     except requests.ConnectionError:
         return False
+
 
 def get_files(directory: str):
     """
@@ -111,20 +104,21 @@ def get_files(directory: str):
     is returned:
     """
     files_dict = {}
-    
+
     if not os.path.isdir(directory):
         raise ValueError(f"The directory '{directory}' does not exist.")
-    
+
     for filename in os.listdir(directory):
         full_path = os.path.join(directory, filename)
         if os.path.isfile(full_path):
             files_dict[filename] = full_path
-    
+
     return files_dict
 
 
-
-def get_formatted_columns(data: list[str], width, sizes: list[int] | None = None) -> list[tuple[str, int]]:
+def get_formatted_columns(
+    data: list[str], width, sizes: list[int] | None = None
+) -> list[tuple[str, int]]:
     """
     Given a list `data` and `width`, return a list of (str, int) such that
     whenever `str` is drawn from an offset x `int`, the data appears to be in
@@ -147,9 +141,9 @@ def get_formatted_columns(data: list[str], width, sizes: list[int] | None = None
         If width < len(data), return []
             ""
 
-    You can also set columns to be a certain size. For example, 
+    You can also set columns to be a certain size. For example,
         size: [-1, 5, -1] sets the first and last column to the same size while the
-        middle is 5. 
+        middle is 5.
     """
 
     def normalize_sizes(sizes: list[int], width):
@@ -168,24 +162,19 @@ def get_formatted_columns(data: list[str], width, sizes: list[int] | None = None
 
     if width < len(data):
         return []
-    if sizes == None:
+    if sizes is None:
         sizes = [-1] * len(data)
     if len(sizes) != len(data):
-        raise Exception()
+        raise RuntimeError("Sizes and data don't match up in size")
 
     sizes = normalize_sizes(sizes, width)
 
     output = []
     next_index = 0
-    
+
     for i, col in enumerate(data):
-        truncated = col[:sizes[i]]
+        truncated = col[: sizes[i]]
         output.append((truncated, next_index))
         next_index += sizes[i]
-    
+
     return output
-
-
-
-
-
