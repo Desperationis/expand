@@ -1,7 +1,10 @@
+"""
+This is the main script that is run on `python3 -m expand`
+"""
+
 import traceback
-import time
 import logging
-from .curses_cli import *
+from expand import curses_cli
 
 """
 if "ACTIVATED_EXPAND" not in os.environ:
@@ -20,19 +23,18 @@ logging.basicConfig(
 
 
 def main():
-    error_str = ""
-    cli = curses_cli()
+    """
+    This function is what is called when the module is run.
+    """
+
+    cli = curses_cli.curses_cli()
 
     try:
         cli.setup()
         cli.loop()
 
-
-    except Exception as e:
-        error_str = traceback.format_exc()
+    except:
+        logging.error(traceback.format_exc())
 
     finally:
         cli.end()
-        if len(error_str) > 0:
-            logging.error(error_str)
-
