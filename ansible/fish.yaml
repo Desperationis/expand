@@ -1,0 +1,72 @@
+# [LinuxProbe(), x86Probe(), DebianProbe()]
+
+- name: "Install fish shell"
+  hosts: localhost
+  connection: local
+  become: true
+  tasks:
+    - name: Install build packages
+      register: aptout
+      apt:
+        state: latest
+        name:
+          - cmake
+          - libncurses5-dev
+          - libncursesw5-dev
+
+    - name: Download Fish Source
+      ansible.builtin.get_url:
+        url: https://github.com/fish-shell/fish-shell/releases/download/3.7.1/fish-3.7.1.tar.xz
+        dest: /tmp/fish.tar.xz
+
+    - name: "Uncompress Tarballl"
+      unarchive:
+        src: /tmp/fish.tar.xz
+        dest: /tmp/
+
+    - name: Make Build Folder
+      command:
+        cmd: mkdir build
+        chdir: /tmp/fish-3.7.1/
+
+    - name: Install Fish
+      shell:
+        cmd: cmake .. && make && make install
+        chdir: /tmp/fish-3.7.1/build/
+
+    - name: Remove Fish Tarball
+      file:
+        path: /tmp/fish.tar.xz
+        state: absent
+
+    - name: Remove Fish Build Files
+      file:
+        path: /tmp/fish-3.7.1/
+        state: absent
+
+    - name: "install zoxide"
+      register: aptout2
+      command:
+        cmd: bash -c "curl -ss https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | bash"
+    - debug: var=aptout2
+
+    - name: "Download fzf"
+      register: aptout3
+      ansible.builtin.get_url:
+        url: https://github.com/junegunn/fzf/releases/download/0.45.0/fzf-0.45.0-linux_amd64.tar.gz
+        dest: /tmp/fzf.tar.gz
+    - debug: var=aptout3
+
+    - name: "Unpack fzf to /usr/local/bin/"
+      register: aptout3
+      ansible.builtin.unarchive:
+        src: /tmp/fzf.tar.gz
+        dest: /usr/local/bin
+    - debug: var=aptout3
+
+    - name: "Remove fzf"
+      register: aptout4
+      file:
+        path: /tmp/fzf.tar.gz
+        state: absent
+    - debug: var=aptout4

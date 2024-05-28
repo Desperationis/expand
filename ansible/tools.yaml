@@ -1,0 +1,38 @@
+# [LinuxProbe(), x86Probe(), DebianProbe()]
+
+- name: "Packages for Debian"
+  hosts: localhost
+  connection: local
+  become: true
+  tasks:
+    - name: "Install Packages"
+      register: aptout
+      apt:
+        state: latest
+        name:
+          - sudo
+          - g++
+          - cmake
+          - gcc
+          - tree
+          - git
+          - g++
+          - zip
+          - gzip
+          - zstd
+          - net-tools
+          - gdb
+          - dos2unix
+          - pkg-config
+          - build-essential
+          - checkinstall
+          - software-properties-common
+          - ttf-mscorefonts-installer
+          - curl
+          - wget
+          - gnupg
+          - lsb-release
+          - tmux
+          - rclone
+          - rsync
+    - debug: var=aptout

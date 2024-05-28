@@ -1,0 +1,25 @@
+# [LinuxProbe(), x86Probe(), NotRootProbe()]
+
+- name: "Install Anaconda Locally"
+  hosts: localhost
+  connection: local
+  tasks:
+    - name: "Create Downloads Folder"
+      file:
+        path: "{{ ansible_env.HOME }}/Downloads/"
+        state: directory
+
+    - name: "Download Anaconda"
+      get_url:
+        url: "https://repo.anaconda.com/archive/Anaconda3-2024.02-1-Linux-x86_64.sh"
+        dest: "{{ ansible_env.HOME }}/Downloads/anaconda.sh"
+
+    - name: "Install Anaconda"
+      command:
+        chdir: "{{ ansible_env.HOME }}/Downloads/"
+        cmd: "bash anaconda.sh -b"
+
+    - name: "Remove Anaconda Script"
+      file:
+        path: "{{ ansible_env.HOME }}/Downloads/anaconda.sh"
+        state: absent

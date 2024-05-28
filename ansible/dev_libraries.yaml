@@ -1,0 +1,21 @@
+# [LinuxProbe(), DebianProbe()]
+
+- name: "Software libraries for Debian"
+  hosts: localhost
+  connection: local
+  become: true
+  tasks:
+    - name: "Install Packages"
+      register: aptout
+      apt:
+        state: latest
+        name: 
+          - libc6-dev
+          - libc-dev-bin
+          - libncurses-dev
+          - libsdl2-dev
+          - libsdl2-ttf-dev
+          - libsdl2-image-dev
+          - libssl-dev
+
+    - debug: var=aptout

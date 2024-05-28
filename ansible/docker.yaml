@@ -1,0 +1,31 @@
+# [LinuxProbe(), x86Probe()]
+
+- name: "Install Docker"
+  hosts: localhost
+  connection: local
+  become: true
+  tasks:
+    - name: "Download Docker Engine Installation Script"
+      register: aptout4
+      ansible.builtin.get_url:
+        url: https://get.docker.com
+        dest: /tmp/getdocker.sh
+    - debug: var=aptout4
+
+    - name: "Install Docker"
+      register: aptout5
+      command:
+        cmd: sh /tmp/getdocker.sh
+    - debug: var=aptout5
+
+    - name: Add Docker Group
+      group:
+        name: docker
+        state: present
+
+    - name: "Remove Docker Installation Script"
+      register: aptout5
+      file:
+        path: /tmp/getdocker.sh
+        state: absent
+    - debug: var=aptout5

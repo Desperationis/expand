@@ -1,0 +1,21 @@
+# [LinuxProbe(), DebianProbe(), NotInDockerProbe()]
+
+- name: "Install Redshift, Okular, Gparted, vlc, eog, and Keepass"
+  hosts: localhost
+  connection: local
+  become: true
+  tasks:
+    - name: "Install Apt Packages"
+      register: aptout
+      apt:
+        state: latest
+        name: 
+          - redshift
+          - okular
+          - gparted
+          - vlc
+          - eog
+          - keepassxc
+
+    - debug: var=aptout
+

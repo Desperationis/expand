@@ -1,10 +1,16 @@
 import os
 import math
 import requests
+import logging
 import re
 import humanize
 from datetime import datetime, timedelta
 from abc import ABC, abstractmethod
+import platform
+import os
+import subprocess
+from shutil import which
+from expand.probes import *
 
 
 def timedelta_since_last_update(file_path: str):
@@ -12,7 +18,7 @@ def timedelta_since_last_update(file_path: str):
     Return datetime.timedelta of a file. Raise FileNotFoundError if file
     doesn't exist.
     """
-    
+
     if not os.path.exists(file_path):
         raise FileNotFoundError
 
@@ -41,15 +47,7 @@ def timedelta_pretty(time_difference: timedelta):
     # I'm just going to have this library do the heavy lifting for me
     return humanize.naturaltime(time_difference)
 
-class CompatibilityProbe(ABC):
 
-    @abstractmethod
-    def get_error_message(self) -> str:
-        pass
-
-    @abstractmethod
-    def is_compatible(self) -> bool:
-        pass
 
 def get_failing_probes(probes: list[CompatibilityProbe]) -> list[CompatibilityProbe]:
     """
@@ -66,10 +64,32 @@ def filter_str_for_urls(string) -> set[str]:
 
     links = re.findall(r"(https?://\S+)", string)
     links = [link.replace('"', "") for link in links]
-    links = [link.replace('\'', "") for link in links]
-    links = [link.replace(')', "") for link in links]
-    links = [link.replace('(', "") for link in links]
+    links = [link.replace("'", "") for link in links]
+    links = [link.replace(")", "") for link in links]
+    links = [link.replace("(", "") for link in links]
     return set(links)
+
+
+def get_probes_from_file(file_path: str):
+    """
+    Given an ansible file, return the list of probes by parsing the first line. If the ansible file doesn't have a list, raise Exception.
+    """
+
+    with open(file_path, "r") as f:
+        first_line = f.readline()
+        if first_line.startswith("#"):
+            # Literally run it as python code
+            first_line = first_line[1:].strip()
+            result = eval(first_line)
+
+            logging.debug(result)
+
+            return result
+        
+        raise Exception(f"Probes not found in {file_path}")
+
+
+
 
 
 def is_url_up(url) -> bool:
@@ -84,4 +104,88 @@ def is_url_up(url) -> bool:
             return False
     except requests.ConnectionError:
         return False
+
+def get_files(directory: str):
+    """
+    Shows the files in the immediate top level of a `directory`. This is what
+    is returned:
+    """
+    files_dict = {}
+    
+    if not os.path.isdir(directory):
+        raise ValueError(f"The directory '{directory}' does not exist.")
+    
+    for filename in os.listdir(directory):
+        full_path = os.path.join(directory, filename)
+        if os.path.isfile(full_path):
+            files_dict[filename] = full_path
+    
+    return files_dict
+
+
+
+def get_formatted_columns(data: list[str], width, sizes: list[int] | None = None) -> list[tuple[str, int]]:
+    """
+    Given a list `data` and `width`, return a list of (str, int) such that
+    whenever `str` is drawn from an offset x `int`, the data appears to be in
+    columns. For example:
+
+        data: ["data1", "data2", "data3", "data4"]
+        width: 20
+
+            -> [("data1", 0), ("data2", 5), ("data3", 10), ("data4", 15)]
+
+        If drawn, the resulting string would look like:
+            "data1data2data3data4"
+
+        If the width was greater, it would look like:
+            "data1  data2  data3  data4"
+
+        The data gets truncated if width is too small:
+            "dadadada"
+
+        If width < len(data), return []
+            ""
+
+    You can also set columns to be a certain size. For example, 
+        size: [-1, 5, -1] sets the first and last column to the same size while the
+        middle is 5. 
+    """
+
+    def normalize_sizes(sizes: list[int], width):
+        """
+        Replaces any -1 in `sizes` with the same width to maximize content
+        fitting in `width`.
+        """
+        fixed_entries = list(filter(lambda a: a > 0, sizes))
+        if len(fixed_entries) == len(sizes):
+            return sizes
+
+        column_size = (width - sum(fixed_entries)) / (len(sizes) - len(fixed_entries))
+        column_size = int(column_size)
+
+        return list(map(lambda a: a if a > 0 else column_size, sizes))
+
+    if width < len(data):
+        return []
+    if sizes == None:
+        sizes = [-1] * len(data)
+    if len(sizes) != len(data):
+        raise Exception()
+
+    sizes = normalize_sizes(sizes, width)
+
+    output = []
+    next_index = 0
+    
+    for i, col in enumerate(data):
+        truncated = col[:sizes[i]]
+        output.append((truncated, next_index))
+        next_index += sizes[i]
+    
+    return output
+
+
+
+
 

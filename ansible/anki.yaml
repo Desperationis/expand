@@ -1,0 +1,26 @@
+# [LinuxProbe(), x86Probe(), NotInDockerProbe()]
+
+- name: "Install Anki"
+  hosts: localhost
+  connection: local
+  become: true
+  tasks:
+    - name: "Create temporary dir"
+      file:
+        path: /tmp/anki/
+        state: directory
+
+    - name: "Download Anki"
+      get_url:
+        url: "https://github.com/ankitects/anki/releases/download/24.04.1/anki-24.04.1-linux-qt6.tar.zst"
+        dest: "/tmp/anki/anki.tar.zst"
+
+    - name: "Uncompress Anki"
+      unarchive:
+        src: "/tmp/anki/anki.tar.zst"
+        dest: "/tmp/anki/"
+
+    - name: "Install Anki"
+      command:
+        chdir: "/tmp/anki/anki-24.04.1-linux-qt6/"
+        cmd: "./install.sh"

@@ -1,0 +1,11 @@
+# [ LinuxProbe() ]
+
+- name: "Make Shorthand for Localhost to lh"
+  hosts: localhost
+  connection: local
+  become: true
+  tasks:
+    - name: "Make shorthand for localhost"
+      command:
+        cmd: bash -c "grep -qxF '127.0.0.1   lh' /etc/hosts || echo '127.0.0.1   lh' >> /etc/hosts"
+

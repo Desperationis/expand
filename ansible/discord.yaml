@@ -1,0 +1,13 @@
+# [LinuxProbe(), DebianProbe(), NotInDockerProbe(), x86Probe()]
+
+- name: "Install Discord"
+  hosts: localhost
+  connection: local
+  become: true
+  tasks:
+    - name: "Install Discord from Website"
+      register: aptout2
+      apt:
+        deb: https://discord.com/api/download?platform=linux&format=deb
+
+    - debug: var=aptout2

@@ -1,0 +1,13 @@
+# [LinuxProbe(), DebianProbe(), NotInDockerProbe()]
+
+- name: "Install Mullvad"
+  hosts: localhost
+  connection: local
+  become: true
+  tasks:
+    - name: "Install Mullvad"
+      register: aptout3
+      apt:
+        deb: https://mullvad.net/download/app/deb/latest/
+
+    - debug: var=aptout3

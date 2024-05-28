@@ -1,0 +1,38 @@
+# [LinuxProbe(), x86Probe(), PopOSProbe(), DebianProbe(), NotInDockerProbe()]
+
+- name: "Install Nemo on Pop OS 22.04"
+  hosts: localhost
+  connection: local
+  become: true
+  tasks:
+    - name: "Install nemo"
+      register: aptout
+      apt:
+        state: latest
+        update_cache: true
+        name: nemo
+    - debug: var=aptout
+
+    - name: "Set Alacritty as default terminal"
+      register: aptout2
+      command:
+        cmd: "gsettings set org.cinnamon.desktop.default-applications.terminal exec /usr/local/cargo/bin/alacritty"
+    - debug: var=aptout2
+
+    - name: "Change filesystem default to nemo"
+      register: aptout3
+      command:
+        cmd: xdg-mime default nemo.desktop inode/directory application/x-gnome-saved-search
+    - debug: var=aptout3
+
+    - name: "Change desktop folders to nemo"
+      register: aptout4
+      command:
+        cmd: bash -c "gsettings set org.gnome.desktop.background show-desktop-icons false && gsettings set org.nemo.desktop show-desktop-icons true"
+    - debug: var=aptout4
+
+    - name: "Backup nautilus desktop file and delete it"
+      register: aptout5
+      command:
+        cmd: bash -c "if [ -e /usr/share/applications/org.gnome.Nautilus.desktop ]; then mv --force /usr/share/applications/org.gnome.Nautilus.desktop /usr/share/applications/nautilus.backup; fi"
+    - debug: var=aptout5

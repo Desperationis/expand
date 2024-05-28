@@ -1,0 +1,16 @@
+# [LinuxProbe(), x86Probe()]
+
+- name: "Install nvim"
+  hosts: localhost
+  connection: local
+  become: true
+  tasks:
+    - name: "Download nvim AppImage"
+      register: aptout3
+      ansible.builtin.get_url:
+        url: https://github.com/neovim/neovim/releases/download/stable/nvim.appimage
+        dest: /usr/bin/nvim
+        mode: '0775'
+      
+    - debug: var=aptout3
+

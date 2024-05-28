@@ -1,0 +1,15 @@
+# [ NotRootProbe() ]
+
+- name: Install Anaconda Locally
+  import_playbook: anaconda.yaml
+
+- name: "Install pip3 packages to custom environment"
+  hosts: localhost
+  connection: local
+  tasks:
+    - name: "Install Packages"
+      register: pipout
+      shell:
+        cmd: ". ~/anaconda3/bin/activate && pip install yt-dlp black trash-cli pypeek"
+
+    - debug: var=pipout.stdout
