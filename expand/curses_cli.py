@@ -5,6 +5,9 @@ This file is in charge of drawing the UI to the screen.
 
 import curses
 import threading
+import subprocess
+import os
+import sys
 from expand import util
 from expand.probes import CompatibilityProbe
 
@@ -258,6 +261,18 @@ class curses_cli:
                     selections.remove(hover)
                 else:
                     selections.add(hover)
+            elif c == curses.KEY_ENTER or c == 10:
+                self.end()
+
+                for i in selections:
+                    file_path = os.path.abspath(current_display[i].file_path)
+
+                    p = subprocess.Popen(f"ansible-playbook \"{file_path}\"", shell=True)
+                    p.wait()
+                    if p.returncode != 0:
+                        sys.exit(1)
+
+                self.setup()
 
             current_category %= len(categories)
 

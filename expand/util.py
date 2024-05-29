@@ -4,7 +4,6 @@ Functions that help `expand` work.
 
 import os
 import re
-import logging
 import requests
 import humanize
 from datetime import datetime, timedelta
@@ -79,8 +78,6 @@ def get_probes_from_file(file_path: str):
             # Literally run it as python code
             first_line = first_line[1:].strip()
             result = eval(first_line)
-
-            logging.debug(result)
 
             return result
 
