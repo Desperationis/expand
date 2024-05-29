@@ -71,4 +71,18 @@ def test_columns():
     assert expand.get_formatted_columns(data, 20, [1, 1, -1, -1]) == [("d", 0), ("d", 1), ("data3", 2), ("data4", 11)]
 
 
+def test_ansible_description():
+    from expand import util
+
+    assert util.get_ansible_description("# Test", 50) == ["N/A"]
+    assert util.get_ansible_description("\nhehe", 50) == ["N/A"]
+    assert util.get_ansible_description("2234wfsd", 0) == ["N/A"]
+    assert util.get_ansible_description("2234wfsd\n#asdflhalsdf", 4) == ["N/A"]
+    assert util.get_ansible_description("# Test\n#This is the first line.", 50) == ["This is the first line."]
+    assert util.get_ansible_description("# Test\n#This is the first line.\n#This is the second line.", 50) == ["This is the first line.", "This is the second line."]
+    assert util.get_ansible_description("# Test\n#Hello, World!", 3) == ["Hel", "lo,", " Wo", "rld", "!"]
+    assert util.get_ansible_description("# Test\n#he\n#Hello, World!", 3) == ["he", "Hel", "lo,", " Wo", "rld", "!"]
+    assert util.get_ansible_description("# Test\n#he\n#Hello, World!\n#\n#", 3) == ["he", "Hel", "lo,", " Wo", "rld", "!", "", ""]
+
+
 

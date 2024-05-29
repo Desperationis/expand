@@ -8,8 +8,46 @@ import threading
 from expand import util
 from expand.probes import CompatibilityProbe
 
+class ChoicePreview:
+    """
+    Shows a box that displays the description of a ansible file.
+    """
+
+    def __init__(self, name, file_path):
+        self.name = name
+        self.file_path = file_path
+
+
+    def draw(self, stdscr, y, x, width, height):
+        # Draw divider on left edge 
+        for i in range(height):
+            try:
+                stdscr.addstr(y + i, x, "|", curses.A_BOLD)
+            except curses.error:
+                pass
+
+        # Draw name of the file
+        try:
+            stdscr.addstr(y + 1, x + 3, self.name, curses.A_BOLD)
+        except curses.error:
+            pass
+
+        # Draw Text
+        with open(self.file_path, "r", encoding="UTF-8") as file:
+            description = util.get_ansible_description(file.read(), width - 1 - 6)
+
+            for i, line in enumerate(description):
+                try:
+                    stdscr.addstr(y + i + 3, x + 3, line, 0)
+                except curses.error:
+                    pass
+
+
 
 class Choice:
+    SIZES = [2, 25, 2, 25, 25]
+    MIN_WIDTH = sum(filter(lambda a: a > -1, SIZES))
+
     def __init__(self, name, file_path):
         self.name = name
         self.file_path = file_path
@@ -104,7 +142,7 @@ class Choice:
             columns.append("")
 
         # Select, Name, URL, Last Updated, Failing Message
-        columns = util.get_formatted_columns(columns, width, [2, 25, 2, 25, -1])
+        columns = util.get_formatted_columns(columns, width, Choice.SIZES)
         for i, c in enumerate(columns):
             attrs = 0
             if self.hover:
@@ -170,7 +208,7 @@ class curses_cli:
 
         while True:
             current_display = categories[current_category][1]
-            _, cols = self.stdscr.getmaxyx()
+            rows, cols = self.stdscr.getmaxyx()
 
             self.stdscr.erase()
             
@@ -196,6 +234,11 @@ class curses_cli:
                 y = i + 5
                 x = 5
                 elem.draw(self.stdscr, y, x, cols - x - 5)
+
+            # 5 from offset of `Choice`, 3 for offset
+            if cols // 2 + 3 > Choice.MIN_WIDTH + 5:
+                preview = ChoicePreview(current_display[hover].name, current_display[hover].file_path)
+                preview.draw(self.stdscr, 0, cols // 2, cols // 2, rows)
 
             c = self.stdscr.getch()
             if c == curses.KEY_UP or c == ord("k"):
