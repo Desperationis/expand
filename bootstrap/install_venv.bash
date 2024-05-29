@@ -8,7 +8,7 @@ fi
 
 
 
-if ! python3 -m venv --help >/dev/null 2>&1; then
+if ! python3 -m venv test_venv >/dev/null 2>&1; then
     echo -e "\033[31mpython3-venv is not installed.\033[0m"
 
     # Check which package manager is available and install python3-venv
@@ -37,3 +37,5 @@ if ! python3 -m venv --help >/dev/null 2>&1; then
 else
     echo -e "\033[36mpython3-venv is installed.\033[0m"
 fi
+
+rm -rf test_venv/
