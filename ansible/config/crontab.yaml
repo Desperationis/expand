@@ -1,0 +1,13 @@
+- name: "Install crontab config"
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    user_home: "{{ lookup('env', 'HOME') | default(lookup('env', 'USERPROFILE')) }}"
+    scripts_folder: "{{ playbook_dir }}/../scripts/"
+  tasks:
+    - name: "Install via crontab"
+      ansible.builtin.shell:
+        cmd: "crontab {{ scripts_folder }}/crontab"
+      register: aptout
+    - debug: var=aptout

@@ -5,6 +5,7 @@ This file is in charge of drawing the UI to the screen.
 
 import curses
 from expand import util
+from expand.probes import CompatibilityProbe
 
 
 class Choice:
@@ -13,36 +14,51 @@ class Choice:
         self.file_path = file_path
         self.chosen = False
         self.hover = False
-        self.probes = util.get_probes_from_file(file_path)
-        self.failing_probes = util.get_failing_probes(self.probes)
-        self.broken_urls = self.failing_urls() if self.has_urls() else None
+
+        # Load cache
+        self.has_urls()
+        self.failing_urls()
+        self.failing_probes()
 
     def has_urls(self) -> bool:
         """
         Does this ansible file have any URL's in it?
         """
+        if hasattr(self, "_has_urls"):
+            return self._has_urls
+
         with open(self.file_path, "r", encoding="UTF-8") as file:
             links = util.filter_str_for_urls(file.read())
-            return len(links) > 0
+            self._has_urls = len(links) > 0
+
+        return self._has_urls
 
     def failing_urls(self) -> list[str]:
         """
         If there are urls in this ansible file, get a list of URLs that aren't
-        working. If there aren't, return an exception.
+        working. If no files exist, return [].
         """
+        if hasattr(self, "_broken_urls"):
+            return self._broken_urls
 
-        if not self.has_urls():
-            raise Exception()
-
-        broken_links = []
+        self._broken_urls = []
 
         with open(self.file_path, "r", encoding="UTF-8") as file:
             links = util.filter_str_for_urls(file.read())
             for link in links:
                 if not util.is_url_up(link):
-                    broken_links.append(link)
+                    self._broken_urls.append(link)
 
-        return broken_links
+        return self._broken_urls
+
+    def failing_probes(self) -> list[CompatibilityProbe]:
+        if hasattr(self, "_failing_probes"):
+            return self._failing_probes
+
+        self.probes = util.get_probes_from_file(self.file_path)
+        self._failing_probes = util.get_failing_probes(self.probes)
+
+        return self._failing_probes
 
     def set_chosen(self, chosen: bool):
         self.chosen = chosen
@@ -53,28 +69,44 @@ class Choice:
     def draw(self, stdscr, y, x, width):
         columns = []
 
+        # Add Select
         columns.append("■ " if self.chosen else "☐ ")
+
+        # Add name of file
         columns.append(self.name)
 
+        # Add URL Indictor
         if not self.has_urls():
             columns.append("")
         else:
-            columns.append("✔" if len(self.broken_urls) == 0 else "✘")
+            if len(self.failing_urls()) == 0:
+                columns.append("✔")
+            else:
+                columns.append("✘")
 
+        # Add Last Updated
         last_updated_delta = util.timedelta_since_last_update(self.file_path)
         last_updated = util.timedelta_pretty(last_updated_delta)
         columns.append(last_updated)
 
-        if len(self.failing_probes) > 0:
-            columns.append(self.failing_probes[0].get_error_message())
+        # Add Message of Any Failing Probes
+        if len(self.failing_probes()) > 0:
+            columns.append(self.failing_probes()[0].get_error_message())
         else:
             columns.append("")
 
-        columns = util.get_formatted_columns(columns, width, [2, 25, -1, -1, 50])
+        # Select, Name, URL, Last Updated, Failing Message
+        columns = util.get_formatted_columns(columns, width, [2, 25, 2, 25, -1])
         for i, c in enumerate(columns):
             attrs = 0
-            if i == 1 and self.hover:
+            if self.hover:
                 attrs |= curses.A_REVERSE
+            if i == 2:
+                if len(self.failing_urls()) == 0:
+                    attrs |= curses.color_pair(3)
+                else:
+                    attrs |= curses.color_pair(2)
+                    
             if i == 4:
                 attrs |= curses.color_pair(2)
 
@@ -100,6 +132,7 @@ class curses_cli:
 
         curses.init_pair(1, curses.COLOR_CYAN, -1)
         curses.init_pair(2, curses.COLOR_RED, -1)
+        curses.init_pair(3, curses.COLOR_GREEN, -1)
 
         self.is_setup = True
 

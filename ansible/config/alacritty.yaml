@@ -1,0 +1,13 @@
+- name: "Install alacritty configuration files"
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    user_home: "{{ lookup('env', 'HOME') | default(lookup('env', 'USERPROFILE')) }}"
+    config_folder: "{{ playbook_dir }}/../config/"
+  tasks:
+    - name: "Copy configuration"
+      synchronize:
+        src: "{{ config_folder }}/alacritty"
+        dest: "{{ user_home }}/.config/"
+        archive: yes
