@@ -79,7 +79,7 @@ class PopOSProbe(CompatibilityProbe):
 
 class NotRootProbe(CompatibilityProbe):
     def get_error_message(self) -> str:
-        return "You cannot run this as root."
+        return "You shouldn't run this as root."
 
     def is_compatible(self) -> bool:
         return os.geteuid() != 0

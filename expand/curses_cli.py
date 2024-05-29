@@ -48,7 +48,7 @@ class ChoicePreview:
 
 
 class Choice:
-    SIZES = [2, 25, 2, 25, 25]
+    SIZES = [2, 25, 2, 25, 35]
     MIN_WIDTH = sum(filter(lambda a: a > -1, SIZES))
 
     def __init__(self, name, file_path):
@@ -188,10 +188,7 @@ class curses_cli:
 
         self.is_setup = True
 
-    def loop(self):
-        if not self.is_setup:
-            self.setup()
-
+    def create_ansible_data_structure(self):
         categories = []
 
         files = util.get_files("ansible/packages/")
@@ -201,6 +198,15 @@ class curses_cli:
         files = util.get_files("ansible/config/")
         display = list(map(lambda name: Choice(name, files[name]), files))
         categories.append(("config", display))
+
+        return categories
+
+
+    def loop(self):
+        if not self.is_setup:
+            self.setup()
+
+        categories = self.create_ansible_data_structure()
 
         # Index of Current Category
         current_category = 0
@@ -239,9 +245,10 @@ class curses_cli:
                 elem.draw(self.stdscr, y, x, cols - x - 5)
 
             # 5 from offset of `Choice`, 3 for offset
-            if cols // 2 + 3 > Choice.MIN_WIDTH + 5:
+            x = round(cols - (cols / 3))
+            if x + 3 > Choice.MIN_WIDTH + 5:
                 preview = ChoicePreview(current_display[hover].name, current_display[hover].file_path)
-                preview.draw(self.stdscr, 0, cols // 2, cols // 2, rows)
+                preview.draw(self.stdscr, 0, x, cols - x, rows)
 
             c = self.stdscr.getch()
             if c == curses.KEY_UP or c == ord("k"):
@@ -264,6 +271,7 @@ class curses_cli:
             elif c == curses.KEY_ENTER or c == 10:
                 self.end()
 
+                # Run Playbooks
                 for i in selections:
                     file_path = os.path.abspath(current_display[i].file_path)
 
@@ -271,6 +279,9 @@ class curses_cli:
                     p.wait()
                     if p.returncode != 0:
                         sys.exit(1)
+
+                # Everything ran successfully, reset requirements
+                categories = self.create_ansible_data_structure()
 
                 self.setup()
 
