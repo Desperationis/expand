@@ -4,6 +4,7 @@ This file is in charge of drawing the UI to the screen.
 
 
 import curses
+import threading
 from expand import util
 from expand.probes import CompatibilityProbe
 
@@ -17,8 +18,13 @@ class Choice:
 
         # Load cache
         self.has_urls()
-        self.failing_urls()
         self.failing_probes()
+        self.failing_urls_task = threading.Thread(target=self.run_failing_urls)
+        self.failing_urls_task.start()
+
+    def run_failing_urls(self):
+        return self.failing_urls()
+
 
     def has_urls(self) -> bool:
         """
@@ -78,6 +84,8 @@ class Choice:
         # Add URL Indictor
         if not self.has_urls():
             columns.append("")
+        elif self.failing_urls_task.is_alive():
+            columns.append("-")
         else:
             if len(self.failing_urls()) == 0:
                 columns.append("✔")
@@ -102,7 +110,9 @@ class Choice:
             if self.hover:
                 attrs |= curses.A_REVERSE
             if i == 2:
-                if len(self.failing_urls()) == 0:
+                if self.failing_urls_task.is_alive():
+                    attrs |= curses.color_pair(4)
+                elif len(self.failing_urls()) == 0:
                     attrs |= curses.color_pair(3)
                 else:
                     attrs |= curses.color_pair(2)
@@ -133,6 +143,7 @@ class curses_cli:
         curses.init_pair(1, curses.COLOR_CYAN, -1)
         curses.init_pair(2, curses.COLOR_RED, -1)
         curses.init_pair(3, curses.COLOR_GREEN, -1)
+        curses.init_pair(4, curses.COLOR_YELLOW, -1)
 
         self.is_setup = True
 
