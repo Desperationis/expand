@@ -1,3 +1,5 @@
+# []
+
 - name: "Install alacritty configuration files"
   hosts: localhost
   connection: local

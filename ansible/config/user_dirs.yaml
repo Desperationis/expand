@@ -1,3 +1,5 @@
+# []
+
 - name: "Removes default folders in ~/"
   hosts: localhost
   connection: local

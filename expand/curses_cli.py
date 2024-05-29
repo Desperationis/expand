@@ -140,19 +140,39 @@ class curses_cli:
         if not self.is_setup:
             self.setup()
 
-        files = util.get_files("ansible")
-        display = list(map(lambda name: Choice(name, files[name]), files))
+        categories = []
 
-        selections = set()
+        files = util.get_files("ansible/packages/")
+        display = list(map(lambda name: Choice(name, files[name]), files))
+        categories.append(("packages", display))
+
+        files = util.get_files("ansible/config/")
+        display = list(map(lambda name: Choice(name, files[name]), files))
+        categories.append(("config", display))
+
+        # Index of Current Category
+        current_category = 0
+
+        # For selection
         hover = 0
+        selections = set()
 
         while True:
+            current_display = categories[current_category][1]
             _, cols = self.stdscr.getmaxyx()
 
             self.stdscr.erase()
-            self.stdscr.addstr(0, 0, "Please Select Packages:", 0)
+            
+            for i, elem in enumerate(categories):
+                attrs = 0
+                if i == current_category:
+                    attrs |= curses.A_REVERSE
 
-            for i, elem in enumerate(display):
+                self.stdscr.addstr(0, i * 10 + 3, elem[0], attrs)
+
+            self.stdscr.addstr(3, 0, "Please Select", 0)
+
+            for i, elem in enumerate(current_display):
                 elem.set_chosen(False)
                 elem.set_hover(False)
 
@@ -171,12 +191,23 @@ class curses_cli:
                 hover -= 1
             elif c == curses.KEY_DOWN or c == ord("j"):
                 hover += 1
+            elif c == curses.KEY_RIGHT or c == ord("l"):
+                current_category += 1
+                hover = 0
+                selections.clear()
+            elif c == curses.KEY_LEFT or c == ord("h"):
+                current_category += 1
+                hover = 0
+                selections.clear()
             elif c == 9:  # Tab
                 if hover in selections:
                     selections.remove(hover)
                 else:
                     selections.add(hover)
-            hover %= len(display)
+
+            current_category %= len(categories)
+
+            hover %= len(current_display)
 
             self.stdscr.refresh()
 
