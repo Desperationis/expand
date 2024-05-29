@@ -8,8 +8,31 @@ import threading
 import subprocess
 import os
 import sys
+import json
 from expand import util
 from expand.probes import CompatibilityProbe
+
+class InstalledCache:
+    @staticmethod
+    def get_installed():
+        if not os.path.exists("installed.json"):
+            return []
+
+        with open("installed.json", "r", encoding="UTF-8") as file:
+            data = json.load(file)
+            if "installed" not in data:
+                return []
+
+            return data["installed"]
+
+    @staticmethod
+    def add_installed(ansible_name):
+        installed = InstalledCache.get_installed()
+        installed.append(ansible_name)
+
+        with open("installed.json", "w+", encoding="UTF-8") as file:
+            file.write(json.dumps({"installed": installed}, sort_keys=True,
+                                  indent=4))
 
 class ChoicePreview:
     """
@@ -48,7 +71,7 @@ class ChoicePreview:
 
 
 class Choice:
-    SIZES = [2, 25, 2, 25, 35]
+    SIZES = [2, 25, 2, 25, 15, 35]
     MIN_WIDTH = sum(filter(lambda a: a > -1, SIZES))
 
     def __init__(self, name, file_path):
@@ -107,6 +130,15 @@ class Choice:
 
         return self._failing_probes
 
+    def is_installed(self) -> bool:
+        if hasattr(self, "_is_installed"):
+            return self._is_installed
+
+        self._is_installed = self.name in InstalledCache.get_installed()
+
+        return self._is_installed
+
+
     def set_chosen(self, chosen: bool):
         self.chosen = chosen
 
@@ -138,6 +170,11 @@ class Choice:
         last_updated = util.timedelta_pretty(last_updated_delta)
         columns.append(last_updated)
 
+        if self.is_installed():
+            columns.append("Installed!")
+        else:
+            columns.append("")
+
         # Add Message of Any Failing Probes
         if len(self.failing_probes()) > 0:
             columns.append(self.failing_probes()[0].get_error_message())
@@ -157,8 +194,11 @@ class Choice:
                     attrs |= curses.color_pair(3)
                 else:
                     attrs |= curses.color_pair(2)
-                    
+
             if i == 4:
+                attrs |= curses.color_pair(1)
+                    
+            if i == 5:
                 attrs |= curses.color_pair(2)
 
             try:
@@ -279,6 +319,9 @@ class curses_cli:
                     p.wait()
                     if p.returncode != 0:
                         sys.exit(1)
+
+                    # Ansible file ran successfully
+                    InstalledCache.add_installed(current_display[i].name)
 
                 # Everything ran successfully, reset requirements
                 categories = self.create_ansible_data_structure()
