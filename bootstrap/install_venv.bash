@@ -28,7 +28,8 @@ if ! python3 -m venv test_venv >/dev/null 2>&1; then
     fi
 
     # Check if installation was successful
-    if ! python3 -m venv --help >/dev/null 2>&1; then
+	rm -rf test_venv
+    if ! python3 -m venv test_venv >/dev/null 2>&1; then
         echo -e "\033[31mError: Failed to install python3-venv. Please install it manually.\033[0m"
         exit 1
     fi
