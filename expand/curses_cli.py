@@ -1,7 +1,10 @@
+"""
+This file is in charge of drawing the UI to the screen.
+"""
+
+
 import curses
-import time
-import os
-import expand.util
+from expand import util
 
 
 class Choice:
@@ -10,22 +13,17 @@ class Choice:
         self.file_path = file_path
         self.chosen = False
         self.hover = False
-        self.probes = expand.util.get_probes_from_file(file_path)
-        self.failing_probes = expand.util.get_failing_probes(self.probes)
-        
-        if self.has_urls():
-            self.broken_urls = self.failing_urls()
-        else:
-            self.broken_urls = None
+        self.probes = util.get_probes_from_file(file_path)
+        self.failing_probes = util.get_failing_probes(self.probes)
+        self.broken_urls = self.failing_urls() if self.has_urls() else None
 
     def has_urls(self) -> bool:
         """
         Does this ansible file have any URL's in it?
         """
-        with open(self.file_path, "r") as f:
-            links = expand.util.filter_str_for_urls(f.read())
+        with open(self.file_path, "r", encoding="UTF-8") as file:
+            links = util.filter_str_for_urls(file.read())
             return len(links) > 0
-
 
     def failing_urls(self) -> list[str]:
         """
@@ -38,16 +36,13 @@ class Choice:
 
         broken_links = []
 
-        with open(self.file_path, "r") as f:
-            links = expand.util.filter_str_for_urls(f.read())
+        with open(self.file_path, "r", encoding="UTF-8") as file:
+            links = util.filter_str_for_urls(file.read())
             for link in links:
-                if not expand.util.is_url_up(link):
+                if not util.is_url_up(link):
                     broken_links.append(link)
 
-
         return broken_links
-
-
 
     def set_chosen(self, chosen: bool):
         self.chosen = chosen
@@ -56,7 +51,7 @@ class Choice:
         self.hover = hover
 
     def draw(self, stdscr, y, x, width):
-        columns =[]
+        columns = []
 
         columns.append("■ " if self.chosen else "☐ ")
         columns.append(self.name)
@@ -66,8 +61,8 @@ class Choice:
         else:
             columns.append("✔" if len(self.broken_urls) == 0 else "✘")
 
-        last_updated_delta = expand.util.timedelta_since_last_update(self.file_path)
-        last_updated = expand.util.timedelta_pretty(last_updated_delta)
+        last_updated_delta = util.timedelta_since_last_update(self.file_path)
+        last_updated = util.timedelta_pretty(last_updated_delta)
         columns.append(last_updated)
 
         if len(self.failing_probes) > 0:
@@ -75,21 +70,18 @@ class Choice:
         else:
             columns.append("")
 
-        columns = expand.util.get_formatted_columns(columns, width, [2, 25, -1, -1, 50])
-        for i, c in enumerate(columns): 
+        columns = util.get_formatted_columns(columns, width, [2, 25, -1, -1, 50])
+        for i, c in enumerate(columns):
             attrs = 0
             if i == 1 and self.hover:
                 attrs |= curses.A_REVERSE
             if i == 4:
                 attrs |= curses.color_pair(2)
 
-
             try:
                 stdscr.addstr(y, x + c[1], c[0], attrs)
             except curses.error:
                 pass
-
-
 
 
 class curses_cli:
@@ -115,14 +107,14 @@ class curses_cli:
         if not self.is_setup:
             self.setup()
 
-        files = expand.util.get_files("ansible")
+        files = util.get_files("ansible")
         display = list(map(lambda name: Choice(name, files[name]), files))
 
         selections = set()
         hover = 0
 
         while True:
-            rows, cols = self.stdscr.getmaxyx()
+            _, cols = self.stdscr.getmaxyx()
 
             self.stdscr.erase()
             self.stdscr.addstr(0, 0, "Please Select Packages:", 0)
@@ -136,7 +128,7 @@ class curses_cli:
 
                 if i == hover:
                     elem.set_hover(True)
-       
+
                 y = i + 5
                 x = 5
                 elem.draw(self.stdscr, y, x, cols - x - 5)
@@ -146,7 +138,7 @@ class curses_cli:
                 hover -= 1
             elif c == curses.KEY_DOWN or c == ord("j"):
                 hover += 1
-            elif c == 9: # Tab
+            elif c == 9:  # Tab
                 if hover in selections:
                     selections.remove(hover)
                 else:
