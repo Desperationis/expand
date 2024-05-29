@@ -6,7 +6,7 @@
   gather_facts: false
   vars:
     user_home: "{{ lookup('env', 'HOME') | default(lookup('env', 'USERPROFILE')) }}"
-    config_folder: "{{ playbook_dir }}/../config/"
+    config_folder: "{{ playbook_dir }}/../../data/config/"
   tasks:
     - debug: var=user_home
 

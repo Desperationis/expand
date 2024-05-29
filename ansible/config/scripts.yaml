@@ -6,7 +6,7 @@
   gather_facts: false
   vars:
     user_home: "{{ lookup('env', 'HOME') | default(lookup('env', 'USERPROFILE')) }}"
-    scripts_folder: "{{ playbook_dir }}/../scripts/"
+    scripts_folder: "{{ playbook_dir }}/../../data/scripts/"
   tasks:
     - name: "Make ~/bin"
       file:
