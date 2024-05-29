@@ -14,25 +14,50 @@ from expand.probes import CompatibilityProbe
 
 class InstalledCache:
     @staticmethod
-    def get_installed():
+    def _get_json():
         if not os.path.exists("installed.json"):
-            return []
+            return {}
 
         with open("installed.json", "r", encoding="UTF-8") as file:
-            data = json.load(file)
-            if "installed" not in data:
-                return []
+            return json.load(file)
 
-            return data["installed"]
 
     @staticmethod
-    def add_installed(ansible_name):
-        installed = InstalledCache.get_installed()
-        installed.append(ansible_name)
+    def _get_attr(attr):
+        data = InstalledCache._get_json()
+        return data[attr]
+
+    @staticmethod
+    def _write_attr(attr, value):
+        data = InstalledCache._get_json()
 
         with open("installed.json", "w+", encoding="UTF-8") as file:
-            file.write(json.dumps({"installed": installed}, sort_keys=True,
-                                  indent=4))
+            data[attr] = value
+            file.write(json.dumps(data, sort_keys=True, indent=4))
+
+
+    @staticmethod
+    def is_installed(name):
+        try:
+            return InstalledCache._get_attr(name) == "installed"
+        except:
+            return False
+
+
+    @staticmethod
+    def is_failure(name):
+        try:
+            return InstalledCache._get_attr(name) == "failure"
+        except:
+            return False
+
+    @staticmethod
+    def set_installed(ansible_name):
+        InstalledCache._write_attr(ansible_name, "installed")
+
+    @staticmethod
+    def set_failure(ansible_name):
+        InstalledCache._write_attr(ansible_name, "failure")
 
 class ChoicePreview:
     """
@@ -130,13 +155,18 @@ class Choice:
 
         return self._failing_probes
 
-    def is_installed(self) -> bool:
-        if hasattr(self, "_is_installed"):
-            return self._is_installed
+    def installed_status(self) -> str:
+        if hasattr(self, "_installed_status"):
+            return self._installed_status
 
-        self._is_installed = self.name in InstalledCache.get_installed()
+        if InstalledCache.is_failure(self.name):
+            self._installed_status = "Failure"
+        elif InstalledCache.is_installed(self.name):
+            self._installed_status = "Installed"
+        else:
+            self._installed_status = "Not Installed"
 
-        return self._is_installed
+        return self._installed_status
 
 
     def set_chosen(self, chosen: bool):
@@ -170,10 +200,8 @@ class Choice:
         last_updated = util.timedelta_pretty(last_updated_delta)
         columns.append(last_updated)
 
-        if self.is_installed():
-            columns.append("Installed!")
-        else:
-            columns.append("")
+        # If package was able to be installed or not
+        columns.append(self.installed_status())
 
         # Add Message of Any Failing Probes
         if len(self.failing_probes()) > 0:
@@ -189,17 +217,22 @@ class Choice:
                 attrs |= curses.A_REVERSE
             if i == 2:
                 if self.failing_urls_task.is_alive():
-                    attrs |= curses.color_pair(4)
+                    attrs |= curses.color_pair(4) # Yellow
                 elif len(self.failing_urls()) == 0:
-                    attrs |= curses.color_pair(3)
+                    attrs |= curses.color_pair(3) # Green
                 else:
-                    attrs |= curses.color_pair(2)
+                    attrs |= curses.color_pair(2) # Red
 
             if i == 4:
-                attrs |= curses.color_pair(1)
+                if self.installed_status() == "Not Installed":
+                    attrs |= curses.color_pair(4) # Yellow
+                elif self.installed_status() == "Installed":
+                    attrs |= curses.color_pair(3) # Green
+                elif self.installed_status() == "Failure":
+                    attrs |= curses.color_pair(2) # Red
                     
             if i == 5:
-                attrs |= curses.color_pair(2)
+                attrs |= curses.color_pair(2) # Red
 
             try:
                 stdscr.addstr(y, x + c[1], c[0], attrs)
@@ -318,10 +351,9 @@ class curses_cli:
                     p = subprocess.Popen(f"ansible-playbook \"{file_path}\"", shell=True)
                     p.wait()
                     if p.returncode != 0:
-                        sys.exit(1)
-
-                    # Ansible file ran successfully
-                    InstalledCache.add_installed(current_display[i].name)
+                        InstalledCache.set_failure(current_display[i].name)
+                    else:
+                        InstalledCache.set_installed(current_display[i].name)
 
                 # Everything ran successfully, reset requirements
                 categories = self.create_ansible_data_structure()
