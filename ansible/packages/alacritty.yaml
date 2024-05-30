@@ -41,3 +41,10 @@
       command:
         cmd: bash -c "if [ -e /usr/share/applications/org.gnome.Terminal.desktop ]; then mv --force /usr/share/applications/org.gnome.Terminal.desktop /usr/share/applications/terminal.backup; fi"
     - debug: var=aptout4
+
+
+    - name: Make alacritty symbolic link
+      shell:
+      register: aptout5
+        cmd: ln -s /usr/local/cargo/bin/alacritty /usr/local/bin/alacritty
+    - debug: var=aptout5
