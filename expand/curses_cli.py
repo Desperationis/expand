@@ -357,6 +357,7 @@ class curses_cli:
 
                 # Everything ran successfully, reset requirements
                 categories = self.create_ansible_data_structure()
+                selections.clear()
 
                 self.setup()
 
