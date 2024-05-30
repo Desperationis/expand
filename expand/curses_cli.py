@@ -6,6 +6,7 @@ This file is in charge of drawing the UI to the screen.
 import curses
 import subprocess
 import os
+import pwd
 from expand import util
 from expand.cache import InstalledCache
 from expand.gui_elements import ChoicePreview, Choice
@@ -58,15 +59,18 @@ class curses_cli:
             rows, cols = self.stdscr.getmaxyx()
 
             self.stdscr.erase()
+
+            user_info = pwd.getpwnam(os.environ["USER"])
+            self.stdscr.addstr(0, 0, f"ENV: {os.environ['USER']}  UID: {user_info.pw_uid} EUID: {os.geteuid()}", 0)
             
             for i, elem in enumerate(categories):
                 attrs = 0
                 if i == current_category:
                     attrs |= curses.A_REVERSE
 
-                self.stdscr.addstr(0, i * 10 + 3, elem[0], attrs)
+                self.stdscr.addstr(2, i * 10 + 3, elem[0], attrs)
 
-            self.stdscr.addstr(3, 0, "Please Select", 0)
+            self.stdscr.addstr(4, 0, "Please Select", 0)
 
             for i, elem in enumerate(current_display):
                 elem.set_chosen(False)
@@ -78,7 +82,7 @@ class curses_cli:
                 if i == hover:
                     elem.set_hover(True)
 
-                y = i + 5
+                y = i + 6
                 x = 5
                 elem.draw(self.stdscr, y, x, cols - x - 5)
 
