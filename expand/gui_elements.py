@@ -164,27 +164,23 @@ class Choice:
         if len(self.failing_probes()) > 0:
             data["compatibility"] = self.failing_probes()[0].get_error_message()
 
-        columns = [ data["select"], data["name"], data["URL"], data["last_updated"], data["installed"], data["compatibility"] ]
+        order = [
+            "select",
+            "name",
+            "URL",
+            "last_updated",
+            "installed",
+            "compatibility"
+            ]
 
-        # Select, Name, URL, Last Updated, Failing Message
+        # Crop Data to Column Sizes
+        columns = [ data[i] for i in order ]
         columns = util.get_formatted_columns(columns, width, Choice.SIZES)
+
         for i, c in enumerate(columns):
-            attrs = 0
+            attrs = colors[order[i]]
             if self.hover:
                 attrs |= curses.A_REVERSE
-
-            if i == 0:
-                attrs |= colors["select"]
-            if i == 1:
-                attrs |= colors["name"]
-            if i == 2:
-                attrs |= colors["URL"]
-            if i == 3:
-                attrs |= colors["last_updated"]
-            if i == 4:
-                attrs |= colors["installed"]
-            if i == 5:
-                attrs |= colors["compatibility"]
 
             try:
                 stdscr.addstr(y, x + c[1], c[0], attrs)
