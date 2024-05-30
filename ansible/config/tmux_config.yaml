@@ -9,7 +9,5 @@
     config_folder: "{{ playbook_dir }}/../../data/config/"
   tasks:
     - name: "Copy configuration"
-      synchronize:
-        src: "{{ config_folder }}/tmux"
-        dest: "{{ user_home }}/.config/"
-        archive: yes
+      shell:
+        cmd: rsync -avh --delete "{{ config_folder }}/tmux" "{{ user_home }}/.config/"
