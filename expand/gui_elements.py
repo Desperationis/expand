@@ -49,7 +49,6 @@ class Choice:
         ("select", 2),
         ("name", 25),
         ("URL", 2),
-        ("last_updated", 25),
         ("installed", 15),
         ("compatibility", 35)
     ]
@@ -148,11 +147,6 @@ class Choice:
             data["URL"] = "✘", "RED"
         else:
             data["URL"] = "✔", "GREEN"
-
-        # Add Last Updated
-        last_updated_delta = util.timedelta_since_last_update(self.file_path)
-        last_updated = util.timedelta_pretty(last_updated_delta)
-        data["last_updated"] = last_updated, "CYAN"
 
         # If package was able to be installed or not
         if self.installed_status() == "Failure":
