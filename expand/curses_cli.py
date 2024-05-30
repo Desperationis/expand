@@ -7,57 +7,9 @@ import curses
 import threading
 import subprocess
 import os
-import sys
-import json
 from expand import util
 from expand.probes import CompatibilityProbe
-
-class InstalledCache:
-    @staticmethod
-    def _get_json():
-        if not os.path.exists("installed.json"):
-            return {}
-
-        with open("installed.json", "r", encoding="UTF-8") as file:
-            return json.load(file)
-
-
-    @staticmethod
-    def _get_attr(attr):
-        data = InstalledCache._get_json()
-        return data[attr]
-
-    @staticmethod
-    def _write_attr(attr, value):
-        data = InstalledCache._get_json()
-
-        with open("installed.json", "w+", encoding="UTF-8") as file:
-            data[attr] = value
-            file.write(json.dumps(data, sort_keys=True, indent=4))
-
-
-    @staticmethod
-    def is_installed(name):
-        try:
-            return InstalledCache._get_attr(name) == "installed"
-        except:
-            return False
-
-
-    @staticmethod
-    def is_failure(name):
-        try:
-            return InstalledCache._get_attr(name) == "failure"
-        except:
-            return False
-
-    @staticmethod
-    def set_installed(ansible_name):
-        InstalledCache._write_attr(ansible_name, "installed")
-
-    @staticmethod
-    def set_failure(ansible_name):
-        InstalledCache._write_attr(ansible_name, "failure")
+from expand.cache import InstalledCache
 
 class ChoicePreview:
     """
@@ -67,6 +19,9 @@ class ChoicePreview:
     def __init__(self, name, file_path):
         self.name = name
         self.file_path = file_path
+
+        with open(self.file_path, "r", encoding="UTF-8") as file:
+            self.content = file.read()
 
 
     def draw(self, stdscr, y, x, width, height):
@@ -83,15 +38,13 @@ class ChoicePreview:
         except curses.error:
             pass
 
-        # Draw Text
-        with open(self.file_path, "r", encoding="UTF-8") as file:
-            description = util.get_ansible_description(file.read(), width - 1 - 6)
-
-            for i, line in enumerate(description):
-                try:
-                    stdscr.addstr(y + i + 3, x + 3, line, 0)
-                except curses.error:
-                    pass
+        # Draw Wrapped Text
+        description = util.get_ansible_description(self.content, width - 1 - 6)
+        for i, line in enumerate(description):
+            try:
+                stdscr.addstr(y + i + 3, x + 3, line, 0)
+            except curses.error:
+                pass
 
 
 
