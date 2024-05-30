@@ -120,38 +120,51 @@ class Choice:
         self.hover = hover
 
     def draw(self, stdscr, y, x, width):
-        columns = []
+        colors = {}
+        data = {}
 
-        # Add Select
-        columns.append("■ " if self.chosen else "☐ ")
-
-        # Add name of file
-        columns.append(self.name)
+        data["select"] = ("■ " if self.chosen else "☐ ")
+        colors["select"] = expand_color_palette["NORMAL"]
+            
+        data["name"] = self.name
+        colors["name"] = expand_color_palette["NORMAL"]
 
         # Add URL Indictor
         if not self.has_urls():
-            columns.append("")
+            data["URL"] = ""
+            colors["URL"] = expand_color_palette["NORMAL"]
         elif self.failing_urls_task.is_alive():
-            columns.append("-")
+            data["URL"] = "-"
+            colors["URL"] = expand_color_palette["YELLOW"]
+        elif len(self.failing_urls()) != 0:
+            data["URL"] = "✘"
+            colors["URL"] = expand_color_palette["RED"]
         else:
-            if len(self.failing_urls()) == 0:
-                columns.append("✔")
-            else:
-                columns.append("✘")
+            data["URL"] = "✔"
+            colors["URL"] = expand_color_palette["GREEN"]
 
         # Add Last Updated
         last_updated_delta = util.timedelta_since_last_update(self.file_path)
         last_updated = util.timedelta_pretty(last_updated_delta)
-        columns.append(last_updated)
+        data["last_updated"] = last_updated
+        colors["last_updated"] = expand_color_palette["CYAN"]
 
         # If package was able to be installed or not
-        columns.append(self.installed_status())
+        data["installed"] = self.installed_status()
+        if self.installed_status() == "Failure":
+            colors["installed"] = expand_color_palette["RED"]
+        elif self.installed_status() == "Installed":
+            colors["installed"] = expand_color_palette["GREEN"]
+        else:
+            colors["installed"] = expand_color_palette["YELLOW"]
 
         # Add Message of Any Failing Probes
+        data["compatibility"] = ""
+        colors["compatibility"] = expand_color_palette["RED"]
         if len(self.failing_probes()) > 0:
-            columns.append(self.failing_probes()[0].get_error_message())
-        else:
-            columns.append("")
+            data["compatibility"] = self.failing_probes()[0].get_error_message()
+
+        columns = [ data["select"], data["name"], data["URL"], data["last_updated"], data["installed"], data["compatibility"] ]
 
         # Select, Name, URL, Last Updated, Failing Message
         columns = util.get_formatted_columns(columns, width, Choice.SIZES)
@@ -159,24 +172,19 @@ class Choice:
             attrs = 0
             if self.hover:
                 attrs |= curses.A_REVERSE
-            if i == 2:
-                if self.failing_urls_task.is_alive():
-                    attrs |= expand_color_palette["YELLOW"]
-                elif len(self.failing_urls()) == 0:
-                    attrs |= expand_color_palette["GREEN"]
-                else:
-                    attrs |= expand_color_palette["RED"]
 
+            if i == 0:
+                attrs |= colors["select"]
+            if i == 1:
+                attrs |= colors["name"]
+            if i == 2:
+                attrs |= colors["URL"]
+            if i == 3:
+                attrs |= colors["last_updated"]
             if i == 4:
-                if self.installed_status() == "Not Installed":
-                    attrs |= expand_color_palette["YELLOW"]
-                elif self.installed_status() == "Installed":
-                    attrs |= expand_color_palette["GREEN"]
-                elif self.installed_status() == "Failure":
-                    attrs |= expand_color_palette["RED"]
-                    
+                attrs |= colors["installed"]
             if i == 5:
-                attrs |= expand_color_palette["RED"]
+                attrs |= colors["compatibility"]
 
             try:
                 stdscr.addstr(y, x + c[1], c[0], attrs)
