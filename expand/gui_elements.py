@@ -56,12 +56,8 @@ class Choice:
         # Load cache
         self.has_urls()
         self.failing_probes()
-        self.failing_urls_task = threading.Thread(target=self.run_failing_urls)
+        self.failing_urls_task = threading.Thread(target=self.failing_urls)
         self.failing_urls_task.start()
-
-    def run_failing_urls(self):
-        return self.failing_urls()
-
 
     def has_urls(self) -> bool:
         """
