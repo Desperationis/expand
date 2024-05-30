@@ -4,6 +4,7 @@ from expand import util
 from expand.probes import CompatibilityProbe
 from expand.cache import InstalledCache
 from expand.colors import expand_color_palette
+from expand.expansion_card import ExpansionCard
 
 class ChoicePreview:
     """
@@ -13,10 +14,7 @@ class ChoicePreview:
     def __init__(self, name, file_path):
         self.name = name
         self.file_path = file_path
-
-        with open(self.file_path, "r", encoding="UTF-8") as file:
-            self.content = file.read()
-
+        self.expansion_card = ExpansionCard(file_path)
 
     def draw(self, stdscr, y, x, width, height):
         # Draw divider on left edge 
@@ -33,7 +31,7 @@ class ChoicePreview:
             pass
 
         # Draw Wrapped Text
-        description = util.get_ansible_description(self.content, width - 1 - 6)
+        description = self.expansion_card.get_ansible_description(width - 1 - 6)
         for i, line in enumerate(description):
             try:
                 stdscr.addstr(y + i + 3, x + 3, line, 0)
@@ -56,6 +54,7 @@ class Choice:
     def __init__(self, name, file_path):
         self.name = name
         self.file_path = file_path
+        self.expansion_card = ExpansionCard(file_path)
         self.chosen = False
         self.hover = False
 
@@ -106,7 +105,7 @@ class Choice:
         if hasattr(self, "_failing_probes"):
             return self._failing_probes
 
-        self.probes = util.get_probes_from_file(self.file_path)
+        self.probes = self.expansion_card.get_probes()
         self._failing_probes = util.get_failing_probes(self.probes)
 
         return self._failing_probes
