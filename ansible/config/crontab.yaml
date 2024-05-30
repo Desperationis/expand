@@ -1,4 +1,4 @@
-# [WhichProbe("crontab")]
+# [WhichProbe("crontab"), NoRootProbe()]
 
 - name: "Install crontab config"
   hosts: localhost
