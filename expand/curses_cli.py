@@ -9,12 +9,12 @@ import os
 from expand import util
 from expand.cache import InstalledCache
 from expand.gui_elements import ChoicePreview, Choice
+from expand.colors import init_colors, expand_color_palette
 
 
 class curses_cli:
     def __init__(self) -> None:
         self.stdscr = curses.initscr()
-        self.is_setup = False
 
     def setup(self):
         curses.noecho()
@@ -25,12 +25,7 @@ class curses_cli:
         curses.set_escdelay(25)  # Without this there is a lag when pressing escape
         self.stdscr.keypad(True)
 
-        curses.init_pair(1, curses.COLOR_CYAN, -1)
-        curses.init_pair(2, curses.COLOR_RED, -1)
-        curses.init_pair(3, curses.COLOR_GREEN, -1)
-        curses.init_pair(4, curses.COLOR_YELLOW, -1)
-
-        self.is_setup = True
+        init_colors()
 
     def create_ansible_data_structure(self):
         # `categories` defines the possible pages available to `expand`:
@@ -49,9 +44,6 @@ class curses_cli:
 
 
     def loop(self):
-        if not self.is_setup:
-            self.setup()
-
         categories = self.create_ansible_data_structure()
 
         # Index of Current Category
@@ -146,5 +138,3 @@ class curses_cli:
         curses.echo()
         curses.curs_set(1)
         curses.endwin()
-
-        self.is_setup = False
