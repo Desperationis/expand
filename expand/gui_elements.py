@@ -44,8 +44,15 @@ class ChoicePreview:
 
 
 class Choice:
-    SIZES = [2, 25, 2, 25, 15, 35]
-    MIN_WIDTH = sum(filter(lambda a: a > -1, SIZES))
+    # Columns arranged by index, second element is width. -1 for auto width
+    ORDER = [
+        ("select", 2),
+        ("name", 25),
+        ("URL", 2),
+        ("last_updated", 25),
+        ("installed", 15),
+        ("compatibility", 35)
+    ]
 
     def __init__(self, name, file_path):
         self.name = name
@@ -58,6 +65,12 @@ class Choice:
         self.failing_probes()
         self.failing_urls_task = threading.Thread(target=self.failing_urls)
         self.failing_urls_task.start()
+
+    @staticmethod
+    def get_min_width() -> int:
+        widths = map(lambda c: c[1], Choice.ORDER)
+        return sum(filter(lambda w: w > -1, widths))
+
 
     def has_urls(self) -> bool:
         """
@@ -120,65 +133,50 @@ class Choice:
         self.hover = hover
 
     def draw(self, stdscr, y, x, width):
-        colors = {}
         data = {}
 
-        data["select"] = ("■ " if self.chosen else "☐ ")
-        colors["select"] = expand_color_palette["NORMAL"]
+        data["select"] = ("■ " if self.chosen else "☐ "), "NORMAL"
             
-        data["name"] = self.name
-        colors["name"] = expand_color_palette["NORMAL"]
+        data["name"] = self.name, "NORMAL"
 
         # Add URL Indictor
         if not self.has_urls():
-            data["URL"] = ""
-            colors["URL"] = expand_color_palette["NORMAL"]
+            data["URL"] = "", "NORMAL"
         elif self.failing_urls_task.is_alive():
-            data["URL"] = "-"
-            colors["URL"] = expand_color_palette["YELLOW"]
+            data["URL"] = "-", "YELLOW"
         elif len(self.failing_urls()) != 0:
-            data["URL"] = "✘"
-            colors["URL"] = expand_color_palette["RED"]
+            data["URL"] = "✘", "RED"
         else:
-            data["URL"] = "✔"
-            colors["URL"] = expand_color_palette["GREEN"]
+            data["URL"] = "✔", "GREEN"
 
         # Add Last Updated
         last_updated_delta = util.timedelta_since_last_update(self.file_path)
         last_updated = util.timedelta_pretty(last_updated_delta)
-        data["last_updated"] = last_updated
-        colors["last_updated"] = expand_color_palette["CYAN"]
+        data["last_updated"] = last_updated, "CYAN"
 
         # If package was able to be installed or not
-        data["installed"] = self.installed_status()
         if self.installed_status() == "Failure":
-            colors["installed"] = expand_color_palette["RED"]
+            data["installed"] = self.installed_status(), "RED"
         elif self.installed_status() == "Installed":
-            colors["installed"] = expand_color_palette["GREEN"]
+            data["installed"] = self.installed_status(), "GREEN"
         else:
-            colors["installed"] = expand_color_palette["YELLOW"]
+            data["installed"] = self.installed_status(), "YELLOW"
 
         # Add Message of Any Failing Probes
-        data["compatibility"] = ""
-        colors["compatibility"] = expand_color_palette["RED"]
+        data["compatibility"] = "", "GREEN"
         if len(self.failing_probes()) > 0:
-            data["compatibility"] = self.failing_probes()[0].get_error_message()
-
-        order = [
-            "select",
-            "name",
-            "URL",
-            "last_updated",
-            "installed",
-            "compatibility"
-            ]
+            data["compatibility"] = self.failing_probes()[0].get_error_message(), "RED"
 
         # Crop Data to Column Sizes
-        columns = [ data[i] for i in order ]
-        columns = util.get_formatted_columns(columns, width, Choice.SIZES)
+        columns = [ data[name][0] for name, _ in Choice.ORDER ]
+        widths = map(lambda c: c[1], Choice.ORDER)
+        columns = util.get_formatted_columns(columns, width, list(widths))
 
         for i, c in enumerate(columns):
-            attrs = colors[order[i]]
+            column_name = Choice.ORDER[i][0]
+            column_color = data[column_name][1]
+            attrs = expand_color_palette[column_color]
+
             if self.hover:
                 attrs |= curses.A_REVERSE
 

@@ -84,7 +84,7 @@ class curses_cli:
 
             # 5 from offset of `Choice`, 3 for offset
             x = round(cols - (cols / 3))
-            if x + 3 > Choice.MIN_WIDTH + 5:
+            if x + 3 > Choice.get_min_width() + 5:
                 preview = ChoicePreview(current_display[hover].name, current_display[hover].file_path)
                 preview.draw(self.stdscr, 0, x, cols - x, rows)
 
