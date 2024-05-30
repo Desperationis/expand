@@ -3,6 +3,7 @@ import threading
 from expand import util
 from expand.probes import CompatibilityProbe
 from expand.cache import InstalledCache
+from expand.colors import expand_color_palette
 
 class ChoicePreview:
     """
@@ -164,22 +165,22 @@ class Choice:
                 attrs |= curses.A_REVERSE
             if i == 2:
                 if self.failing_urls_task.is_alive():
-                    attrs |= curses.color_pair(4) # Yellow
+                    attrs |= expand_color_palette["YELLOW"]
                 elif len(self.failing_urls()) == 0:
-                    attrs |= curses.color_pair(3) # Green
+                    attrs |= expand_color_palette["GREEN"]
                 else:
-                    attrs |= curses.color_pair(2) # Red
+                    attrs |= expand_color_palette["RED"]
 
             if i == 4:
                 if self.installed_status() == "Not Installed":
-                    attrs |= curses.color_pair(4) # Yellow
+                    attrs |= expand_color_palette["YELLOW"]
                 elif self.installed_status() == "Installed":
-                    attrs |= curses.color_pair(3) # Green
+                    attrs |= expand_color_palette["GREEN"]
                 elif self.installed_status() == "Failure":
-                    attrs |= curses.color_pair(2) # Red
+                    attrs |= expand_color_palette["RED"]
                     
             if i == 5:
-                attrs |= curses.color_pair(2) # Red
+                attrs |= expand_color_palette["RED"]
 
             try:
                 stdscr.addstr(y, x + c[1], c[0], attrs)
