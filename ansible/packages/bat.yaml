@@ -1,4 +1,5 @@
-# [LinuxProbe(), x86Probe()]
+# [LinuxProbe(), x86Probe(), DebianProbe(), RootProbe() ]
+# Installs the `bat` executable directly from the Github page.
 
 - name: "Install bat"
   hosts: localhost

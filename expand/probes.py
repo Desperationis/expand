@@ -84,6 +84,12 @@ class NotRootProbe(CompatibilityProbe):
     def is_compatible(self) -> bool:
         return os.geteuid() != 0
 
+class RootProbe(CompatibilityProbe):
+    def get_error_message(self) -> str:
+        return "You should run this as root."
+
+    def is_compatible(self) -> bool:
+        return os.geteuid() == 0
 
 class DockerInstalledProbe(CompatibilityProbe):
     def get_error_message(self) -> str:

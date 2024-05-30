@@ -1,4 +1,6 @@
-# [LinuxProbe(), x86Probe(), PopOSProbe(), DebianProbe(), NotInDockerProbe()]
+# [LinuxProbe(), x86Probe(), PopOSProbe(), DebianProbe(), NotInDockerProbe(), RootProbe()]
+# This is a little iffy at the moment. This installs Nemo on PopOS and sets it
+# to the default file manager for GNOME.
 
 - name: "Install Nemo on Pop OS 22.04"
   hosts: localhost

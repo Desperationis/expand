@@ -1,4 +1,6 @@
-# [LinuxProbe(), x86Probe(), DebianProbe()]
+# [LinuxProbe(), x86Probe(), DebianProbe(), RootProbe()]
+# Builds `fish` from source on Debian-based systems as well as zoxide and fzf.
+# The last two are due to plugins from my configuration.
 
 - name: "Install fish shell"
   hosts: localhost
@@ -19,7 +21,7 @@
         url: https://github.com/fish-shell/fish-shell/releases/download/3.7.1/fish-3.7.1.tar.xz
         dest: /tmp/fish.tar.xz
 
-    - name: "Uncompress Tarballl"
+    - name: "Uncompress Tarball"
       unarchive:
         src: /tmp/fish.tar.xz
         dest: /tmp/

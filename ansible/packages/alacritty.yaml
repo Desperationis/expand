@@ -1,4 +1,4 @@
-# [ DebianProbe() ]
+# [ DebianProbe(), RootProbe() ]
 
 - name: Install Rust
   import_playbook: rust.yaml

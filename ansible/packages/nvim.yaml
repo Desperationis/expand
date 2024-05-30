@@ -1,4 +1,6 @@
-# [LinuxProbe(), x86Probe()]
+# [LinuxProbe(), x86Probe(), RootProbe() ]
+# Installs the `nvim` AppImage. This may not work out of the box on systems
+# without FUSE.
 
 - name: "Install nvim"
   hosts: localhost

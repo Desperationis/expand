@@ -1,4 +1,9 @@
-# [ DebianProbe() ]
+# [ DebianProbe()]
+# This installs rust using the one-line installer from sh.rustup.rs. It is
+# important to note that this installs rust to the current user only. 
+#
+# No preference is given to root or the user, as both may need rust for their
+# own purposes.
 
 - name: Install Rust
   hosts: localhost

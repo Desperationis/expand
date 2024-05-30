@@ -1,4 +1,6 @@
-# [LinuxProbe(), x86Probe(), DebianProbe()]
+# [LinuxProbe(), x86Probe(), DebianProbe(), RootProbe()]
+# Installs a bunch of the basic tools I expect to find on a linux system, such
+# as rsync, sudo, curl, zip, etc.
 
 - name: "Packages for Debian"
   hosts: localhost
@@ -27,7 +29,6 @@
           - build-essential
           - checkinstall
           - software-properties-common
-          - ttf-mscorefonts-installer
           - curl
           - wget
           - gnupg

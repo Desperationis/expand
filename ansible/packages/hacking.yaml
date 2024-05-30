@@ -1,4 +1,5 @@
-# [LinuxProbe(), DebianProbe()]
+# [LinuxProbe(), DebianProbe(), RootProbe()]
+# Installs nmap, binwalk, chkrootkit, testdisk, and steghide.
 
 - name: "Hacking Tools for Debian"
   hosts: localhost

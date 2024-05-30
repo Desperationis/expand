@@ -1,4 +1,5 @@
-# [LinuxProbe(), DebianProbe(), NotInDockerProbe()]
+# [LinuxProbe(), DebianProbe(), NotInDockerProbe(), RootProbe()]
+# Installs the GUI client for Mullvad via .deb
 
 - name: "Install Mullvad"
   hosts: localhost
