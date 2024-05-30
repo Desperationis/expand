@@ -21,6 +21,9 @@ class ExpansionCard:
         self.file_path = file_path
         self.content = open(file_path, "r", encoding="UTF-8").read()
 
+        # This throws an exception if there's an error
+        self.get_probes()
+
     def get_probes(self):
         """
         Given an ansible file, return the list of probes by parsing the first line.
@@ -69,6 +72,7 @@ class ExpansionCard:
         if len(comments) <= 1:
             return ["N/A"]
 
+        # This starts on Line 2
         # These lines are all descriptions without # or whitespace
         comments = list(map(lambda a: a.lstrip("# \t"), comments[1:]))
 
