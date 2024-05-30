@@ -1,5 +1,5 @@
 # [LinuxProbe(), WhichProbe("fish")]
-# Installs the `fisher` plugin for the fish shell and downloads the bass extension.
+# Installs the `fisher` plugin for the fish shell and downloads the bass extension for the current user.
 
 - name: "Install latest fish's fisher plugin"
   hosts: localhost

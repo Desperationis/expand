@@ -1,5 +1,5 @@
 # [ DebianProbe(), RootProbe(), WhichProbe("wget") ]
-# Install Alacritty by building it from scratch with Rust. If GNOME is installed, this hides gnome-terminal from the applications menu as well.
+# Install Alacritty by building it from scratch with Rust. This also creates a .desktop file in /usr/share/applications
 
 - name: Install Rust
   import_playbook: rust.yaml
@@ -27,22 +27,18 @@
       shell:
         cmd: ~/.cargo/bin/cargo install --root /usr/local/cargo/ alacritty
     - debug: var=aptout2
+
     - name: Download Alacritty Logo
       register: aptout2
       command:
         cmd: wget -P /usr/share/pixmaps "https://raw.githubusercontent.com/alacritty/alacritty/master/extra/logo/alacritty-simple.svg"
     - debug: var=aptout2
+
     - name: Create .desktop file
       register: aptout3
       command:
         cmd: bash -c "echo -e \"[Desktop Entry]\nName=Terminal\nExec=/usr/local/cargo/bin/alacritty\nIcon=/usr/share/pixmaps/alacritty-simple.svg\nType=Application\" > /usr/share/applications/alacritty.desktop"
     - debug: var=aptout3
-    - name: Replace gnome-terminal if it exists
-      register: aptout4
-      command:
-        cmd: bash -c "if [ -e /usr/share/applications/org.gnome.Terminal.desktop ]; then mv --force /usr/share/applications/org.gnome.Terminal.desktop /usr/share/applications/terminal.backup; fi"
-    - debug: var=aptout4
-
 
     - name: Make alacritty symbolic link
       register: aptout5
