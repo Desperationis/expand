@@ -1,4 +1,4 @@
-# []
+# [WhichProbe("nvim")]
 
 - name: "Install nvim configuration files"
   hosts: localhost
