@@ -2,7 +2,7 @@
 
 function expand_bootstrap
     # Navigate to the same directory as this script
-    cd (dirname (status --current-filename))
+    cd (cd (dirname (status --current-filename)) > /dev/null; pwd)
 
     bash bootstrap/install_python.bash
     bash bootstrap/install_ansible.bash
@@ -11,12 +11,17 @@ function expand_bootstrap
 
     if not test -d venv
         python3 -m venv venv
-        source venv/bin/activate.fish
+        . venv/bin/activate.fish
         pip3 install -r requirements.txt
     else
-        source venv/bin/activate.fish
+        . venv/bin/activate.fish
     end
 end
 
-expand_bootstrap
-set -gx ACTIVATED_EXPAND ""
+if test (id -u) -eq 0
+    expand_bootstrap
+    set -x ACTIVATED_EXPAND ""
+else
+    echo -e "\e[31mYou must be root to run this script. Please switch to the root user and try again.\e[0m"
+end
+
