@@ -14,8 +14,15 @@
         state: directory
         mode: '0755'
 
-    - name: "Copy scripts"
-      synchronize:
+
+
+    - name: "Clear existing configuration"
+      file:
+        path: "{{ user_home }}/bin"
+        state: absent
+
+    - name: "Copy configuration"
+      copy:
         src: "{{ scripts_folder }}"
         dest: "{{ user_home }}/bin"
-        archive: yes
+
