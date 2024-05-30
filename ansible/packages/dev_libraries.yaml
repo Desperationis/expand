@@ -1,6 +1,5 @@
 # [LinuxProbe(), DebianProbe(), RootProbe()]
-# This installs packages that are only relevant in a programming context,
-# mainly in the C and Python categories.
+# This installs packages that are only relevant in a programming context, mainly in the C and Python categories.
 
 - name: "Software libraries for Debian"
   hosts: localhost

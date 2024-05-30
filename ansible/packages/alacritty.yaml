@@ -1,4 +1,4 @@
-# [ DebianProbe(), RootProbe() ]
+# [ DebianProbe(), RootProbe(), WhichProbe("wget") ]
 
 - name: Install Rust
   import_playbook: rust.yaml

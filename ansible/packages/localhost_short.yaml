@@ -1,4 +1,5 @@
-# [ LinuxProbe() ]
+# [ LinuxProbe(), RootProbe() ]
+# Make "localhost" synonymous with "lh"
 
 - name: "Make Shorthand for Localhost to lh"
   hosts: localhost

@@ -1,6 +1,5 @@
-# [LinuxProbe(), x86Probe(), DebianProbe(), RootProbe()]
-# Builds `fish` from source on Debian-based systems as well as zoxide and fzf.
-# The last two are due to plugins from my configuration.
+# [LinuxProbe(), x86Probe(), DebianProbe(), RootProbe(), WhichProbe("make")]
+# Builds `fish` from source on Debian-based systems as well as zoxide and fzf. The last two are due to plugins from my configuration.
 
 - name: "Install fish shell"
   hosts: localhost

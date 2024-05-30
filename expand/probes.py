@@ -91,21 +91,16 @@ class RootProbe(CompatibilityProbe):
     def is_compatible(self) -> bool:
         return os.geteuid() == 0
 
-class DockerInstalledProbe(CompatibilityProbe):
+class WhichProbe(CompatibilityProbe):
+    def __init__(self, command) -> None:
+        self.command = command
+
     def get_error_message(self) -> str:
-        return "docker is not installed."
+        return f"{self.command} is not installed."
 
     def is_compatible(self) -> bool:
         result = subprocess.run(
-            "which docker > /dev/null 2>&1", shell=True, check=False
+            f"which {self.command} > /dev/null 2>&1", shell=True, check=False
         )
         return result.returncode == 0
 
-
-class FishInstalledProbe(CompatibilityProbe):
-    def get_error_message(self) -> str:
-        return "fish is not installed."
-
-    def is_compatible(self) -> bool:
-        result = subprocess.run("which fish > /dev/null 2>&1", shell=True, check=False)
-        return result.returncode == 0

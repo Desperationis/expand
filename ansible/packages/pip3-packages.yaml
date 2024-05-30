@@ -1,4 +1,11 @@
-# [ NotRootProbe() ]
+# [ WhichProbe("conda") ]
+# Installs
+# * yt-dlp
+# * black
+# * trash-cli
+# * pypeek
+#
+# Via pip. `conda` is recommended to be installed because I usually install this into a custom anaconda environment.
 
 - name: Install Anaconda Locally
   import_playbook: anaconda.yaml
@@ -10,6 +17,6 @@
     - name: "Install Packages"
       register: pipout
       shell:
-        cmd: ". ~/anaconda3/bin/activate && pip install yt-dlp black trash-cli pypeek"
+        cmd: "pip install yt-dlp black trash-cli pypeek"
 
     - debug: var=pipout.stdout
