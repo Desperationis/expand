@@ -1,0 +1,21 @@
+# [WhichProbe("fish"), NotRootProbe()]
+
+- name: "Install fish configuration files"
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    user_home: "{{ lookup('env', 'HOME') | default(lookup('env', 'USERPROFILE')) }}"
+    config_folder: "{{ playbook_dir }}/../../data/config/"
+  tasks:
+
+    - name: "Clear existing configuration"
+      file:
+        path: "{{ user_home }}/.config/fish/"
+        state: absent
+
+    - name: "Copy configuration"
+      copy:
+        src: "{{ config_folder }}/fish" 
+        dest: "{{ user_home }}/.config/"
+

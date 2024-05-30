@@ -1,0 +1,15 @@
+# [LinuxProbe(), x86Probe(), RootProbe()]
+# Install miniserver directly from the Github.
+
+- name: "Install Miniserve"
+  hosts: localhost
+  connection: local
+  become: true
+  tasks:
+    - name: "Install Miniserve"
+      register: aptout6
+      ansible.builtin.get_url:
+        url: https://github.com/svenstaro/miniserve/releases/download/v0.27.1/miniserve-0.27.1-x86_64-unknown-linux-gnu
+        dest: /usr/local/bin/miniserve
+        mode: '0775'
+    - debug: var=aptout6

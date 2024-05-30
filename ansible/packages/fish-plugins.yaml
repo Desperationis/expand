@@ -1,0 +1,14 @@
+# [LinuxProbe(), WhichProbe("fish")]
+# Installs the `fisher` plugin for the fish shell and downloads the bass extension.
+
+- name: "Install latest fish's fisher plugin"
+  hosts: localhost
+  connection: local
+  tasks:
+    - name: "Install fisher and plugins"
+      register: fisherout
+      shell:
+        cmd: fish -c "curl -sL https://git.io/fisher | source; fisher install jorgebucaran/fisher; fisher install edc/bass"
+    - debug: var=fisherout
+
+

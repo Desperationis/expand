@@ -1,0 +1,21 @@
+#!/bin/bash
+#
+if [ $# -eq 0 ]; then
+    # No path specified, use the current directory
+    path=$(pwd)
+else
+    # Path argument is provided
+    path="$1"
+fi
+
+echo -e "\033[0;33mServing from $path in \c"
+for i in {3..1}; do echo -n "$i... "; sleep 1; done; echo
+
+
+MINISERVE_TMP_DIR=$(mktemp -d) && 
+cd "$MINISERVE_TMP_DIR" && 
+openssl genrsa -out selfsigned.key 2048  && 
+openssl req -new -key selfsigned.key -out selfsigned.csr -subj "/C=US/ST=CA" && 
+openssl req -x509 -sha256 -nodes -key selfsigned.key -days 365 -out selfsigned.crt -subj "/C=US/ST=CA" &&
+ cd - && 
+ miniserve --auth diego:diego --qrcode --tls-cert "$MINISERVE_TMP_DIR/selfsigned.crt" --tls-key "$MINISERVE_TMP_DIR/selfsigned.key" "$path"

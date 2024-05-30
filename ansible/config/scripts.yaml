@@ -1,0 +1,28 @@
+# [NotRootProbe()]
+
+- name: "Install scripts to ~/bin"
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    user_home: "{{ lookup('env', 'HOME') | default(lookup('env', 'USERPROFILE')) }}"
+    scripts_folder: "{{ playbook_dir }}/../../data/scripts/"
+  tasks:
+    - name: "Make ~/bin"
+      file:
+        path: "{{ user_home }}/bin"
+        state: directory
+        mode: '0755'
+
+
+
+    - name: "Clear existing configuration"
+      file:
+        path: "{{ user_home }}/bin"
+        state: absent
+
+    - name: "Copy configuration"
+      copy:
+        src: "{{ scripts_folder }}"
+        dest: "{{ user_home }}/bin"
+

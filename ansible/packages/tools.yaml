@@ -1,0 +1,38 @@
+# [LinuxProbe(), x86Probe(), DebianProbe(), RootProbe()]
+# Installs a bunch of the basic tools I expect to find on a linux system, such as rsync, sudo, curl, zip, etc.
+
+- name: "Packages for Debian"
+  hosts: localhost
+  connection: local
+  become: true
+  tasks:
+    - name: "Install Packages"
+      register: aptout
+      apt:
+        state: latest
+        name:
+          - sudo
+          - g++
+          - cmake
+          - gcc
+          - tree
+          - git
+          - g++
+          - zip
+          - gzip
+          - zstd
+          - net-tools
+          - gdb
+          - dos2unix
+          - pkg-config
+          - build-essential
+          - checkinstall
+          - software-properties-common
+          - curl
+          - wget
+          - gnupg
+          - lsb-release
+          - tmux
+          - rclone
+          - rsync
+    - debug: var=aptout

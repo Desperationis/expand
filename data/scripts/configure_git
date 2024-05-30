@@ -1,0 +1,23 @@
+#!/bin/bash 
+# Make sure you don't mut personal info in here
+
+if which nvim > /dev/null
+then
+	git config --global core.editor nvim
+elif which vim > /dev/null
+then
+	git config --global core.editor vim
+elif which nano > /dev/null
+then
+	git config --global core.editor nano
+fi
+
+git config --global user.name "Desperationis"
+git config --global user.email "fork_important@pm.me"
+
+if ! [[ -f ~/.ssh/id_ed25519 ]]
+then
+	ssh-keygen -t ed25519 -C "fork_important@pm.me"
+	eval "$(ssh-agent -s)"
+	ssh-add ~/.ssh/id_ed25519
+fi

@@ -1,0 +1,46 @@
+#!/bin/bash
+
+declare -A file_types=(
+    ["mp3"]="music"
+    ["wav"]="music"
+    ["jpg"]="images"
+    ["png"]="images"
+    ["jpeg"]="images"
+    ["gif"]="images"
+    ["mp4"]="videos"
+    ["mov"]="videos"
+    ["pdf"]="pdf"
+    ["zip"]="zips-and-debeans"
+    ["tar"]="zips-and-debeans"
+    ["tar.gz"]="zips-and-debeans"
+    ["deb"]="zips-and-debeans"
+    ["csv"]="docs"
+    ["ods"]="docs"
+    ["xlsx"]="docs"
+    ["txt"]="docs"
+    ["docx"]="docs"
+    ["doc"]="docs"
+    ["py"]="python"
+    ["ipynb"]="python"
+    ["db"]="python"
+)
+
+echo -e "\e[36mOrganizing Downloads Folder...\e[0m"
+
+for file in ~/Downloads/*; do
+	if [[ -d "$file" ]]; then
+		continue
+	fi
+
+	extension="${file##*.}"
+	destination="${file_types[$extension]}"
+	if [ -z "$destination" ]; then
+		destination="misc"
+	fi
+
+	mkdir -p ~/Downloads/$destination
+	mv "$file" ~/Downloads/$destination
+	echo -e "Moved \e[32m${file}\e[0m to \e[36m${destination}\e[0m"
+done
+
+

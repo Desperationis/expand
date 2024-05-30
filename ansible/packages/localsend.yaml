@@ -1,0 +1,14 @@
+# [LinuxProbe(), DebianProbe(), NotInDockerProbe(), RootProbe()]
+# Installs the localsend client directly from github.
+
+- name: "Install LocalSend"
+  hosts: localhost
+  connection: local
+  become: true
+  tasks:
+    - name: "Install LocalSend"
+      register: aptout4
+      apt:
+        deb: https://github.com/localsend/localsend/releases/download/v1.13.1/LocalSend-1.13.1-linux-x86-64.deb
+
+    - debug: var=aptout4

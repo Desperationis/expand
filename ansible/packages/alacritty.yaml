@@ -1,0 +1,51 @@
+# [ DebianProbe(), RootProbe(), WhichProbe("wget") ]
+# Install Alacritty by building it from scratch with Rust. If GNOME is installed, this hides gnome-terminal from the applications menu as well.
+
+- name: Install Rust
+  import_playbook: rust.yaml
+
+- name: Install Alacritty
+  hosts: localhost
+  connection: local
+  become: true
+  tasks:
+    - name: Install build packages
+      register: aptout
+      apt:
+        state: latest
+        name:
+          - cmake
+          - pkg-config
+          - libfreetype6-dev
+          - libfontconfig1-dev
+          - libxcb-xfixes0-dev
+          - libxkbcommon-dev
+    - debug: var=aptout
+
+    - name: Install Alacritty to /usr/local/cargo/
+      register: aptout2
+      shell:
+        cmd: ~/.cargo/bin/cargo install --root /usr/local/cargo/ alacritty
+    - debug: var=aptout2
+    - name: Download Alacritty Logo
+      register: aptout2
+      command:
+        cmd: wget -P /usr/share/pixmaps "https://raw.githubusercontent.com/alacritty/alacritty/master/extra/logo/alacritty-simple.svg"
+    - debug: var=aptout2
+    - name: Create .desktop file
+      register: aptout3
+      command:
+        cmd: bash -c "echo -e \"[Desktop Entry]\nName=Terminal\nExec=/usr/local/cargo/bin/alacritty\nIcon=/usr/share/pixmaps/alacritty-simple.svg\nType=Application\" > /usr/share/applications/alacritty.desktop"
+    - debug: var=aptout3
+    - name: Replace gnome-terminal if it exists
+      register: aptout4
+      command:
+        cmd: bash -c "if [ -e /usr/share/applications/org.gnome.Terminal.desktop ]; then mv --force /usr/share/applications/org.gnome.Terminal.desktop /usr/share/applications/terminal.backup; fi"
+    - debug: var=aptout4
+
+
+    - name: Make alacritty symbolic link
+      register: aptout5
+      shell:
+        cmd: ln -s /usr/local/cargo/bin/alacritty /usr/local/bin/alacritty
+    - debug: var=aptout5

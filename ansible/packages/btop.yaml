@@ -1,0 +1,33 @@
+# [LinuxProbe(), x86Probe(), RootProbe()]
+# Install btop++ directly from the Github.
+
+- name: "Install btop++"
+  hosts: localhost
+  connection: local
+  become: true
+  tasks:
+    - name: "Create temporary dir"
+      file:
+        path: /tmp/btop/
+        state: directory
+
+    - name: "Download btop++"
+      get_url:
+        url: "https://github.com/aristocratos/btop/releases/download/v1.2.13/btop-x86_64-linux-musl.tbz"
+        dest: "/tmp/btop/btop.tbz"
+
+    - name: "Uncompress btop++"
+      unarchive:
+        src: "/tmp/btop/btop.tbz"
+        dest: "/tmp/btop/"
+
+    - name: "Install btop++"
+      command:
+        chdir: "/tmp/btop/btop"
+        cmd: "./install.sh"
+
+    - name: "Delete temporary dir"
+      file:
+        path: /tmp/btop/
+        state: absent
+
