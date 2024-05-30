@@ -44,7 +44,7 @@
 
 
     - name: Make alacritty symbolic link
-      shell:
       register: aptout5
+      shell:
         cmd: ln -s /usr/local/cargo/bin/alacritty /usr/local/bin/alacritty
     - debug: var=aptout5
