@@ -1,4 +1,4 @@
-# [NoRootProbe()]
+# [NotRootProbe()]
 
 - name: "Install scripts to ~/bin"
   hosts: localhost

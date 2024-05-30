@@ -1,4 +1,4 @@
-# [WhichProbe("tmux"), NoRootProbe()]
+# [WhichProbe("tmux"), NotRootProbe()]
 
 - name: "Install tmux configuration files"
   hosts: localhost

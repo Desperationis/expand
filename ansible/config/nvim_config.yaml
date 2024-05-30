@@ -1,4 +1,4 @@
-# [WhichProbe("nvim"), NoRootProbe()]
+# [WhichProbe("nvim"), NotRootProbe()]
 
 - name: "Install nvim configuration files"
   hosts: localhost
