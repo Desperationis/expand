@@ -33,15 +33,17 @@ class curses_cli:
         self.is_setup = True
 
     def create_ansible_data_structure(self):
+        # `categories` defines the possible pages available to `expand`:
+        # [ ("packages", list[Choice]), ("config", list[Choice]), ... ]
         categories = []
 
-        files = util.get_files("ansible/packages/")
-        display = list(map(lambda name: Choice(name, files[name]), files))
-        categories.append(("packages", display))
+        def get_choices_from_folder(folder) -> list[Choice]:
+            files = util.get_files(folder)
+            display = map(lambda name: Choice(name, files[name]), files)
+            return list(display)
 
-        files = util.get_files("ansible/config/")
-        display = list(map(lambda name: Choice(name, files[name]), files))
-        categories.append(("config", display))
+        categories.append(("packages", get_choices_from_folder("ansible/packages/")))
+        categories.append(("config", get_choices_from_folder("ansible/config/")))
 
         return categories
 
