@@ -8,11 +8,9 @@ import os
 import sys
 from expand import curses_cli
 
-"""
 if "ACTIVATED_EXPAND" not in os.environ:
-    print("[bold bright_red]Please run activate.sh as root first.[/bold bright_red]")
+    print("[bold bright_red]Please run activate.sh first.[/bold bright_red]")
     sys.exit(1)
-"""
 
 logging.basicConfig(
     filename="expand.log",

@@ -18,10 +18,5 @@ function expand_bootstrap
     end
 end
 
-if not test (id -u) -eq 0
-    echo -e "\033[1;31mThis script must be directly run as root, not as sudo.\033[0m"
-else
-    expand_bootstrap
-    set -gx ACTIVATED_EXPAND ""
-end
-
+expand_bootstrap
+set -gx ACTIVATED_EXPAND ""
