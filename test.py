@@ -84,5 +84,3 @@ def test_ansible_description():
     assert util.get_ansible_description("# Test\n#he\n#Hello, World!", 3) == ["he", "Hel", "lo,", " Wo", "rld", "!"]
     assert util.get_ansible_description("# Test\n#he\n#Hello, World!\n#\n#", 3) == ["he", "Hel", "lo,", " Wo", "rld", "!", "", ""]
 
-
-
