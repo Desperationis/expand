@@ -1,4 +1,4 @@
-# [ LinuxProbe(), WhichProbe("docker"), NoRootProbe() ]
+# [ LinuxProbe(), WhichProbe("docker"), NotRootProbe() ]
 # Adds the current user to the docker group so that no `sudo` is needed to run docker. 
 
 - name: "Install Docker so no sudo is needed"
