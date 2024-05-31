@@ -1,4 +1,5 @@
-# [ DebianProbe(), RootProbe(), WhichProbe("wget") ]
+# OnlyRoot()
+# [ DebianProbe(), WhichProbe("wget") ]
 # Install Alacritty by building it from scratch with Rust. This also creates a .desktop file in /usr/share/applications
 
 - name: Install Rust

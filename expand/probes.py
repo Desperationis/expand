@@ -61,36 +61,6 @@ class NotInDockerProbe(CompatibilityProbe):
         return not (os.path.exists("/.dockerenv") or text_in_file("docker", cgroup))
 
 
-class PopOSProbe(CompatibilityProbe):
-    def get_error_message(self) -> str:
-        return "This is not PopOS."
-
-    def is_compatible(self) -> bool:
-        try:
-            with open("/etc/os-release", "r", encoding="UTF-8") as file:
-                for line in file:
-                    if line.startswith("ID="):
-                        _, value = line.strip().split("=")
-                        return value.strip('"') == "pop"
-            return False
-        except FileNotFoundError:
-            return False
-
-
-class NotRootProbe(CompatibilityProbe):
-    def get_error_message(self) -> str:
-        return "You shouldn't run this as root."
-
-    def is_compatible(self) -> bool:
-        return os.geteuid() != 0
-
-class RootProbe(CompatibilityProbe):
-    def get_error_message(self) -> str:
-        return "You should run this as root."
-
-    def is_compatible(self) -> bool:
-        return os.geteuid() == 0
-
 class WhichProbe(CompatibilityProbe):
     def __init__(self, command) -> None:
         self.command = command

@@ -1,4 +1,5 @@
-# [LinuxProbe(), DebianProbe(), NotInDockerProbe(), RootProbe()]
+# OnlyRoot()
+# [LinuxProbe(), DebianProbe(), NotInDockerProbe()]
 # Installs the localsend client directly from github.
 
 - name: "Install LocalSend"

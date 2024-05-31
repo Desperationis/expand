@@ -1,4 +1,5 @@
 from expand.probes import *
+from expand.priviledge import *
 
 
 class ExpansionCard:
@@ -24,17 +25,38 @@ class ExpansionCard:
         # This throws an exception if there's an error
         self.get_probes()
 
-    def get_probes(self):
+    def get_priviledge_level(self):
         """
-        Given an ansible file, return the list of probes by parsing the first line.
-        If the ansible file doesn't have a list, raise Exception.
+        Get the privilege level of a expansion card by parsing the first line.
+        If first line isn't a priviledge level, raise an Exception.
         """
-
         first_line = self.content.split("\n")[0]
         if first_line.startswith("#"):
             # Literally run it as python code
             first_line = first_line[1:].strip()
             result = eval(first_line)
+
+            if not isinstance(result, PriviledgeLevel):
+                raise RuntimeError(f"{result} is not a PriviledgeLevel.")
+
+            return result
+
+        raise LookupError(f"Priviledge level not found in {self.file_path}")
+
+    def get_probes(self):
+        """
+        Given an ansible file, return the list of probes by parsing the second line.
+        If the ansible file doesn't have a list, raise Exception.
+        """
+
+        second_line = self.content.split("\n")[1]
+        if second_line.startswith("#"):
+            # Literally run it as python code
+            second_line = second_line[1:].strip()
+            result = eval(second_line)
+
+            if not isinstance(result, list):
+                raise RuntimeError(f"{result} is not a list.")
 
             return result
 
@@ -72,9 +94,9 @@ class ExpansionCard:
         if len(comments) <= 1:
             return ["N/A"]
 
-        # This starts on Line 2
+        # This starts on Line 3
         # These lines are all descriptions without # or whitespace
-        comments = list(map(lambda a: a.lstrip("# \t"), comments[1:]))
+        comments = list(map(lambda a: a.lstrip("# \t"), comments[2:]))
 
         def split_sentence(sentence, index):
             # Find the closest space before the index to split the sentence

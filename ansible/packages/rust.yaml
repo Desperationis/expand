@@ -1,3 +1,4 @@
+# AnyUserNoEscalation()
 # [ DebianProbe(), WhichProbe("curl")]
 # This installs rust using the one-line installer from sh.rustup.rs. It is important to note that this installs rust to the current user's home directory.
 #

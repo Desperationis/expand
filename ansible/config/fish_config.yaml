@@ -1,4 +1,5 @@
-# [WhichProbe("fish"), NotRootProbe()]
+# AnyUserNoEscalation()
+# [WhichProbe("fish")]
 
 - name: "Install fish configuration files"
   hosts: localhost

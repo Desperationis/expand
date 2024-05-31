@@ -1,5 +1,6 @@
-# [LinuxProbe(), x86Probe(), NotRootProbe()]
-# Installs Anaconda to the home directory. This is not recommended for root because I rarely ever use root for Anaconda. 
+# AnyUserNoEscalation()
+# [LinuxProbe(), x86Probe()]
+# Installs Anaconda to the home directory.
 
 - name: "Install Anaconda Locally"
   hosts: localhost

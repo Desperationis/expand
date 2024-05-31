@@ -1,4 +1,5 @@
-# [LinuxProbe(), x86Probe(), RootProbe()]
+# OnlyRoot()
+# [LinuxProbe(), x86Probe()]
 # Install btop++ directly from the Github.
 
 - name: "Install btop++"

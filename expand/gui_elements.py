@@ -1,3 +1,5 @@
+import os
+import pwd
 import curses
 import threading
 from expand import util
@@ -5,6 +7,7 @@ from expand.probes import CompatibilityProbe
 from expand.cache import InstalledCache
 from expand.colors import expand_color_palette
 from expand.expansion_card import ExpansionCard
+from expand.priviledge import OnlyRoot, AnyUserEscalation, AnyUserNoEscalation
 
 class ChoicePreview:
     """
@@ -45,8 +48,9 @@ class Choice:
     # Columns arranged by index, second element is width. -1 for auto width
     ORDER = [
         ("select", 2),
-        ("name", 25),
+        ("name", 22),
         ("URL", 2),
+        ("priviledge", 21),
         ("installed", 15),
         ("compatibility", 35)
     ]
@@ -154,6 +158,22 @@ class Choice:
             data["installed"] = self.installed_status(), "GREEN"
         else:
             data["installed"] = self.installed_status(), "YELLOW"
+
+        level = self.expansion_card.get_priviledge_level()
+        if isinstance(level, OnlyRoot):
+            if os.getuid() != 0:
+                data["priviledge"] = "OnlyRoot", "RED"
+            else:
+                data["priviledge"] = "OnlyRoot", "GREEN"
+        elif isinstance(level, AnyUserNoEscalation):
+            data["priviledge"] = "AnyUserNoEscalation", "GREEN"
+        elif isinstance(level, AnyUserEscalation):
+            if os.geteuid() != 0:
+                data["priviledge"] = "AnyUserEscalation", "RED"
+            else:
+                data["priviledge"] = "AnyUserEscalation", "YELLOW"
+        else:
+            raise Exception(f"Unknown Priviledge: {level}")
 
         # Add Message of Any Failing Probes
         data["compatibility"] = "", "GREEN"

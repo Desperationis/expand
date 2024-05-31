@@ -4,6 +4,7 @@ Functions that help `expand` work.
 
 import os
 import re
+import pwd
 import requests
 import humanize
 from datetime import datetime, timedelta
@@ -158,3 +159,27 @@ def get_formatted_columns(
         next_index += sizes[i]
 
     return output
+
+def change_user(username, euid=0):
+    """
+    Effectively change the user running this program by changing the UID, GUID,
+    and environmental variables. For extra safety, you can optionally set EUID
+    to another value as well.
+    """
+
+    # Get the user information from the username
+    user_info = pwd.getpwnam(username)
+    uid = user_info.pw_uid
+    gid = user_info.pw_gid
+    home_dir = user_info.pw_dir
+    user_name = user_info.pw_name
+
+    os.setregid(gid, gid)
+    os.setreuid(uid, euid) 
+    
+    # Update environment variables
+    os.environ['HOME'] = home_dir
+    os.environ['USER'] = user_name
+    os.environ['LOGNAME'] = user_name
+    os.environ['SHELL'] = user_info.pw_shell
+

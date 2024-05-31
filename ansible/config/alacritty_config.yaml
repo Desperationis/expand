@@ -1,4 +1,5 @@
-# [ WhichProbe("alacritty"), NotRootProbe() ]
+# AnyUserNoEscalation()
+# [ WhichProbe("alacritty") ]
 
 - name: "Install alacritty configuration files"
   hosts: localhost

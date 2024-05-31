@@ -16,7 +16,7 @@ class OnlyRoot(PriviledgeLevel):
 
 class AnyUserNoEscalation(PriviledgeLevel):
     """
-    Run this script as a regular user.
+    Run this script as a regular user without sudo priviledge.
     """
     pass
 
@@ -24,6 +24,6 @@ class AnyUserEscalation(PriviledgeLevel):
     """
     Run this script as a regular user BUT with EUID == 0. This is useful in
     cases where you need access to the user's environmental variables but need
-    sudo access.
+    sudo access. Use this only when strictly necessary.
     """
     pass

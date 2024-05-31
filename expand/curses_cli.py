@@ -12,7 +12,6 @@ from expand.cache import InstalledCache
 from expand.gui_elements import ChoicePreview, Choice
 from expand.colors import init_colors, expand_color_palette
 
-
 class curses_cli:
     def __init__(self) -> None:
         self.stdscr = curses.initscr()

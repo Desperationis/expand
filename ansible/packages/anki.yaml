@@ -1,4 +1,5 @@
-# [LinuxProbe(), x86Probe(), NotInDockerProbe(), RootProbe()]
+# OnlyRoot()
+# [LinuxProbe(), x86Probe(), NotInDockerProbe()]
 # Installs Anki directly from the website.
 
 - name: "Install Anki"
