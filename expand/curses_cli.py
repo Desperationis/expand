@@ -75,14 +75,8 @@ class curses_cli:
             self.stdscr.addstr(4, 0, "Please Select", 0)
 
             for i, elem in enumerate(current_display):
-                elem.set_chosen(False)
-                elem.set_hover(False)
-
-                if i in selections or i == hover:
-                    elem.set_chosen(True)
-
-                if i == hover:
-                    elem.set_hover(True)
+                elem.set_chosen(i in selections or i == hover)
+                elem.set_hover(i == hover)
 
                 y = i + 6
                 x = 5
