@@ -118,11 +118,18 @@ class Choice:
         if hasattr(self, "_installed_status"):
             return self._installed_status
 
-        if InstalledCache.is_failure(self.name):
-            self._installed_status = "Failure"
-        elif InstalledCache.is_installed(self.name):
+        priviledge = self.expansion_card.get_priviledge_level()
+        user = "root"
+        if isinstance(priviledge, AnyUserNoEscalation):
+            user = pwd.getpwuid(os.getuid()).pw_name
+
+        status = InstalledCache.get_status(self.name, user)
+
+        if status == True:
             self._installed_status = "Installed"
-        else:
+        elif status == False:
+            self._installed_status = "Failure"
+        elif status == None:
             self._installed_status = "Not Installed"
 
         return self._installed_status

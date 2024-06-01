@@ -12,7 +12,7 @@ from expand import util
 from expand.cache import InstalledCache
 from expand.gui_elements import ChoicePreview, Choice
 from expand.colors import init_colors 
-from expand.priviledge import AnyUserNoEscalation
+from expand.priviledge import AnyUserNoEscalation, OnlyRoot
 from expand.expansion_card import ExpansionCard
 
 class curses_cli:
@@ -131,6 +131,9 @@ class curses_cli:
                     # keep track of who to downgrade to in the case of
                     # AnyUserNoEscalation, and in every other case run as root.
                     user = "root"
+                    local = True
+                    if isinstance(priviledge, OnlyRoot):
+                        local = False
                     if isinstance(priviledge, AnyUserNoEscalation):
                         user = pwd.getpwuid(os.getuid()).pw_name
 
@@ -144,11 +147,12 @@ class curses_cli:
                     if os.path.exists(ansible_tmp_dir):
                         shutil.rmtree(ansible_tmp_dir)
 
+                    status = p.returncode == 0
 
-                    if p.returncode != 0:
-                        InstalledCache.set_failure(current_display[i].name)
+                    if local:
+                        InstalledCache.set_local_status(current_display[i].name, user, status)
                     else:
-                        InstalledCache.set_installed(current_display[i].name)
+                        InstalledCache.set_global_status(current_display[i].name, status)
 
                 # Everything ran successfully, reset requirements
                 categories = self.create_ansible_data_structure()
