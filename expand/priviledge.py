@@ -22,8 +22,9 @@ class AnyUserNoEscalation(PriviledgeLevel):
 
 class AnyUserEscalation(PriviledgeLevel):
     """
-    Run this script as a regular user BUT with EUID == 0. This is useful in
-    cases where you need access to the user's environmental variables but need
-    sudo access. Use this only when strictly necessary.
+    Run this script as root, but set all relevant environmental variables to
+    that of any other user. This is useful when you need to install something
+    to a specific user's home directory while making sure a set of global tools
+    are installed.
     """
     pass

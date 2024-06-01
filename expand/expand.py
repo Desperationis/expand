@@ -9,17 +9,18 @@ Options:
   --user=<name> Change User [default: root]
 """
 
-import traceback
-import logging
 import os
 import sys
-from docopt import docopt
-from expand import curses_cli
-from expand.util import change_user
-
 if "ACTIVATED_EXPAND" not in os.environ:
     print("[bold bright_red]Please run activate.sh as the root user first.[/bold bright_red]")
     sys.exit(1)
+
+
+import traceback
+import logging
+from docopt import docopt
+from expand import curses_cli
+from expand.util import change_user
 
 args = docopt(__doc__)
 

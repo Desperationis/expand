@@ -7,10 +7,13 @@ import curses
 import subprocess
 import os
 import pwd
+import shutil
 from expand import util
 from expand.cache import InstalledCache
 from expand.gui_elements import ChoicePreview, Choice
-from expand.colors import init_colors, expand_color_palette
+from expand.colors import init_colors 
+from expand.priviledge import AnyUserNoEscalation
+from expand.expansion_card import ExpansionCard
 
 class curses_cli:
     def __init__(self) -> None:
@@ -116,8 +119,38 @@ class curses_cli:
                 for i in selections:
                     file_path = os.path.abspath(current_display[i].file_path)
 
-                    p = subprocess.Popen(f"ansible-playbook \"{file_path}\"", shell=True)
+                    priviledge = ExpansionCard(file_path).get_priviledge_level()
+
+                    # The choices I made here a bit confusing so I'll try to explain. 
+                    #
+                    # At this point in the code, EUID == 0 and UID is set to
+                    # the user the user is trying to install things too. We
+                    # have the power of root but not necessarily the identity.
+                    #
+                    # OnlyRoot runs as UID == 0 and EUID == 0
+                    # AnyUserEscalation runs as UID == 0 and EUID == 0, but env variables are set
+                    # AnyUserEscalation runs as (UID == EUID) != 0
+                    #
+                    # In all cases, UID == EUID. Popen can temporarily run any
+                    # command with both of those variables set to the UID ==
+                    # EUID of any `user`. So, in this code we just use UID to
+                    # keep track of who to downgrade to in the case of
+                    # AnyUserNoEscalation, and in every other case run as root.
+                    user = "root"
+                    if isinstance(priviledge, AnyUserNoEscalation):
+                        user = pwd.getpwuid(os.getuid()).pw_name
+
+                    p = subprocess.Popen(["ansible-playbook", file_path], user=user)
                     p.wait()
+
+                    # For some reason the Ansible tmp files are owned by root
+                    # when run with EUID 0. Just clear out cache to avoid
+                    # permission errors on rewriting temporary files.
+                    ansible_tmp_dir = os.path.expanduser("~/.ansible/tmp")
+                    if os.path.exists(ansible_tmp_dir):
+                        shutil.rmtree(ansible_tmp_dir)
+
+
                     if p.returncode != 0:
                         InstalledCache.set_failure(current_display[i].name)
                     else:
