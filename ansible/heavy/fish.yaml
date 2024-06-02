@@ -8,7 +8,7 @@
   become: true
   gather_facts: false
   tasks:
-    - name: Install build packages
+    - name: "Install build packages"
       register: aptout
       apt:
         state: latest
