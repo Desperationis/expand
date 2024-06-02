@@ -54,6 +54,6 @@
     - name: "Install Yazi via Cargo"
       register: aptout
       shell:
-        cmd: ~/.cargo/bin/cargo install --locked broot
+        cmd: ~/.cargo/bin/cargo install --locked yazi
     - debug: var=aptout
 
