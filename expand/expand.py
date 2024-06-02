@@ -12,7 +12,7 @@ Options:
 import os
 import sys
 if "ACTIVATED_EXPAND" not in os.environ:
-    print("[bold bright_red]Please run activate.sh as the root user first.[/bold bright_red]")
+    print("Please run activate.sh as the root user first.")
     sys.exit(1)
 
 
@@ -40,7 +40,11 @@ def main():
     """
 
     if args["--user"]:
-        change_user(args["--user"])
+        try:
+            change_user(args["--user"])
+        except:
+            print(f"\"{args['--user']}\" is not a valid user.")
+            sys.exit(1)
 
     cli = curses_cli.curses_cli()
 

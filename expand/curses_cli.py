@@ -40,7 +40,9 @@ class curses_cli:
             display = map(lambda name: Choice(name, files[name]), files)
             return list(display)
 
-        categories.append(("packages", get_choices_from_folder("ansible/packages/")))
+        categories.append(("heavy", get_choices_from_folder("ansible/heavy/")))
+        categories.append(("trinkets", get_choices_from_folder("ansible/trinkets/")))
+        categories.append(("gui", get_choices_from_folder("ansible/gui/")))
         categories.append(("config", get_choices_from_folder("ansible/config/")))
 
         return categories
@@ -64,15 +66,19 @@ class curses_cli:
 
             user_info = pwd.getpwnam(os.environ["USER"])
             self.stdscr.addstr(0, 0, f"ENV: {os.environ['USER']}  UID: {user_info.pw_uid} EUID: {os.geteuid()}", 0)
-            
+           
+            # Draw Categories
+            running_length = 0
             for i, elem in enumerate(categories):
                 attrs = 0
                 if i == current_category:
                     attrs |= curses.A_REVERSE
 
-                self.stdscr.addstr(2, i * 10 + 3, elem[0], attrs)
 
-            self.stdscr.addstr(4, 0, "Please Select", 0)
+                self.stdscr.addstr(2, 3 + running_length, elem[0], attrs)
+                running_length += len(elem[0]) + 2
+
+            self.stdscr.addstr(4, 0, "Please Select:", 0)
 
             for i, elem in enumerate(current_display):
                 elem.set_chosen(i in selections or i == hover)
@@ -98,7 +104,7 @@ class curses_cli:
                 hover = 0
                 selections.clear()
             elif c == curses.KEY_LEFT or c == ord("h"):
-                current_category += 1
+                current_category -= 1
                 hover = 0
                 selections.clear()
             elif c == 9:  # Tab
