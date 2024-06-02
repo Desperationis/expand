@@ -1,0 +1,16 @@
+# OnlyRoot()
+# [LinuxProbe(), DebianProbe() ]
+# Easy GPU switching for Nvidia Optimus laptops under Linux 
+
+- name: "Install envycontrol"
+  hosts: localhost
+  connection: local
+  become: true # Remove this if AnyUserNoEscalation
+  gather_facts: false
+  tasks:
+    - name: "Install envycontrol from .deb"
+      register: aptout
+      apt:
+        deb: https://github.com/bayasdev/envycontrol/releases/download/v3.4.0/python3-envycontrol_3.4.0-1_all.deb
+    - debug: var=aptout
+     

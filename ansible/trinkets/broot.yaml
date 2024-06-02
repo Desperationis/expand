@@ -1,0 +1,34 @@
+# AnyUserNoEscalation() 
+# [LinuxProbe()]
+# A better way to navigate directories.
+
+- name: Install Rust
+  import_playbook: ../heavy/rust.yaml
+
+- name: "Install broot"
+  hosts: localhost
+  connection: local
+  become: true # Remove this if AnyUserNoEscalation
+  gather_facts: false
+  vars:
+    user_home: "{{ lookup('env', 'HOME') | default(lookup('env', 'USERPROFILE')) }}"
+  tasks:
+    - name: "Install build packages"
+      register: aptout
+      apt:
+        state: latest
+        update_cache: true
+        name:
+          - build-essential 
+          - libxcb1-dev 
+          - libxcb-render0-dev 
+          - libxcb-shape0-dev 
+          - libxcb-xfixes0-dev
+    - debug: var=aptout
+
+    - name: "Install broot via cargo"
+      register: aptout
+      command:
+        cmd: cargo install --locked broot
+    - debug: var=aptout
+

@@ -1,0 +1,18 @@
+# OnlyRoot()
+# [LinuxProbe(), x86Probe(), DebianProbe() ]
+# Ping, but with a graph.
+
+- name: "Install gping"
+  hosts: localhost
+  connection: local
+  become: true # Remove this if AnyUserNoEscalation
+  gather_facts: false
+  tasks:
+    - name: "Install gping package"
+      register: aptout
+      apt:
+        state: latest
+        update_cache: true
+        name:
+          - gping
+    - debug: var=aptout

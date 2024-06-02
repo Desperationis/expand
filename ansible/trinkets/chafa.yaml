@@ -1,0 +1,18 @@
+# OnlyRoot()
+# [LinuxProbe(), x86Probe(), DebianProbe() ]
+# The premier UX of the 21st century just got a little better: With chafa, you can now view very, very reasonable approximations of pictures and animations in the comfort of your favorite terminal emulator. The power of ANSI X3.64 compels you!
+
+- name: "Install chafa"
+  hosts: localhost
+  connection: local
+  become: true # Remove this if AnyUserNoEscalation
+  gather_facts: false
+  tasks:
+    - name: "Install chafa package"
+      register: aptout
+      apt:
+        state: latest
+        update_cache: true
+        name:
+          - chafa
+    - debug: var=aptout
