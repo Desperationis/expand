@@ -8,6 +8,28 @@
   become: true # Remove this if AnyUserNoEscalation
   gather_facts: false
   tasks:
+    - name: "Add to apt list"
+      register: aptout
+      shell:
+        cmd: echo 'deb [signed-by=/usr/share/keyrings/azlux.gpg] https://packages.azlux.fr/debian/ bookworm main' | sudo tee /etc/apt/sources.list.d/azlux.list
+    - debug: var=aptout
+
+    - name: "Install gpg package"
+      register: aptout
+      apt:
+        state: latest
+        update_cache: true
+        name:
+          - gpg
+    - debug: var=aptout
+
+    - name: "Add gpg key"
+      register: aptout
+      shell:
+        cmd: curl -s https://azlux.fr/repo.gpg.key | gpg --dearmor | sudo tee /usr/share/keyrings/azlux.gpg > /dev/null
+    - debug: var=aptout
+
+
     - name: "Install gping package"
       register: aptout
       apt:
