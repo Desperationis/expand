@@ -10,9 +10,9 @@
   tasks:
     - name: Install build packages
       register: aptout
-      update_cache: true
       apt:
         state: latest
+        update_cache: true
         name:
           - cmake
           - libncurses5-dev
