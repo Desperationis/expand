@@ -7,6 +7,7 @@
 - name: Install Rust
   hosts: localhost
   connection: local
+  gather_facts: false
   tasks:
     - name: Install Build Packages for Rust
       register: aptout
@@ -18,7 +19,7 @@
 
 
     - name: Install Rust
-      register: aptout2
+      register: aptout
       shell:
         cmd: curl https://sh.rustup.rs -sSf | sh -s -- -y --no-modify-path
-    - debug: var=aptout2
+    - debug: var=aptout

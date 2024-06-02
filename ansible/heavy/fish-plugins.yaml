@@ -5,11 +5,12 @@
 - name: "Install latest fish's fisher plugin"
   hosts: localhost
   connection: local
+  gather_facts: false
   tasks:
     - name: "Install fisher and plugins"
-      register: fisherout
+      register: aptout
       shell:
         cmd: fish -c "curl -sL https://git.io/fisher | source; fisher install jorgebucaran/fisher; fisher install edc/bass"
-    - debug: var=fisherout
+    - debug: var=aptout
 
 

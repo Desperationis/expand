@@ -6,10 +6,10 @@
   hosts: localhost
   connection: local
   become: true
+  gather_facts: false
   tasks:
     - name: "Install Bat"
-      register: aptout2
+      register: aptout
       apt:
         deb: https://github.com/sharkdp/bat/releases/download/v0.24.0/bat-musl_0.24.0_amd64.deb
-
-    - debug: var=aptout2
+    - debug: var=aptout

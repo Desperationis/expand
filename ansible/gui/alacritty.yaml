@@ -3,12 +3,14 @@
 # Install Alacritty by building it from scratch with Rust. This also creates a .desktop file in /usr/share/applications
 
 - name: Install Rust
-  import_playbook: rust.yaml
+  gather_facts: false
+  import_playbook: ../heavy/rust.yaml
 
 - name: Install Alacritty
   hosts: localhost
   connection: local
   become: true
+  gather_facts: false
   tasks:
     - name: Install build packages
       register: aptout
@@ -24,25 +26,25 @@
     - debug: var=aptout
 
     - name: Install Alacritty to /usr/local/cargo/
-      register: aptout2
+      register: aptout
       shell:
         cmd: ~/.cargo/bin/cargo install --root /usr/local/cargo/ alacritty
-    - debug: var=aptout2
+    - debug: var=aptout
 
     - name: Download Alacritty Logo
-      register: aptout2
+      register: aptout
       command:
         cmd: wget -P /usr/share/pixmaps "https://raw.githubusercontent.com/alacritty/alacritty/master/extra/logo/alacritty-simple.svg"
-    - debug: var=aptout2
+    - debug: var=aptout
 
     - name: Create .desktop file
-      register: aptout3
+      register: aptout
       command:
         cmd: bash -c "echo -e \"[Desktop Entry]\nName=Terminal\nExec=/usr/local/cargo/bin/alacritty\nIcon=/usr/share/pixmaps/alacritty-simple.svg\nType=Application\" > /usr/share/applications/alacritty.desktop"
-    - debug: var=aptout3
+    - debug: var=aptout
 
     - name: Make alacritty symbolic link
-      register: aptout5
+      register: aptout
       shell:
         cmd: ln -s /usr/local/cargo/bin/alacritty /usr/local/bin/alacritty
-    - debug: var=aptout5
+    - debug: var=aptout

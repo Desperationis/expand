@@ -9,7 +9,6 @@
     user_home: "{{ lookup('env', 'HOME') | default(lookup('env', 'USERPROFILE')) }}"
     config_folder: "{{ playbook_dir }}/../../data/config/"
   tasks:
-
     - name: "Clear existing configuration"
       file:
         path: "{{ user_home }}/.config/alacritty/"

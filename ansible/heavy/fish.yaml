@@ -6,9 +6,11 @@
   hosts: localhost
   connection: local
   become: true
+  gather_facts: false
   tasks:
     - name: Install build packages
       register: aptout
+      update_cache: true
       apt:
         state: latest
         name:
@@ -17,7 +19,7 @@
           - libncursesw5-dev
 
     - name: Download Fish Source
-      ansible.builtin.get_url:
+      get_url:
         url: https://github.com/fish-shell/fish-shell/releases/download/3.7.1/fish-3.7.1.tar.xz
         dest: /tmp/fish.tar.xz
 
@@ -47,28 +49,28 @@
         state: absent
 
     - name: "install zoxide"
-      register: aptout2
+      register: aptout
       command:
         cmd: bash -c "curl -ss https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | bash"
-    - debug: var=aptout2
+    - debug: var=aptout
 
     - name: "Download fzf"
-      register: aptout3
-      ansible.builtin.get_url:
+      register: aptout
+      get_url:
         url: https://github.com/junegunn/fzf/releases/download/0.45.0/fzf-0.45.0-linux_amd64.tar.gz
         dest: /tmp/fzf.tar.gz
-    - debug: var=aptout3
+    - debug: var=aptout
 
     - name: "Unpack fzf to /usr/local/bin/"
-      register: aptout3
-      ansible.builtin.unarchive:
+      register: aptout
+      unarchive:
         src: /tmp/fzf.tar.gz
         dest: /usr/local/bin
-    - debug: var=aptout3
+    - debug: var=aptout
 
     - name: "Remove fzf"
-      register: aptout4
+      register: aptout
       file:
         path: /tmp/fzf.tar.gz
         state: absent
-    - debug: var=aptout4
+    - debug: var=aptout

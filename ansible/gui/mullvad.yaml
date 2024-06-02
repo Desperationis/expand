@@ -6,10 +6,10 @@
   hosts: localhost
   connection: local
   become: true
+  gather_facts: false
   tasks:
     - name: "Install Mullvad"
-      register: aptout3
+      register: aptout
       apt:
         deb: https://mullvad.net/download/app/deb/latest/
-
-    - debug: var=aptout3
+    - debug: var=aptout

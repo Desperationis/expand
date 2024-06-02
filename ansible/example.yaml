@@ -1,11 +1,13 @@
 # OnlyRoot() | AnyUserEscalation() | AnyUserNoEscalation() 
 # [LinuxProbe(), x86Probe(), DebianProbe(), NotInDockerProbe(), WhichProbe("bash") ]
-# Installs Anaconda to the home directory.
+# description on this line
+#
+# Other paragraph description on this line
 
 - name: "Example Playbook"
   hosts: localhost
   connection: local
-  become: true # Remove this if AnyUser
+  become: true # Remove this if AnyUserNoEscalation
   gather_facts: false
   vars:
     user_home: "{{ lookup('env', 'HOME') | default(lookup('env', 'USERPROFILE')) }}"

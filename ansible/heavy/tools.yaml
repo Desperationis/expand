@@ -6,10 +6,12 @@
   hosts: localhost
   connection: local
   become: true
+  gather_facts: false
   tasks:
     - name: "Install Packages"
       register: aptout
       apt:
+        update_cache: true
         state: latest
         name:
           - sudo

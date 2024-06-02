@@ -6,10 +6,10 @@
   hosts: localhost
   connection: local
   become: true
+  gather_facts: false
   tasks:
     - name: "Install Discord from Website"
-      register: aptout2
+      register: aptout
       apt:
         deb: https://discord.com/api/download?platform=linux&format=deb
-
-    - debug: var=aptout2
+    - debug: var=aptout

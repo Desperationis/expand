@@ -5,23 +5,26 @@
 - name: "Install Anaconda Locally"
   hosts: localhost
   connection: local
+  gather_facts: false
+  vars:
+    user_home: "{{ lookup('env', 'HOME') | default(lookup('env', 'USERPROFILE')) }}"
   tasks:
     - name: "Create Downloads Folder"
       file:
-        path: "{{ ansible_env.HOME }}/Downloads/"
+        path: "{{ user_home }}/Downloads/"
         state: directory
 
     - name: "Download Anaconda"
       get_url:
         url: "https://repo.anaconda.com/archive/Anaconda3-2024.02-1-Linux-x86_64.sh"
-        dest: "{{ ansible_env.HOME }}/Downloads/anaconda.sh"
+        dest: "{{ user_home }}/Downloads/anaconda.sh"
 
     - name: "Install Anaconda"
       command:
-        chdir: "{{ ansible_env.HOME }}/Downloads/"
+        chdir: "{{ user_home }}/Downloads/"
         cmd: "bash anaconda.sh -b"
 
     - name: "Remove Anaconda Script"
       file:
-        path: "{{ ansible_env.HOME }}/Downloads/anaconda.sh"
+        path: "{{ user_home }}/Downloads/anaconda.sh"
         state: absent

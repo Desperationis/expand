@@ -10,7 +10,7 @@
     scripts_folder: "{{ playbook_dir }}/../../data/scripts/"
   tasks:
     - name: "Install via crontab"
-      ansible.builtin.shell:
-        cmd: "crontab {{ scripts_folder }}/crontab"
       register: aptout
+      shell:
+        cmd: "crontab {{ scripts_folder }}/crontab"
     - debug: var=aptout
