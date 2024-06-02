@@ -72,13 +72,12 @@ class InstalledCache:
         Write to the cache if a OnlyRoot package was able to be installed or
         not.
         """
-    
-        template = {
-            "OnlyRoot": {}
-        }
-        template.update(InstalledCache._get_json())
-        template["OnlyRoot"][package_name] = status
-        InstalledCache._write_json(template)
+
+        data = InstalledCache._get_json()
+        data.setdefault("OnlyRoot", {})
+        data["OnlyRoot"][package_name] = status
+
+        InstalledCache._write_json(data)
 
     @staticmethod
     def set_local_status(package_name: str, user: str, status: bool | None):
@@ -87,15 +86,10 @@ class InstalledCache:
         not.
         """
     
-        template = {
-            "AnyUser": {
-                user: {}
-            }
-        }
-        template.update(InstalledCache._get_json())
-        template["AnyUser"][user][package_name] = status
-        InstalledCache._write_json(template)
+        data = InstalledCache._get_json()
+        data.setdefault("AnyUser", {})
+        data["AnyUser"].setdefault(user, {})
+        data["AnyUser"][user][package_name] = status
         
-
-
+        InstalledCache._write_json(data)
 
