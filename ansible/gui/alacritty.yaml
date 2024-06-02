@@ -3,7 +3,6 @@
 # Install Alacritty by building it from scratch with Rust. This also creates a .desktop file in /usr/share/applications
 
 - name: Install Rust
-  gather_facts: false
   import_playbook: ../heavy/rust.yaml
 
 - name: Install Alacritty
