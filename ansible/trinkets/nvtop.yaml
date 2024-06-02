@@ -1,18 +1,18 @@
 # OnlyRoot()
-# [LinuxProbe(), x86Probe(), DebianProbe() ]
+# [LinuxProbe(), x86Probe()]
 # NVTOP stands for Neat Videocard TOP, a (h)top like task monitor for GPUs and accelerators. It can handle multiple GPUs and print information about them in a htop-familiar way.
 
 - name: "Install nvtop"
   hosts: localhost
   connection: local
-  become: true # Remove this if AnyUserNoEscalation
+  become: true
   gather_facts: false
   tasks:
-    - name: "Install nvtop package"
+    - name: "Download nvtop AppImage"
       register: aptout
-      apt:
-        state: latest
-        update_cache: true
-        name:
-          - nvtop
+      get_url:
+        url: https://github.com/Syllo/nvtop/releases/download/3.1.0/nvtop-x86_64.AppImage
+        dest: /usr/bin/nvtop
+        mode: '0775'
     - debug: var=aptout
+
