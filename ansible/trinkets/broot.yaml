@@ -28,7 +28,7 @@
 
     - name: "Install broot via cargo"
       register: aptout
-      command:
-        cmd: cargo install --locked broot
+      shell:
+        cmd: ~/.cargo/bin/cargo install --locked broot
     - debug: var=aptout
 
