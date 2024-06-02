@@ -7,23 +7,26 @@ class InstalledCache:
 
         {
             "OnlyRoot": {
-                "package.yaml": "installed", 
-                "package2.yaml": "failure",
+                "package.yaml": true, 
+                "package2.yaml": false
                 ...
             }
 
             "AnyUser": {
                 "root": {
-                    "localpackage1": "installed",
-                    "localpackage2": "failure",
-                    "localpackage3": "installed",
+                    "localpackage1": true,
+                    "localpackage2": false
+                    "localpackage3": true,
                 }
                 "user": {
-                    "localpackage2": "installed",
+                    "localpackage2": true,
                     ...
                 }
             }
         }
+
+    Where `true` means the package was successfully installed, and `false`
+    means there was an error during installation.
     """
         
 
@@ -56,10 +59,10 @@ class InstalledCache:
         local_packages = data.get("AnyUser", {}).get(user, {})
 
         if package_name in global_packages:
-            return global_packages[package_name] == "installed"
+            return global_packages[package_name]
 
         if package_name in local_packages:
-            return local_packages[package_name] == "installed" 
+            return local_packages[package_name]
 
         return None
 
