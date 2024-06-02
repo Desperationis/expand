@@ -1,0 +1,93 @@
+# OnlyRoot() | AnyUserEscalation() | AnyUserNoEscalation() 
+# [LinuxProbe(), x86Probe(), DebianProbe(), NotInDockerProbe(), WhichProbe("bash") ]
+# Installs Anaconda to the home directory.
+
+- name: "Example Playbook"
+  hosts: localhost
+  connection: local
+  become: true # Remove this if AnyUser
+  gather_facts: false
+  vars:
+    user_home: "{{ lookup('env', 'HOME') | default(lookup('env', 'USERPROFILE')) }}"
+    relative_folder: "{{ playbook_dir }}/../../myfolder/"
+  tasks:
+    - name: "Download from URL"
+      register: aptout # You can reuse this; Gets reset every step
+      get_url:
+        url: https://get.docker.com
+        dest: /tmp/getdocker.sh
+        mode: '0775'
+    - debug: var=aptout
+
+    - name: "Uncompress Tarball"
+      register: aptout
+      unarchive:
+        src: "/tmp/anki/anki.tar.zst"
+        dest: "/tmp/anki/"
+    - debug: var=aptout
+
+    - name: "Run Command (cmd) (Not Run Through Shell)"
+      register: aptout
+      command:
+        chdir: "{{ user_home }}/Downloads/"
+        cmd: sh /tmp/getdocker.sh
+    - debug: var=aptout
+
+    - name: "Run Command (Shell) ($HOME, &, | works)"
+      register: aptout
+      shell:
+        chdir: "{{ user_home }}/Downloads/"
+        cmd: pip install yt-dlp black trash-cli pypeek
+    - debug: var=aptout
+
+
+    - name: "Create temporary dir"
+      register: aptout
+      file:
+        path: /tmp/btop/
+        state: directory
+    - debug: var=aptout
+
+
+    - name: "Remove File"
+      register: aptout
+      file:
+        path: /tmp/getdocker.sh
+        state: absent
+    - debug: var=aptout
+
+    - name: "Remove Multiple Folders"
+      register: aptout
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - "{{user_home}}/.local/share/nvim/"
+        - "{{user_home}}/.config/nvim"
+      ignore_errors: yes
+    - debug: var=aptout
+
+    - name: "Install Packages via Apt"
+      register: aptout
+      apt:
+        state: latest
+        update_cache: true
+        name:
+          - sudo
+          - g++
+          - cmake
+    - debug: var=aptout
+
+    - name: "Install Packages via Deb File"
+      register: aptout
+      apt:
+        deb: https://mullvad.net/download/app/deb/latest/
+    - debug: var=aptout
+     
+    - name: "Copy files"
+      register: aptout
+      copy:
+        src: "{{ config_folder }}/fish" 
+        dest: "{{ user_home }}/.config/"
+    - debug: var=aptout
+
