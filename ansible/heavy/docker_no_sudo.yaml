@@ -1,0 +1,21 @@
+# AnyUserEscalation()
+# [LinuxProbe(), WhichProbe("docker") ]
+# # Adds the current user to the docker group so that no `sudo` is needed to run docker. You need to log out and log back in for the changes to take place.
+
+- name: "Install Docker so no sudo is needed"
+  hosts: localhost
+  connection: local
+  become: true
+  gather_facts: false
+  tasks:
+    - name: "Create docker group"
+      group:
+        name: "docker"
+        state: present
+
+    - name: "Add current user to docker group"
+      user:
+        name: "{{ lookup('env', 'USER') }}"
+        groups: docker
+        append: yes
+
