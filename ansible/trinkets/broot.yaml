@@ -1,4 +1,4 @@
-# AnyUserNoEscalation() 
+# AnyUserEscalation() 
 # [LinuxProbe()]
 # A better way to navigate directories.
 
@@ -8,6 +8,7 @@
 - name: "Install broot"
   hosts: localhost
   connection: local
+  become: true
   gather_facts: false
   vars:
     user_home: "{{ lookup('env', 'HOME') | default(lookup('env', 'USERPROFILE')) }}"
