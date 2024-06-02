@@ -9,7 +9,6 @@
 # Via pip. `conda` is recommended to be installed because I usually install this into a custom anaconda environment.
 
 - name: Install Anaconda Locally
-  gather_facts: false
   import_playbook: anaconda.yaml
 
 - name: "Install pip3 packages to custom environment"
