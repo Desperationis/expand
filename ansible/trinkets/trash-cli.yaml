@@ -5,7 +5,6 @@
 - name: "Install trash-cli"
   hosts: localhost
   connection: local
-  become: true # Remove this if AnyUserNoEscalation
   gather_facts: false
   tasks:
     - name: "Install via pip"
