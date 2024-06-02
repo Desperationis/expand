@@ -1,0 +1,16 @@
+# AnyUserNoEscalation()
+# [ WhichProbe("conda") ]
+# Peek screen recorder and screenshot with annotations
+
+- name: "Install pypeek"
+  hosts: localhost
+  connection: local
+  become: true # Remove this if AnyUserNoEscalation
+  gather_facts: false
+  tasks:
+    - name: "Install via pip"
+      register: aptout
+      command:
+        cmd: pip install pypeek
+    - debug: var=aptout
+

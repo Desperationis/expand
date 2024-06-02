@@ -1,0 +1,16 @@
+# AnyUserNoEscalation()
+# [ WhichProbe("conda") ]
+# trash-cli trashes files recording the original path, deletion date, and permissions. It uses the same trashcan used by KDE, GNOME, and XFCE, but you can invoke it from the command line (and scripts).
+
+- name: "Install trash-cli"
+  hosts: localhost
+  connection: local
+  become: true # Remove this if AnyUserNoEscalation
+  gather_facts: false
+  tasks:
+    - name: "Install via pip"
+      register: aptout
+      command:
+        cmd: pip install trash-cli
+    - debug: var=aptout
+

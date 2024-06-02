@@ -1,0 +1,16 @@
+# AnyUserNoEscalation()
+# [ WhichProbe("conda") ]
+# A feature-rich command-line audio/video downloader
+
+- name: "Install yt-dlp"
+  hosts: localhost
+  connection: local
+  become: true # Remove this if AnyUserNoEscalation
+  gather_facts: false
+  tasks:
+    - name: "Install via pip"
+      register: aptout
+      command:
+        cmd: pip install yt-dlp
+    - debug: var=aptout
+
