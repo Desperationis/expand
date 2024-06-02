@@ -1,6 +1,6 @@
 # OnlyRoot()
 # [LinuxProbe(), x86Probe(), DebianProbe()]
-# Installs a bunch of the basic tools I expect to find on a linux system, such as rsync, sudo, curl, zip, etc.
+# Installs a bunch of the basic tools I expect to find on a linux system, such as rsync, sudo, rclone, curl, zip, etc.
 
 - name: "Packages for Debian"
   hosts: localhost
