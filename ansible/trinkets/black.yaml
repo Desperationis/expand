@@ -11,13 +11,13 @@
   tasks:
     - name: "Create Env if it doesn't exist"
       register: aptout
-      command:
-        shell: "if ! {{ conda }} env list | grep -q custom; conda create -y -n custom; fi"
+      shell:
+        cmd: "if ! {{ conda }} env list | grep -q custom; conda create -y -n custom; fi"
     - debug: var=aptout
 
     - name: "Install via pip"
       register: aptout
-      command:
-        shell: "{{ conda }} activate && pip install black"
+      shell:
+        cmd: "{{ conda }} activate && pip install black"
     - debug: var=aptout
 
