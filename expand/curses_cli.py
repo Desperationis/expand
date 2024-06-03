@@ -165,7 +165,8 @@ class curses_cli:
                     # programs installed on HOME. So, make everything in HOME
                     # belong to the user, because that is how it is supposed to
                     # be in the first place.
-                    p = subprocess.Popen([f"chown -R {user}:{user} {os.path.expanduser("~")}", file_path])
+                    own_user = pwd.getpwuid(os.getuid()).pw_name
+                    p = subprocess.Popen([f"chown -R {own_user}:{own_user} {os.path.expanduser("~")}", file_path])
                     p.wait()
 
                 # Everything ran successfully, reset requirements
