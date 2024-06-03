@@ -9,15 +9,16 @@
   vars:
     conda: ". {{ lookup('env', 'HOME') }}/anaconda3/bin/activate && conda"
   tasks:
-    - name: "Create Env if it doesn't exist"
+    - name: "Create Conda Env if it doesn't exist"
       register: aptout
       shell:
-        cmd: "if ! {{ conda }} env list | grep -q custom; conda create -y -n custom; fi"
+        cmd: "if ! ( {{ conda }} env list | grep -q custom ) ; then {{ conda }} create -y -n custom; fi"
     - debug: var=aptout
 
-    - name: "Install via pip"
+    - name: "Install via conda"
       register: aptout
       shell:
-        cmd: "{{ conda }} activate && pip install yt-dlp"
+        cmd: "{{ conda }} activate custom && conda install -y yt-dlp"
     - debug: var=aptout
+
 

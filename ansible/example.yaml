@@ -12,6 +12,8 @@
   vars:
     user_home: "{{ lookup('env', 'HOME') | default(lookup('env', 'USERPROFILE')) }}"
     relative_folder: "{{ playbook_dir }}/../../myfolder/"
+    cargo: "PATH={{ user_home }}/.cargo/bin/:$PATH && cargo"
+    conda: ". {{ lookup('env', 'HOME') }}/anaconda3/bin/activate && conda"
   tasks:
     - name: "Download from URL"
       register: aptout # You can reuse this; Gets reset every step
@@ -92,4 +94,28 @@
         src: "{{ config_folder }}/fish" 
         dest: "{{ user_home }}/.config/"
     - debug: var=aptout
+
+    - name: "Install via Cargo"
+      register: aptout
+      become_user: "{{ lookup('env', 'USER') }}"
+      shell:
+        cmd: "{{ cargo }} install --locked yazi-fm yazi-cli"
+    - debug: var=aptout
+
+
+    - name: "Create Conda Env if it doesn't exist"
+      register: aptout
+      shell:
+        cmd: "if ! ( {{ conda }} env list | grep -q custom ) ; then {{ conda }} create -y -n custom; fi"
+    - debug: var=aptout
+
+    - name: "Install via conda"
+      register: aptout
+      shell:
+        cmd: "{{ conda }} activate custom && conda install -y black"
+    - debug: var=aptout
+
+
+
+
 
