@@ -1,0 +1,32 @@
+#!/bin/bash
+
+
+if ! git status 2>&1 >/dev/null
+then
+	echo "This is not a git repository."
+	exit 1
+fi
+
+# Navigate to root directory
+cd $(git rev-parse --show-toplevel)
+
+# Define the content to be written to the pre-commit file
+content='#!/bin/bash
+
+branch="$(git rev-parse --abbrev-ref HEAD)"
+
+if [ "$branch" = "master" ]; then
+  echo "You can'\''t commit directly to master branch"
+  exit 1
+fi
+'
+
+# Write the content to the pre-commit file
+echo "$content" > .git/hooks/pre-commit
+
+# Make the pre-commit file executable
+chmod +x .git/hooks/pre-commit
+
+echo "pre-commit hook created successfully."
+
+
