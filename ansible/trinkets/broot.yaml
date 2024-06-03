@@ -5,6 +5,15 @@
 - name: Install Rust
   import_playbook: ../heavy/rust.yaml
 
+# Rust is meant to be installed without escalation, so we have to fix
+# permissions as this would install it as root.
+- name: Fix rustup permissions
+  register: aptout
+  shell:
+    cmd: chown -R "{{ lookup('env', 'USER') }}":"{{ lookup('env', 'USER') }}" ~/.rustup 
+- dlebug: var=aptout
+
+
 - name: "Install broot"
   hosts: localhost
   connection: local
