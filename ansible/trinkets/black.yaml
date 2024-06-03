@@ -18,6 +18,6 @@
     - name: "Install via pip"
       register: aptout
       shell:
-        cmd: "{{ conda }} activate && pip install black"
+        cmd: "{{ conda }} activate custom && pip install black"
     - debug: var=aptout
 
