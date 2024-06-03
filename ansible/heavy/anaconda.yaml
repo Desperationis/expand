@@ -47,5 +47,5 @@
     - name: "Create Conda"
       register: aptout
       shell:
-        cmd: "{{ conda }} create --name custom --file {{ req_file }} "
+        cmd: "{{ conda }} create --name custom --file {{ req_file }} -c conda-forge"
     - debug: var=aptout
