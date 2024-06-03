@@ -9,6 +9,7 @@
   vars:
     user_home: "{{ lookup('env', 'HOME') | default(lookup('env', 'USERPROFILE')) }}"
     req_file: "{{ playbook_dir }}/../../data/conda_requirements.txt"
+    conda: "{{ lookup('env', 'HOME') }}/anaconda3/bin/conda"
   tasks:
     - name: "Create Downloads Folder"
       file:
