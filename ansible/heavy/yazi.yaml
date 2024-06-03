@@ -10,6 +10,8 @@
   connection: local
   become: true # Remove this if AnyUserNoEscalation
   gather_facts: false
+  vars:
+    user_home: "{{ lookup('env', 'HOME') | default(lookup('env', 'USERPROFILE')) }}"
   tasks:
     - name: "Install extras"
       register: aptout

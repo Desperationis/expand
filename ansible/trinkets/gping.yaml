@@ -10,6 +10,8 @@
   hosts: localhost
   connection: local
   gather_facts: false
+  vars:
+    user_home: "{{ lookup('env', 'HOME') | default(lookup('env', 'USERPROFILE')) }}"
   tasks:
     - name: "Debug"
       register: aptout
