@@ -1,0 +1,39 @@
+# AnyUserNoEscalation()
+# [ DebianProbe() ]
+# This installs rust using the one-line installer from sh.rustup.rs. It is important to note that this installs rust to the current user's home directory.
+#
+# No preference is given to root or the user, as both may need rust for their own purposes.
+
+- name: Install Rust
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    user_home: "{{ lookup('env', 'HOME') | default(lookup('env', 'USERPROFILE')) }}"
+  tasks:
+    - name: Install Build Packages for Rust
+      register: aptout
+      apt:
+        state: latest
+        name:
+          - curl
+    - debug: var=aptout
+
+
+    - name: Install Rust
+      register: aptout
+      shell:
+        cmd: curl https://sh.rustup.rs -sSf | sh -s -- -y --no-modify-path
+    - debug: var=aptout
+
+    - name: Get stable version
+      register: aptout
+      shell:
+        cmd: "{{ user_home }}/.cargo/bin/rustup install stable"
+    - debug: var=aptout
+
+    - name: Set Default
+      register: aptout
+      shell:
+        cmd: "{{ user_home }}/.cargo/bin/rustup default stable"
+    - debug: var=aptout

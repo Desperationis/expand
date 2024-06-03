@@ -1,14 +1,17 @@
-# [LinuxProbe(), x86Probe(), DebianProbe(), RootProbe()]
-# Installs a bunch of the basic tools I expect to find on a linux system, such as rsync, sudo, curl, zip, etc.
+# OnlyRoot()
+# [LinuxProbe(), x86Probe(), DebianProbe()]
+# Installs a bunch of the basic tools I expect to find on a linux system, such as rsync, sudo, rclone, curl, zip, etc.
 
 - name: "Packages for Debian"
   hosts: localhost
   connection: local
   become: true
+  gather_facts: false
   tasks:
     - name: "Install Packages"
       register: aptout
       apt:
+        update_cache: true
         state: latest
         name:
           - sudo

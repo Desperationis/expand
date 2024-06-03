@@ -19,7 +19,12 @@ expand_bootstrap() {
 	fi
 }
 
-expand_bootstrap
-ACTIVATED_EXPAND=""
-export ACTIVATED_EXPAND 
 
+if [ "$(id -u)" -eq 0 ]
+then
+	expand_bootstrap
+	ACTIVATED_EXPAND=""
+	export ACTIVATED_EXPAND 
+else
+	 echo -e "\e[31mYou must be root to run this script. Please switch to the root user and try again.\e[0m"
+fi

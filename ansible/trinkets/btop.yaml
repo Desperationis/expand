@@ -1,10 +1,12 @@
-# [LinuxProbe(), x86Probe(), RootProbe()]
+# OnlyRoot()
+# [LinuxProbe(), x86Probe()]
 # Install btop++ directly from the Github.
 
 - name: "Install btop++"
   hosts: localhost
   connection: local
   become: true
+  gather_facts: false
   tasks:
     - name: "Create temporary dir"
       file:

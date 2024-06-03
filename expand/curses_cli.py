@@ -4,246 +4,20 @@ This file is in charge of drawing the UI to the screen.
 
 
 import curses
-import threading
 import subprocess
 import os
-import sys
-import json
+import pwd
+import shutil
 from expand import util
-from expand.probes import CompatibilityProbe
-
-class InstalledCache:
-    @staticmethod
-    def _get_json():
-        if not os.path.exists("installed.json"):
-            return {}
-
-        with open("installed.json", "r", encoding="UTF-8") as file:
-            return json.load(file)
-
-
-    @staticmethod
-    def _get_attr(attr):
-        data = InstalledCache._get_json()
-        return data[attr]
-
-    @staticmethod
-    def _write_attr(attr, value):
-        data = InstalledCache._get_json()
-
-        with open("installed.json", "w+", encoding="UTF-8") as file:
-            data[attr] = value
-            file.write(json.dumps(data, sort_keys=True, indent=4))
-
-
-    @staticmethod
-    def is_installed(name):
-        try:
-            return InstalledCache._get_attr(name) == "installed"
-        except:
-            return False
-
-
-    @staticmethod
-    def is_failure(name):
-        try:
-            return InstalledCache._get_attr(name) == "failure"
-        except:
-            return False
-
-    @staticmethod
-    def set_installed(ansible_name):
-        InstalledCache._write_attr(ansible_name, "installed")
-
-    @staticmethod
-    def set_failure(ansible_name):
-        InstalledCache._write_attr(ansible_name, "failure")
-
-class ChoicePreview:
-    """
-    Shows a box that displays the description of a ansible file.
-    """
-
-    def __init__(self, name, file_path):
-        self.name = name
-        self.file_path = file_path
-
-
-    def draw(self, stdscr, y, x, width, height):
-        # Draw divider on left edge 
-        for i in range(height):
-            try:
-                stdscr.addstr(y + i, x, "|", curses.A_BOLD)
-            except curses.error:
-                pass
-
-        # Draw name of the file
-        try:
-            stdscr.addstr(y + 1, x + 3, self.name, curses.A_BOLD)
-        except curses.error:
-            pass
-
-        # Draw Text
-        with open(self.file_path, "r", encoding="UTF-8") as file:
-            description = util.get_ansible_description(file.read(), width - 1 - 6)
-
-            for i, line in enumerate(description):
-                try:
-                    stdscr.addstr(y + i + 3, x + 3, line, 0)
-                except curses.error:
-                    pass
-
-
-
-class Choice:
-    SIZES = [2, 25, 2, 25, 15, 35]
-    MIN_WIDTH = sum(filter(lambda a: a > -1, SIZES))
-
-    def __init__(self, name, file_path):
-        self.name = name
-        self.file_path = file_path
-        self.chosen = False
-        self.hover = False
-
-        # Load cache
-        self.has_urls()
-        self.failing_probes()
-        self.failing_urls_task = threading.Thread(target=self.run_failing_urls)
-        self.failing_urls_task.start()
-
-    def run_failing_urls(self):
-        return self.failing_urls()
-
-
-    def has_urls(self) -> bool:
-        """
-        Does this ansible file have any URL's in it?
-        """
-        if hasattr(self, "_has_urls"):
-            return self._has_urls
-
-        with open(self.file_path, "r", encoding="UTF-8") as file:
-            links = util.filter_str_for_urls(file.read())
-            self._has_urls = len(links) > 0
-
-        return self._has_urls
-
-    def failing_urls(self) -> list[str]:
-        """
-        If there are urls in this ansible file, get a list of URLs that aren't
-        working. If no files exist, return [].
-        """
-        if hasattr(self, "_broken_urls"):
-            return self._broken_urls
-
-        self._broken_urls = []
-
-        with open(self.file_path, "r", encoding="UTF-8") as file:
-            links = util.filter_str_for_urls(file.read())
-            for link in links:
-                if not util.is_url_up(link):
-                    self._broken_urls.append(link)
-
-        return self._broken_urls
-
-    def failing_probes(self) -> list[CompatibilityProbe]:
-        if hasattr(self, "_failing_probes"):
-            return self._failing_probes
-
-        self.probes = util.get_probes_from_file(self.file_path)
-        self._failing_probes = util.get_failing_probes(self.probes)
-
-        return self._failing_probes
-
-    def installed_status(self) -> str:
-        if hasattr(self, "_installed_status"):
-            return self._installed_status
-
-        if InstalledCache.is_failure(self.name):
-            self._installed_status = "Failure"
-        elif InstalledCache.is_installed(self.name):
-            self._installed_status = "Installed"
-        else:
-            self._installed_status = "Not Installed"
-
-        return self._installed_status
-
-
-    def set_chosen(self, chosen: bool):
-        self.chosen = chosen
-
-    def set_hover(self, hover: bool):
-        self.hover = hover
-
-    def draw(self, stdscr, y, x, width):
-        columns = []
-
-        # Add Select
-        columns.append("■ " if self.chosen else "☐ ")
-
-        # Add name of file
-        columns.append(self.name)
-
-        # Add URL Indictor
-        if not self.has_urls():
-            columns.append("")
-        elif self.failing_urls_task.is_alive():
-            columns.append("-")
-        else:
-            if len(self.failing_urls()) == 0:
-                columns.append("✔")
-            else:
-                columns.append("✘")
-
-        # Add Last Updated
-        last_updated_delta = util.timedelta_since_last_update(self.file_path)
-        last_updated = util.timedelta_pretty(last_updated_delta)
-        columns.append(last_updated)
-
-        # If package was able to be installed or not
-        columns.append(self.installed_status())
-
-        # Add Message of Any Failing Probes
-        if len(self.failing_probes()) > 0:
-            columns.append(self.failing_probes()[0].get_error_message())
-        else:
-            columns.append("")
-
-        # Select, Name, URL, Last Updated, Failing Message
-        columns = util.get_formatted_columns(columns, width, Choice.SIZES)
-        for i, c in enumerate(columns):
-            attrs = 0
-            if self.hover:
-                attrs |= curses.A_REVERSE
-            if i == 2:
-                if self.failing_urls_task.is_alive():
-                    attrs |= curses.color_pair(4) # Yellow
-                elif len(self.failing_urls()) == 0:
-                    attrs |= curses.color_pair(3) # Green
-                else:
-                    attrs |= curses.color_pair(2) # Red
-
-            if i == 4:
-                if self.installed_status() == "Not Installed":
-                    attrs |= curses.color_pair(4) # Yellow
-                elif self.installed_status() == "Installed":
-                    attrs |= curses.color_pair(3) # Green
-                elif self.installed_status() == "Failure":
-                    attrs |= curses.color_pair(2) # Red
-                    
-            if i == 5:
-                attrs |= curses.color_pair(2) # Red
-
-            try:
-                stdscr.addstr(y, x + c[1], c[0], attrs)
-            except curses.error:
-                pass
-
+from expand.cache import InstalledCache
+from expand.gui_elements import ChoicePreview, Choice
+from expand.colors import init_colors 
+from expand.priviledge import AnyUserNoEscalation, OnlyRoot
+from expand.expansion_card import ExpansionCard
 
 class curses_cli:
     def __init__(self) -> None:
         self.stdscr = curses.initscr()
-        self.is_setup = False
 
     def setup(self):
         curses.noecho()
@@ -254,31 +28,27 @@ class curses_cli:
         curses.set_escdelay(25)  # Without this there is a lag when pressing escape
         self.stdscr.keypad(True)
 
-        curses.init_pair(1, curses.COLOR_CYAN, -1)
-        curses.init_pair(2, curses.COLOR_RED, -1)
-        curses.init_pair(3, curses.COLOR_GREEN, -1)
-        curses.init_pair(4, curses.COLOR_YELLOW, -1)
-
-        self.is_setup = True
+        init_colors()
 
     def create_ansible_data_structure(self):
+        # `categories` defines the possible pages available to `expand`:
+        # [ ("packages", list[Choice]), ("config", list[Choice]), ... ]
         categories = []
 
-        files = util.get_files("ansible/packages/")
-        display = list(map(lambda name: Choice(name, files[name]), files))
-        categories.append(("packages", display))
+        def get_choices_from_folder(folder) -> list[Choice]:
+            files = util.get_files(folder)
+            display = map(lambda name: Choice(name, files[name]), files)
+            return list(display)
 
-        files = util.get_files("ansible/config/")
-        display = list(map(lambda name: Choice(name, files[name]), files))
-        categories.append(("config", display))
+        categories.append(("heavy", get_choices_from_folder("ansible/heavy/")))
+        categories.append(("trinkets", get_choices_from_folder("ansible/trinkets/")))
+        categories.append(("gui", get_choices_from_folder("ansible/gui/")))
+        categories.append(("config", get_choices_from_folder("ansible/config/")))
 
         return categories
 
 
     def loop(self):
-        if not self.is_setup:
-            self.setup()
-
         categories = self.create_ansible_data_structure()
 
         # Index of Current Category
@@ -293,33 +63,34 @@ class curses_cli:
             rows, cols = self.stdscr.getmaxyx()
 
             self.stdscr.erase()
-            
+
+            user_info = pwd.getpwnam(os.environ["USER"])
+            self.stdscr.addstr(0, 0, f"ENV: {os.environ['USER']}  UID: {user_info.pw_uid} EUID: {os.geteuid()}", 0)
+           
+            # Draw Categories
+            running_length = 0
             for i, elem in enumerate(categories):
                 attrs = 0
                 if i == current_category:
                     attrs |= curses.A_REVERSE
 
-                self.stdscr.addstr(0, i * 10 + 3, elem[0], attrs)
 
-            self.stdscr.addstr(3, 0, "Please Select", 0)
+                self.stdscr.addstr(2, 3 + running_length, elem[0], attrs)
+                running_length += len(elem[0]) + 2
+
+            self.stdscr.addstr(4, 0, "Please Select:", 0)
 
             for i, elem in enumerate(current_display):
-                elem.set_chosen(False)
-                elem.set_hover(False)
+                elem.set_chosen(i in selections or i == hover)
+                elem.set_hover(i == hover)
 
-                if i in selections or i == hover:
-                    elem.set_chosen(True)
-
-                if i == hover:
-                    elem.set_hover(True)
-
-                y = i + 5
+                y = i + 6
                 x = 5
                 elem.draw(self.stdscr, y, x, cols - x - 5)
 
             # 5 from offset of `Choice`, 3 for offset
             x = round(cols - (cols / 3))
-            if x + 3 > Choice.MIN_WIDTH + 5:
+            if x + 3 > Choice.get_min_width() + 5:
                 preview = ChoicePreview(current_display[hover].name, current_display[hover].file_path)
                 preview.draw(self.stdscr, 0, x, cols - x, rows)
 
@@ -333,7 +104,7 @@ class curses_cli:
                 hover = 0
                 selections.clear()
             elif c == curses.KEY_LEFT or c == ord("h"):
-                current_category += 1
+                current_category -= 1
                 hover = 0
                 selections.clear()
             elif c == 9:  # Tab
@@ -348,12 +119,55 @@ class curses_cli:
                 for i in selections:
                     file_path = os.path.abspath(current_display[i].file_path)
 
-                    p = subprocess.Popen(f"ansible-playbook \"{file_path}\"", shell=True)
+                    priviledge = ExpansionCard(file_path).get_priviledge_level()
+
+                    # The choices I made here a bit confusing so I'll try to explain. 
+                    #
+                    # At this point in the code, EUID == 0 and UID is set to
+                    # the user the user is trying to install things too. We
+                    # have the power of root but not necessarily the identity.
+                    #
+                    # OnlyRoot runs as UID == 0 and EUID == 0
+                    # AnyUserEscalation runs as UID == 0 and EUID == 0, but env variables are set
+                    # AnyUserEscalation runs as (UID == EUID) != 0
+                    #
+                    # In all cases, UID == EUID. Popen can temporarily run any
+                    # command with both of those variables set to the UID ==
+                    # EUID of any `user`. So, in this code we just use UID to
+                    # keep track of who to downgrade to in the case of
+                    # AnyUserNoEscalation, and in every other case run as root.
+                    user = "root"
+                    local = True
+                    if isinstance(priviledge, OnlyRoot):
+                        local = False
+                    if isinstance(priviledge, AnyUserNoEscalation):
+                        user = pwd.getpwuid(os.getuid()).pw_name
+
+                    p = subprocess.Popen(["ansible-playbook", file_path], user=user)
                     p.wait()
-                    if p.returncode != 0:
-                        InstalledCache.set_failure(current_display[i].name)
+
+                    # For some reason the Ansible tmp files are owned by root
+                    # when run with EUID 0. Just clear out cache to avoid
+                    # permission errors on rewriting temporary files.
+                    ansible_tmp_dir = os.path.expanduser("~/.ansible/tmp")
+                    if os.path.exists(ansible_tmp_dir):
+                        shutil.rmtree(ansible_tmp_dir)
+
+                    status = p.returncode == 0
+
+                    if local:
+                        InstalledCache.set_local_status(current_display[i].name, user, status)
                     else:
-                        InstalledCache.set_installed(current_display[i].name)
+                        InstalledCache.set_global_status(current_display[i].name, status)
+
+                    # AnyUserEscalation does weird things with permissions that
+                    # I will not get into here that interferes with most
+                    # programs installed on HOME. So, make everything in HOME
+                    # belong to the user, because that is how it is supposed to
+                    # be in the first place.
+                    own_user = pwd.getpwuid(os.getuid()).pw_name
+                    p = subprocess.Popen(f"chown -R {own_user}:{own_user} {os.path.expanduser('~')}".split(" "), user="root")
+                    p.wait()
 
                 # Everything ran successfully, reset requirements
                 categories = self.create_ansible_data_structure()
@@ -373,5 +187,3 @@ class curses_cli:
         curses.echo()
         curses.curs_set(1)
         curses.endwin()
-
-        self.is_setup = False

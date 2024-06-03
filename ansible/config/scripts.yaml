@@ -1,4 +1,5 @@
-# [NotRootProbe()]
+# AnyUserNoEscalation()
+# []
 
 - name: "Install scripts to ~/bin"
   hosts: localhost
@@ -13,8 +14,6 @@
         path: "{{ user_home }}/bin"
         state: directory
         mode: '0755'
-
-
 
     - name: "Clear existing configuration"
       file:

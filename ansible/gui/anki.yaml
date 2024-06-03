@@ -1,10 +1,12 @@
-# [LinuxProbe(), x86Probe(), NotInDockerProbe(), RootProbe()]
+# OnlyRoot()
+# [LinuxProbe(), x86Probe(), NotInDockerProbe()]
 # Installs Anki directly from the website.
 
 - name: "Install Anki"
   hosts: localhost
   connection: local
   become: true
+  gather_facts: false
   tasks:
     - name: "Create temporary dir"
       file:

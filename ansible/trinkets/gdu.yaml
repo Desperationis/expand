@@ -1,0 +1,18 @@
+# OnlyRoot()
+# [LinuxProbe(), x86Probe(), DebianProbe() ]
+# Pretty fast disk usage analyzer written in Go.
+
+- name: "Install gdu"
+  hosts: localhost
+  connection: local
+  become: true # Remove this if AnyUserNoEscalation
+  gather_facts: false
+  tasks:
+    - name: "Install gdu package"
+      register: aptout
+      apt:
+        state: latest
+        update_cache: true
+        name:
+          - gdu
+    - debug: var=aptout

@@ -1,46 +1,40 @@
-# [WhichProbe("nvim"), NotRootProbe()]
+# AnyUserEscalation()
+# [WhichProbe("nvim")]
 
 - name: "Install nvim configuration files"
   hosts: localhost
   connection: local
+  become: True
   gather_facts: false
   vars:
     user_home: "{{ lookup('env', 'HOME') | default(lookup('env', 'USERPROFILE')) }}"
     config_folder: "{{ playbook_dir }}/../../data/config/"
   tasks:
-    - debug: var=user_home
-
     - name: "Install npm"
       register: aptout
-      become: true
       apt:
         update-cache: true
         state: latest
-        name:
-          - npm
+        name: npm
     - debug: var=aptout
 
     - name: "Install n"
-      register: aptout2
-      become: true
-      ansible.builtin.shell:
-        cmd: "sudo npm install n -g"
-    - debug: var=aptout2
+      register: aptout
+      shell:
+        cmd: "npm install n -g"
+    - debug: var=aptout
 
     - name: "Install latest nodejs"
-      become: true
-      ansible.builtin.shell:
-        cmd: "sudo n stable"
-      register: aptout3
-    - debug: var=aptout3
+      register: aptout
+      shell:
+        cmd: "n stable"
+    - debug: var=aptout
 
     - name: "Install tree sitter"
-      become: true
+      register: aptout
       shell:
-        cmd: "sudo npm install -g tree-sitter-cli"
-      register: aptout6
-    - debug: var=aptout6
-
+        cmd: "npm install -g tree-sitter-cli"
+    - debug: var=aptout
 
     - name: "Clean up previous nvim data"
       file:
@@ -52,13 +46,13 @@
       ignore_errors: yes
 
     - name: "Create parent .config folder"
-      ansible.builtin.shell:
+      register: aptout
+      shell:
         cmd: "mkdir -p {{user_home}}/.config/nvim"
-      register: aptout4
-    - debug: var=aptout4
+    - debug: var=aptout
 
     - name: "Move to ~/.config/"
-      ansible.builtin.shell:
+      register: aptout
+      shell:
         cmd: "cp {{config_folder}}/nvim/init.lua {{user_home}}/.config/nvim/"
-      register: aptout5
-    - debug: var=aptout5
+    - debug: var=aptout

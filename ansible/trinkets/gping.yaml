@@ -1,0 +1,29 @@
+# AnyUserNoEscalation()
+# [LinuxProbe(), x86Probe() ]
+# Ping, but with a graph.
+
+- name: Install Rust
+  import_playbook: ../heavy/rust.yaml
+
+
+- name: "Install gping"
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    user_home: "{{ lookup('env', 'HOME') | default(lookup('env', 'USERPROFILE')) }}"
+    cargo: "PATH={{ user_home }}/.cargo/bin/:$PATH && cargo"
+  tasks:
+    - name: "Debug"
+      register: aptout
+      shell:
+        cmd: id
+    - debug: var=aptout
+
+    - name: "Install gping via cargo"
+      register: aptout
+      become_user: "{{ lookup('env', 'USER') }}"
+      shell:
+        cmd: "{{ cargo }} install gping"
+    - debug: var=aptout
+

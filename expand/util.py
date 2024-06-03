@@ -4,6 +4,7 @@ Functions that help `expand` work.
 
 import os
 import re
+import pwd
 import requests
 import humanize
 from datetime import datetime, timedelta
@@ -66,24 +67,6 @@ def filter_str_for_urls(string) -> set[str]:
     return set(links)
 
 
-def get_probes_from_file(file_path: str):
-    """
-    Given an ansible file, return the list of probes by parsing the first line.
-    If the ansible file doesn't have a list, raise Exception.
-    """
-
-    with open(file_path, "r", encoding="UTF-8") as file:
-        first_line = file.readline()
-        if first_line.startswith("#"):
-            # Literally run it as python code
-            first_line = first_line[1:].strip()
-            result = eval(first_line)
-
-            return result
-
-        raise LookupError(f"Probes not found in {file_path}")
-
-
 def is_url_up(url) -> bool:
     """
     Returns true if url returns 200 HTTP Status Code on HEAD.
@@ -111,67 +94,6 @@ def get_files(directory: str):
             files_dict[filename] = full_path
 
     return files_dict
-
-
-def get_ansible_description(file_content: str, max_length: int) -> list[str]:
-    """
-    Given the CONTENT (string form) of a ansible file specifically made for
-    `expand`, extract its description. This is defined as all the consecutive
-    comments after the probe comment.
-
-    E.x. 
-    # [probe1(), probe2(), ...]
-    # This is the first line.
-    # This is the second line.
-
-    Each newline character creates a new line in the output. However, if a line
-    is longer than `max_width`, it gets split into many lines that are
-    `max_width` long.
-
-    Each lines has all left whitespace removed, and whenever a line gets moved
-    to another line, the word is wrapped around.
-
-    If the file does not contain any description, return "N/A"
-    """
-
-    lines = file_content.split("\n")
-    comments = []
-    for line in lines:
-        if line.startswith("#"):
-            comments.append(line)
-        else:
-            break
-    
-    if len(comments) <= 1:
-        return ["N/A"]
-
-    # These lines are all descriptions without # or whitespace
-    comments = list(map(lambda a: a.lstrip("# \t"), comments[1:]))
-
-    def split_sentence(sentence, index):
-        # Find the closest space before the index to split the sentence
-        split_index = index
-        while split_index > 0 and sentence[split_index] != ' ':
-            split_index -= 1
-        
-        # If no space is found, split at the index directly
-        if split_index == 0:
-            split_index = index
-        
-        # Return the split sentence
-        return [sentence[:split_index], sentence[split_index+1:]]
-
-
-    result = []
-    for string in comments:
-        while len(string) > max_length:
-            split = split_sentence(string, max_length)
-            result.append(split[0])
-            string = split[1]
-
-        result.append(string)
-
-    return result
 
 
 
@@ -237,3 +159,27 @@ def get_formatted_columns(
         next_index += sizes[i]
 
     return output
+
+def change_user(username, euid=0):
+    """
+    Effectively change the user running this program by changing the UID, GUID,
+    and environmental variables. For extra safety, you can optionally set EUID
+    to another value as well.
+    """
+
+    # Get the user information from the username
+    user_info = pwd.getpwnam(username)
+    uid = user_info.pw_uid
+    gid = user_info.pw_gid
+    home_dir = user_info.pw_dir
+    user_name = user_info.pw_name
+
+    os.setregid(gid, gid)
+    os.setreuid(uid, euid) 
+    
+    # Update environment variables
+    os.environ['HOME'] = home_dir
+    os.environ['USER'] = user_name
+    os.environ['LOGNAME'] = user_name
+    os.environ['SHELL'] = user_info.pw_shell
+

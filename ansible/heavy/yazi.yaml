@@ -1,0 +1,62 @@
+# AnyUserEscalation() 
+# [LinuxProbe()]
+# 💥 Blazing fast terminal file manager written in Rust, based on async I/O. 
+
+- name: Install Rust
+  import_playbook: rust.yaml
+
+- name: "Install Yazi"
+  hosts: localhost
+  connection: local
+  become: true # Remove this if AnyUserNoEscalation
+  gather_facts: false
+  vars:
+    user_home: "{{ lookup('env', 'HOME') | default(lookup('env', 'USERPROFILE')) }}"
+    cargo: "PATH={{ user_home }}/.cargo/bin/:$PATH && cargo"
+  tasks:
+    - name: "Install extras"
+      register: aptout
+      apt:
+        state: latest
+        update_cache: true
+        name:
+          - ffmpegthumbnailer
+          - unar
+          - jq 
+          - ripgrep
+          - xclip
+    - debug: var=aptout
+
+    - name: "Install zoxide"
+      register: aptout
+      command:
+        cmd: bash -c "curl -ss https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | bash"
+    - debug: var=aptout
+
+    - name: "Download fzf"
+      register: aptout
+      get_url:
+        url: https://github.com/junegunn/fzf/releases/download/0.45.0/fzf-0.45.0-linux_amd64.tar.gz
+        dest: /tmp/fzf.tar.gz
+    - debug: var=aptout
+
+    - name: "Unpack fzf to /usr/local/bin/"
+      register: aptout
+      unarchive:
+        src: /tmp/fzf.tar.gz
+        dest: /usr/local/bin
+    - debug: var=aptout
+
+    - name: "Remove fzf"
+      register: aptout
+      file:
+        path: /tmp/fzf.tar.gz
+        state: absent
+    - debug: var=aptout
+
+    - name: "Install Yazi via Cargo"
+      register: aptout
+      become_user: "{{ lookup('env', 'USER') }}"
+      shell:
+        cmd: "{{ cargo }} install --locked yazi-fm yazi-cli"
+    - debug: var=aptout
