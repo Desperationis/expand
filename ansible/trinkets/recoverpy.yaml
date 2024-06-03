@@ -8,7 +8,7 @@
   become: true # Remove this if AnyUserNoEscalation
   gather_facts: false
   vars:
-    conda: "{{ lookup('env', 'HOME') }}/anaconda3/bin/conda"
+    conda: ". {{ lookup('env', 'HOME') }}/anaconda3/bin/activate && conda"
   tasks:
     - name: "Create Env if it doesn't exist"
       register: aptout
