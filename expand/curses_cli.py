@@ -136,14 +136,14 @@ class curses_cli:
                     # EUID of any `user`. So, in this code we just use UID to
                     # keep track of who to downgrade to in the case of
                     # AnyUserNoEscalation, and in every other case run as root.
-                    user = "root"
+                    tmp = "root"
                     local = True
                     if isinstance(priviledge, OnlyRoot):
                         local = False
                     if isinstance(priviledge, AnyUserNoEscalation):
-                        user = pwd.getpwuid(os.getuid()).pw_name
+                        tmp = pwd.getpwuid(os.getuid()).pw_name
 
-                    p = subprocess.Popen(["ansible-playbook", file_path], user=user)
+                    p = subprocess.Popen(["ansible-playbook", file_path], user=tmp)
                     p.wait()
 
                     # For some reason the Ansible tmp files are owned by root
@@ -155,8 +155,9 @@ class curses_cli:
 
                     status = p.returncode == 0
 
+                    own_user = pwd.getpwuid(os.getuid()).pw_name
                     if local:
-                        InstalledCache.set_local_status(current_display[i].name, user, status)
+                        InstalledCache.set_local_status(current_display[i].name, own_user, status)
                     else:
                         InstalledCache.set_global_status(current_display[i].name, status)
 
@@ -165,7 +166,6 @@ class curses_cli:
                     # programs installed on HOME. So, make everything in HOME
                     # belong to the user, because that is how it is supposed to
                     # be in the first place.
-                    own_user = pwd.getpwuid(os.getuid()).pw_name
                     p = subprocess.Popen(f"chown -R {own_user}:{own_user} {os.path.expanduser('~')}".split(" "), user="root")
                     p.wait()
 
