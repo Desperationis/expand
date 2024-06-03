@@ -51,13 +51,17 @@ def main():
         # If the user has never used ansible before, ~/.ansible will belong to
         # root, and any AnyUserNoEscalation operations will fail due to
         # priviledge because it can't write to ~/.ansible/tmp
-        ansible_folder = os.path.expanduser("~/.ansible")
-        os.makedirs(ansible_folder, exist_ok=True)
+        def fix_user_group(folder):
+            folder = os.path.expanduser(folder)
+            os.makedirs(folder, exist_ok=True)
 
-        uid = pwd.getpwnam(args["--user"]).pw_uid
-        gid = grp.getgrnam(args["--user"]).gr_gid
+            uid = pwd.getpwnam(args["--user"]).pw_uid
+            gid = grp.getgrnam(args["--user"]).gr_gid
 
-        os.chown(ansible_folder, uid, gid)
+            os.chown(folder, uid, gid)
+
+        fix_user_group("~/.ansible")
+        fix_user_group("~/.ansible/tmp/")
 
     cli = curses_cli.curses_cli()
 
