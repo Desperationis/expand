@@ -20,7 +20,7 @@
     - name: Fix rustup permissions
       register: aptout
       shell:
-        cmd: chown -R "{{ lookup('env', 'USER') }}":"{{ lookup('env', 'USER') }}" ~/.rustup 
+        cmd: chown -R "{{ lookup('env', 'USER') }}":"{{ lookup('env', 'USER') }}" "{{ user_home }}"/.rustup 
     - debug: var=aptout
 
     - name: "Install build packages"
