@@ -29,5 +29,11 @@
     - name: Get stable version
       register: aptout
       shell:
+        cmd: "{{ user_home }}/.cargo/bin/rustup install stable"
+    - debug: var=aptout
+
+    - name: Set Default
+      register: aptout
+      shell:
         cmd: "{{ user_home }}/.cargo/bin/rustup default stable"
     - debug: var=aptout
