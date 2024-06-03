@@ -40,6 +40,6 @@
       become_user: "{{ lookup('env', 'USER') }}"
       register: aptout
       shell:
-        cmd: ~/.cargo/bin/cargo install --locked broot
+        cmd: "{{ user_home }}"/.cargo/bin/cargo install --locked broot
     - debug: var=aptout
 

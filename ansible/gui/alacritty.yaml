@@ -27,7 +27,7 @@
     - name: Install Alacritty to /usr/local/cargo/
       register: aptout
       shell:
-        cmd: ~/.cargo/bin/cargo install --root /usr/local/cargo/ alacritty
+        cmd: "{{ user_home }}"/.cargo/bin/cargo install --root /usr/local/cargo/ alacritty
     - debug: var=aptout
 
     - name: Download Alacritty Logo
