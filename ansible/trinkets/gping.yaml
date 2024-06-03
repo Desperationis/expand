@@ -13,7 +13,6 @@
   tasks:
     - name: "Install gping via cargo"
       register: aptout
-      become_user: {{ lookup('env', 'USER') }}
       shell:
         cmd: ~/.cargo/bin/cargo install gping
     - debug: var=aptout
