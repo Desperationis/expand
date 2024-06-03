@@ -12,6 +12,7 @@
   gather_facts: false
   vars:
     user_home: "{{ lookup('env', 'HOME') | default(lookup('env', 'USERPROFILE')) }}"
+    cargo: "PATH={{ user_home }}/.cargo/bin/:$PATH && cargo"
   tasks:
     - name: Install build packages
       register: aptout
@@ -28,8 +29,9 @@
 
     - name: Install Alacritty to /usr/local/cargo/
       register: aptout
+      become_user: "{{ lookup('env', 'USER') }}"
       shell:
-        cmd: "{{ user_home }}/.cargo/bin/cargo install --root /usr/local/cargo/ alacritty"
+        cmd: "{{ cargo }} install --root /usr/local/cargo/ alacritty"
     - debug: var=aptout
 
     - name: Download Alacritty Logo

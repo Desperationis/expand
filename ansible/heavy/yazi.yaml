@@ -12,6 +12,7 @@
   gather_facts: false
   vars:
     user_home: "{{ lookup('env', 'HOME') | default(lookup('env', 'USERPROFILE')) }}"
+    cargo: "PATH={{ user_home }}/.cargo/bin/:$PATH && cargo"
   tasks:
     - name: "Install extras"
       register: aptout
@@ -55,6 +56,7 @@
 
     - name: "Install Yazi via Cargo"
       register: aptout
+      become_user: "{{ lookup('env', 'USER') }}"
       shell:
-        cmd: "PATH=$PATH:{{ user_home }}/.cargo/bin/ && cargo install --locked yazi-fm yazi-cli"
+        cmd: "{{ cargo }} install --locked yazi-fm yazi-cli"
     - debug: var=aptout

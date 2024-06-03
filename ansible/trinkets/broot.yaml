@@ -13,6 +13,7 @@
   gather_facts: false
   vars:
     user_home: "{{ lookup('env', 'HOME') | default(lookup('env', 'USERPROFILE')) }}"
+    cargo: "PATH={{ user_home }}/.cargo/bin/:$PATH && cargo"
   tasks:
 
     - name: "Install build packages"
@@ -32,7 +33,7 @@
       become_user: "{{ lookup('env', 'USER') }}"
       register: aptout
       shell:
-        cmd: "{{ user_home }}/.cargo/bin/cargo install --locked broot"
+        cmd: "{{ cargo }} install --locked broot"
     - debug: var=aptout
 
 
