@@ -18,6 +18,6 @@
     - name: "Install via conda"
       register: aptout
       shell:
-        cmd: "{{ conda }} activate custom && python3 -m pip install -y trash-cli"
+        cmd: "{{ conda }} activate custom && python3 -m pip install trash-cli"
     - debug: var=aptout
 

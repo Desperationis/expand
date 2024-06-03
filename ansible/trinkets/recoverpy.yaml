@@ -20,5 +20,5 @@
     - name: "Install via conda"
       register: aptout
       shell:
-        cmd: "{{ conda }} activate custom && python3 -m pip install -y recoverpy"
+        cmd: "{{ conda }} activate custom && python3 -m pip install recoverpy"
     - debug: var=aptout
