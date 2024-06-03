@@ -23,6 +23,14 @@
         cmd: chown -R "{{ lookup('env', 'USER') }}":"{{ lookup('env', 'USER') }}" "{{ user_home }}"/.rustup 
     - debug: var=aptout
 
+    - name: Fix cargo permissions
+      register: aptout
+      shell:
+        cmd: chown -R "{{ lookup('env', 'USER') }}":"{{ lookup('env', 'USER') }}" "{{ user_home }}"/.cargo
+    - debug: var=aptout
+
+
+
     - name: "Install build packages"
       register: aptout
       apt:
