@@ -18,6 +18,8 @@ if "ACTIVATED_EXPAND" not in os.environ:
 
 import traceback
 import logging
+import pwd
+import grp
 from docopt import docopt
 from expand import curses_cli
 from expand.util import change_user
@@ -45,6 +47,17 @@ def main():
         except:
             print(f"\"{args['--user']}\" is not a valid user.")
             sys.exit(1)
+
+        # If the user has never used ansible before, ~/.ansible will belong to
+        # root, and any AnyUserNoEscalation operations will fail due to
+        # priviledge because it can't write to ~/.ansible/tmp
+        ansible_folder = os.path.expanduser("~/.ansible")
+        os.makedirs(ansible_folder, exist_ok=True)
+
+        uid = pwd.getpwnam(args["--user"]).pw_uid
+        gid = grp.getgrnam(args["--user"]).gr_gid
+
+        os.chown(ansible_folder, uid, gid)
 
     cli = curses_cli.curses_cli()
 
