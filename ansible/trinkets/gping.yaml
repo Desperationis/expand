@@ -1,4 +1,4 @@
-# OnlyRoot()
+# AnyUserNoEscalation()
 # [LinuxProbe(), x86Probe() ]
 # Ping, but with a graph.
 
@@ -9,7 +9,6 @@
 - name: "Install gping"
   hosts: localhost
   connection: local
-  become: true # Remove this if AnyUserNoEscalation
   gather_facts: false
   tasks:
     - name: "Install gping via cargo"
