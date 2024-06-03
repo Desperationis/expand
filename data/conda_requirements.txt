@@ -1,0 +1,6 @@
+yt-dlp
+trash-cli
+pre-commit
+pypeek
+black
+recoverpy
