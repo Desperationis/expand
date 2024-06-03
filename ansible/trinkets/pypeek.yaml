@@ -6,10 +6,19 @@
   hosts: localhost
   connection: local
   gather_facts: false
+  vars:
+    conda: "{{ lookup('env', 'HOME') }}/anaconda3/bin/conda"
   tasks:
+    - name: "Create Env if it doesn't exist"
+      register: aptout
+      command:
+        shell: "if ! {{ conda }} env list | grep -q custom; conda create -y -n custom; fi"
+    - debug: var=aptout
+
     - name: "Install via pip"
       register: aptout
       command:
-        cmd: pip install pypeek
+        shell: "{{ conda }} activate && pip install pypeek"
     - debug: var=aptout
+
 

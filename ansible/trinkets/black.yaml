@@ -1,15 +1,23 @@
 # AnyUserNoEscalation()
-# [ WhichProbe("conda") ]
+# [ ExistenceProbe("~/anaconda3") ]
 # Black is the uncompromising Python code formatter. By using it, you agree to cede control over minutiae of hand-formatting. In return, Black gives you speed, determinism, and freedom from pycodestyle nagging about formatting. You will save time and mental energy for more important matters.
 
 - name: "Install black"
   hosts: localhost
   connection: local
   gather_facts: false
+  vars:
+    conda: "{{ lookup('env', 'HOME') }}/anaconda3/bin/conda"
   tasks:
+    - name: "Create Env if it doesn't exist"
+      register: aptout
+      command:
+        shell: "if ! {{ conda }} env list | grep -q custom; conda create -y -n custom; fi"
+    - debug: var=aptout
+
     - name: "Install via pip"
       register: aptout
       command:
-        cmd: pip install black
+        shell: "{{ conda }} activate && pip install black"
     - debug: var=aptout
 

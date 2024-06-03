@@ -74,3 +74,17 @@ class WhichProbe(CompatibilityProbe):
         )
         return result.returncode == 0
 
+
+class ExistenceProbe(CompatibilityProbe):
+    def __init__(self, path) -> None:
+        self.path = os.path.expanduser(path)
+
+    def get_error_message(self) -> str:
+        return f"{self.path} does not exist."
+
+    def is_compatible(self) -> bool:
+        return os.path.exists(self.path)
+
+
+
+
