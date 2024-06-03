@@ -27,7 +27,7 @@
     - debug: var=aptout
 
     - name: "Install broot via cargo"
-      become_user: {{ lookup('env', 'USER') }}
+      become_user: "{{ lookup('env', 'USER') }}"
       register: aptout
       shell:
         cmd: ~/.cargo/bin/cargo install --locked broot
