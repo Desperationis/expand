@@ -166,7 +166,7 @@ class curses_cli:
                     # belong to the user, because that is how it is supposed to
                     # be in the first place.
                     own_user = pwd.getpwuid(os.getuid()).pw_name
-                    p = subprocess.Popen(f"chown -R {own_user}:{own_user} {os.path.expanduser('~')}", shell=True)
+                    p = subprocess.Popen(f"chown -R {own_user}:{own_user} {os.path.expanduser('~')}".split(" "), user="root")
                     p.wait()
 
                 # Everything ran successfully, reset requirements
