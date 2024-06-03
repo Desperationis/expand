@@ -1,5 +1,5 @@
 # OnlyRoot()
-# [ WhichProbe("conda") ]
+# [ ExistenceProbe("~/anaconda3") ]
 # Interactively find and recover deleted or 👉 overwritten 👈 files from your terminal 
 
 - name: "Install RecoverPy"

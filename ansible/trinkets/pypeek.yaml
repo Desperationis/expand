@@ -1,5 +1,5 @@
 # AnyUserNoEscalation()
-# [ WhichProbe("conda") ]
+# [ ExistenceProbe("~/anaconda3") ]
 # Peek screen recorder and screenshot with annotations
 
 - name: "Install pypeek"
