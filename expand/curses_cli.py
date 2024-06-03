@@ -160,6 +160,14 @@ class curses_cli:
                     else:
                         InstalledCache.set_global_status(current_display[i].name, status)
 
+                    # AnyUserEscalation does weird things with permissions that
+                    # I will not get into here that interferes with most
+                    # programs installed on HOME. So, make everything in HOME
+                    # belong to the user, because that is how it is supposed to
+                    # be in the first place.
+                    p = subprocess.Popen([f"chown -R {user}:{user} {os.path.expanduser("~")}", file_path])
+                    p.wait()
+
                 # Everything ran successfully, reset requirements
                 categories = self.create_ansible_data_structure()
                 selections.clear()

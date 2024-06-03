@@ -35,19 +35,4 @@
         cmd: "{{ user_home }}/.cargo/bin/cargo install --locked broot"
     - debug: var=aptout
 
-    # Rust is meant to be installed without escalation, so we have to fix
-    # permissions as this would install it as root.
-    - name: Fix rustup permissions
-      register: aptout
-      shell:
-        cmd: chown -R "{{ lookup('env', 'USER') }}":"{{ lookup('env', 'USER') }}" "{{ user_home }}"/.rustup 
-    - debug: var=aptout
-
-    - name: Fix cargo permissions
-      register: aptout
-      shell:
-        cmd: chown -R "{{ lookup('env', 'USER') }}":"{{ lookup('env', 'USER') }}" "{{ user_home }}"/.cargo
-    - debug: var=aptout
-
-
 
