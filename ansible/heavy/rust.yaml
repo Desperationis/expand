@@ -8,6 +8,8 @@
   hosts: localhost
   connection: local
   gather_facts: false
+  vars:
+    user_home: "{{ lookup('env', 'HOME') | default(lookup('env', 'USERPROFILE')) }}"
   tasks:
     - name: Install Build Packages for Rust
       register: aptout
@@ -22,4 +24,10 @@
       register: aptout
       shell:
         cmd: curl https://sh.rustup.rs -sSf | sh -s -- -y --no-modify-path
+    - debug: var=aptout
+
+    - name: Get stable version
+      register: aptout
+      shell:
+        cmd: "{{ user_home }}/.cargo/bin/rustup default stable"
     - debug: var=aptout
