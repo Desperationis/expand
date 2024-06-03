@@ -1,6 +1,6 @@
 # AnyUserNoEscalation()
 # [LinuxProbe(), x86Probe()]
-# Installs Anaconda to the home directory.
+# Installs a FRESH copy of Anaconda to the home directory with my custom environment, `custom`
 
 - name: "Install Anaconda Locally"
   hosts: localhost
@@ -8,6 +8,8 @@
   gather_facts: false
   vars:
     user_home: "{{ lookup('env', 'HOME') | default(lookup('env', 'USERPROFILE')) }}"
+    req_file: "{{ playbook_dir }}/../../data/conda_requirements.txt"
+    conda: "{{ lookup('env', 'HOME') }}/anaconda3/bin/conda"
   tasks:
     - name: "Create Downloads Folder"
       file:
@@ -19,6 +21,13 @@
         url: "https://repo.anaconda.com/archive/Anaconda3-2024.02-1-Linux-x86_64.sh"
         dest: "{{ user_home }}/Downloads/anaconda.sh"
 
+    - name: "Remove Anaconda if it exists"
+      register: aptout
+      file:
+        path: "{{ user_home }}/anaconda3/"
+        state: absent
+    - debug: var=aptout
+
     - name: "Install Anaconda"
       command:
         chdir: "{{ user_home }}/Downloads/"
@@ -28,3 +37,15 @@
       file:
         path: "{{ user_home }}/Downloads/anaconda.sh"
         state: absent
+
+    - name: "Remove Conda Env if it exists"
+      register: aptout
+      shell:
+        cmd: "{{ conda }} remove --name custom --all --yes"
+    - debug: var=aptout
+
+    - name: "Create Conda"
+      register: aptout
+      shell:
+        cmd: "{{ conda }} create --name custom --file {{ req_file }} -c conda-forge"
+    - debug: var=aptout

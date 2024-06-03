@@ -118,11 +118,7 @@ class Choice:
         if hasattr(self, "_installed_status"):
             return self._installed_status
 
-        priviledge = self.expansion_card.get_priviledge_level()
-        user = "root"
-        if isinstance(priviledge, AnyUserNoEscalation):
-            user = pwd.getpwuid(os.getuid()).pw_name
-
+        user = pwd.getpwuid(os.getuid()).pw_name
         status = InstalledCache.get_status(self.name, user)
 
         if status == True:
