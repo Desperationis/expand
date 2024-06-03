@@ -54,6 +54,6 @@
     - name: "Install Yazi via Cargo"
       register: aptout
       shell:
-        cmd: "{{ user_home }}"/.cargo/bin/cargo install --locked yazi-fm yazi-cli
+        cmd: "{{ user_home }}/.cargo/bin/cargo install --locked yazi-fm yazi-cli"
     - debug: var=aptout
 
