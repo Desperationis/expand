@@ -11,6 +11,12 @@
   connection: local
   gather_facts: false
   tasks:
+    - name: "Debug"
+      register: aptout
+      shell:
+        cmd: id
+    - debug: var=aptout
+
     - name: "Install gping via cargo"
       register: aptout
       shell:
