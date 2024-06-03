@@ -18,7 +18,7 @@
     - name: "Install via conda"
       register: aptout
       shell:
-        cmd: "{{ conda }} activate custom && conda install -y pypeek"
+        cmd: "{{ conda }} activate custom && python3 -m pip install -y pypeek"
     - debug: var=aptout
 
 
