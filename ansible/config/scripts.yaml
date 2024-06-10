@@ -25,3 +25,7 @@
         src: "{{ scripts_folder }}"
         dest: "{{ user_home }}/bin"
 
+    - name: "Fix permissions"
+      shell:
+        cmd: "chmod +x {{ user_home }}/bin/*"
+

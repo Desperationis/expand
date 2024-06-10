@@ -41,6 +41,11 @@ def main():
     This function is what is called when the module is run.
     """
 
+    # Curses is initialized first because it doesn't like changing user in this
+    # context. If it is initialized after changing user, the program won't work
+    # on some computers.
+    cli = curses_cli.curses_cli()
+
     if args["--user"]:
         try:
             change_user(args["--user"])
@@ -62,8 +67,6 @@ def main():
 
         fix_user_group("~/.ansible")
         fix_user_group("~/.ansible/tmp/")
-
-    cli = curses_cli.curses_cli()
 
     try:
         cli.setup()
