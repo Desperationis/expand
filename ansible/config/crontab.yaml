@@ -7,10 +7,10 @@
   gather_facts: false
   vars:
     user_home: "{{ lookup('env', 'HOME') | default(lookup('env', 'USERPROFILE')) }}"
-    scripts_folder: "{{ playbook_dir }}/../../data/scripts/"
+    crontab_folder: "{{ playbook_dir }}/../../data/"
   tasks:
     - name: "Install via crontab"
       register: aptout
       shell:
-        cmd: "crontab {{ scripts_folder }}/crontab"
+        cmd: "crontab {{ crontab_folder }}/crontab"
     - debug: var=aptout

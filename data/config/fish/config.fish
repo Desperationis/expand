@@ -332,6 +332,9 @@ if status is-interactive
 	if test -d ~/bin 
 		fish_add_path ~/bin
 	end
+	if test -d ~/.local/bin
+		fish_add_path ~/.local/bin
+	end
 
 	if which zoxide > /dev/null 2>&1
 		zoxide init fish | source

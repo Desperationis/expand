@@ -48,12 +48,6 @@
         path: /tmp/fish-3.7.1/
         state: absent
 
-    - name: "install zoxide"
-      register: aptout
-      command:
-        cmd: bash -c "curl -ss https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | bash"
-    - debug: var=aptout
-
     - name: "Download fzf"
       register: aptout
       get_url:

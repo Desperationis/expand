@@ -13,4 +13,10 @@
         cmd: fish -c "curl -sL https://git.io/fisher | source; fisher install jorgebucaran/fisher; fisher install edc/bass"
     - debug: var=aptout
 
+    - name: "Install zoxide"
+      register: aptout
+      command:
+        cmd: bash -c "curl -ss https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | bash"
+    - debug: var=aptout
+
 
