@@ -68,3 +68,8 @@
         path: /tmp/fzf.tar.gz
         state: absent
     - debug: var=aptout
+
+    - name: Add fish as valid shell
+      shell:
+        cmd: echo /usr/local/bin/fish >> /etc/shells
+
