@@ -1,0 +1,25 @@
+# OnlyRoot()
+# [ DebianProbe(), WhichProbe("wget") ]
+# Installs i3 as well as helpful software that makes my config file work
+
+- name: Install Rust
+  import_playbook: ../heavy/rust.yaml
+
+- name: Install Alacritty
+  hosts: localhost
+  connection: local
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Install everything
+      register: aptout
+      apt:
+        state: latest
+        update_cache: true
+        name:
+          - pulseaudio
+          - pulsemixer
+          - brightnessctl
+          - i3
+    - debug: var=aptout
+

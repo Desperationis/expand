@@ -18,6 +18,7 @@
       register: aptout
       apt:
         state: latest
+        update_cache: true
         name:
           - cmake
           - pkg-config
