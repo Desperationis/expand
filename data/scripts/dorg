@@ -47,4 +47,6 @@ for file in ~/Downloads/*; do
 	echo -e "Moved \e[32m${file}\e[0m to \e[36m${destination}\e[0m"
 done
 
-
+for directory in ~/zed/*; do
+	rmdir "$directory" 2>/dev/null
+done
