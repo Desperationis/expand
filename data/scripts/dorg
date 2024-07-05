@@ -24,14 +24,16 @@ declare -A file_types=(
     ["py"]="scripts"
     ["bash"]="scripts"
     ["sh"]="scripts"
+    ["torrent"]="torrents"
 )
 
 echo -e "\e[36mOrganizing Downloads Folder...\e[0m"
-mkdir ~/Down
+mkdir -p ~/zed/folders/
 
 for file in ~/Downloads/*; do
 	if [[ -d "$file" ]]; then
-		mv "$file" ~/Down/folders/
+		mv "$file" ~/zed/folders/
+		continue
 	fi
 
 	extension="${file##*.}"
@@ -40,8 +42,8 @@ for file in ~/Downloads/*; do
 		destination="misc"
 	fi
 
-	mkdir -p ~/Down/$destination
-	mv "$file" ~/Down/$destination
+	mkdir -p ~/zed/$destination
+	mv "$file" ~/zed/$destination
 	echo -e "Moved \e[32m${file}\e[0m to \e[36m${destination}\e[0m"
 done
 
