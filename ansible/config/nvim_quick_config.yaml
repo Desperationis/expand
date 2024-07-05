@@ -1,0 +1,26 @@
+# AnyUserEscalation()
+# [WhichProbe("nvim")]
+
+- name: "Install nvim configuration files"
+  hosts: localhost
+  connection: local
+  become: True
+  gather_facts: false
+  vars:
+    user_home: "{{ lookup('env', 'HOME') | default(lookup('env', 'USERPROFILE')) }}"
+    config_folder: "{{ playbook_dir }}/../../data/config/"
+  tasks:
+    - name: "Clean up previous nvim data"
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - "{{user_home}}/.local/share/nvim/"
+        - "{{user_home}}/.config/nvim"
+      ignore_errors: yes
+
+    - name: "Move to ~/.config/"
+      register: aptout
+      shell:
+        cmd: "cp -r {{config_folder}}/nvim/ {{user_home}}/.config/"
+    - debug: var=aptout

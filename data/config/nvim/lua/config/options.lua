@@ -1,5 +1,5 @@
 -- Hint: use `:h <option>` to figure out the meaning if needed
-vim.opt.clipboard = 'unnamedplus'   -- use system clipboard 
+-- vim.opt.clipboard = 'unnamedplus'   -- use system clipboard for yank
 vim.opt.completeopt = {'menu', 'menuone', 'noselect'}
 vim.opt.mouse = ''                  -- Does NOT allow the mouse to be used in Nvim
 
@@ -16,7 +16,7 @@ vim.opt.relativenumber = true       -- add numbers to each line on the left side
 vim.opt.cursorline = true           -- highlight cursor line underneath the cursor horizontally
 vim.opt.splitbelow = true           -- open new vertical split bottom
 vim.opt.splitright = true           -- open new horizontal splits right
--- vim.opt.termguicolors = true        -- enabl 24-bit RGB color in the TUI
+vim.opt.termguicolors = true        -- enabl 24-bit RGB color in the TUI
 vim.opt.showmode = false            -- we are experienced, wo don't need the "-- INSERT --" mode hint
 
 -- Searching
@@ -30,4 +30,4 @@ vim.opt.smartcase = true            -- but make it case sensitive if an uppercas
 vim.wo.signcolumn = "yes"
 vim.opt.backspace = "indent,eol,start" -- Delete things in a more intuitive way
 vim.opt.guicursor="n-v-c-sm:block,i-ci-ve:ver25,r-cr-o:hor20"
--- vim.wo.number = true                -- Show line number
+vim.wo.number = true                -- Show line number
