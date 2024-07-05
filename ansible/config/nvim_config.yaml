@@ -45,14 +45,8 @@
         - "{{user_home}}/.config/nvim"
       ignore_errors: yes
 
-    - name: "Create parent .config folder"
-      register: aptout
-      shell:
-        cmd: "mkdir -p {{user_home}}/.config/nvim"
-    - debug: var=aptout
-
     - name: "Move to ~/.config/"
       register: aptout
       shell:
-        cmd: "cp {{config_folder}}/nvim/init.lua {{user_home}}/.config/nvim/"
+        cmd: "cp -r {{config_folder}}/nvim/ {{user_home}}/.config/"
     - debug: var=aptout
