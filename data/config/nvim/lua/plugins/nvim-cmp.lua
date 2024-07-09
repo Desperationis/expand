@@ -1,7 +1,8 @@
 return {
     "hrsh7th/nvim-cmp",
     dependencies = {
-			"onsails/lspkind.nvim",
+            "neovim/nvim-lspconfig",
+            "L3MON4D3/LuaSnip",
 			"hrsh7th/cmp-nvim-lsp", -- lsp auto-completion
 			"hrsh7th/cmp-buffer", -- buffer auto-completion
 			"hrsh7th/cmp-path", -- path auto-completion
