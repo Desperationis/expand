@@ -31,3 +31,5 @@ vim.wo.signcolumn = "yes"
 vim.opt.backspace = "indent,eol,start" -- Delete things in a more intuitive way
 vim.opt.guicursor="n-v-c-sm:block,i-ci-ve:ver25,r-cr-o:hor20"
 vim.wo.number = true                -- Show line number
+vim.o.listchars = "tab:| ,trail:·,extends:>,precedes:<,space:·" -- See spaces
+vim.o.list = true -- Show spaces
