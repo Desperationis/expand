@@ -1,0 +1,52 @@
+# AnyUserEscalation()
+# [WhichProbe("nvim")]
+
+- name: "Install nvim configuration files"
+  hosts: localhost
+  connection: local
+  become: True
+  gather_facts: false
+  vars:
+    user_home: "{{ lookup('env', 'HOME') | default(lookup('env', 'USERPROFILE')) }}"
+    config_folder: "{{ playbook_dir }}/../../data/config/"
+  tasks:
+    - name: "Install npm"
+      register: aptout
+      apt:
+        update-cache: true
+        state: latest
+        name: npm
+    - debug: var=aptout
+
+    - name: "Install n"
+      register: aptout
+      shell:
+        cmd: "npm install n -g"
+    - debug: var=aptout
+
+    - name: "Install latest nodejs"
+      register: aptout
+      shell:
+        cmd: "n stable"
+    - debug: var=aptout
+
+    - name: "Clean up previous nvim data"
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - "{{user_home}}/.local/share/nvim/"
+        - "{{user_home}}/.config/nvim"
+      ignore_errors: yes
+
+    - name: "Move to ~/.config/"
+      register: aptout
+      shell:
+        cmd: "cp -r {{config_folder}}/nvim/full {{user_home}}/.config/"
+    - debug: var=aptout
+
+    - name: "Rename folder"
+      register: aptout
+      shell:
+        cmd: "mv {{user_home}}/.config/full/ {{user_home}}/.config/nvim/"
+    - debug: var=aptout
