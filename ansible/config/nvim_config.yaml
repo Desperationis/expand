@@ -30,6 +30,12 @@
         cmd: "n stable"
     - debug: var=aptout
 
+    - name: "Install tree sitter"
+      register: aptout
+      shell:
+        cmd: "npm install -g tree-sitter-cli"
+    - debug: var=aptout
+
     - name: "Clean up previous nvim data"
       file:
         path: "{{ item }}"
@@ -42,11 +48,5 @@
     - name: "Move to ~/.config/"
       register: aptout
       shell:
-        cmd: "cp -r {{config_folder}}/nvim/minimal {{user_home}}/.config/"
-    - debug: var=aptout
-
-    - name: "Rename folder"
-      register: aptout
-      shell:
-        cmd: "mv {{user_home}}/.config/minimal/ {{user_home}}/.config/nvim/"
+        cmd: "cp -r {{config_folder}}/nvim/ {{user_home}}/.config/"
     - debug: var=aptout
