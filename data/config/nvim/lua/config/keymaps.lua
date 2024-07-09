@@ -34,5 +34,5 @@ vim.keymap.set('v', '>', '>gv', opts)
 ----------------
 --   Custom   --
 ----------------
-vim.api.nvim_set_keymap('n', '<leader><leader>', [[:!black %<CR>]], { noremap = true, silent = true })
+vim.api.nvim_set_keymap('n', '<leader>q', [[:!black %<CR>]], { noremap = true, silent = true })
 vim.api.nvim_set_keymap('n', '<leader>a', ':set list!<CR>', { noremap = true, silent = true }) -- Toggle viewing spaces

@@ -33,5 +33,3 @@ vim.opt.guicursor="n-v-c-sm:block,i-ci-ve:ver25,r-cr-o:hor20"
 vim.wo.number = true                -- Show line number
 vim.o.listchars = "tab:| ,trail:·,extends:>,precedes:<,space:·" -- See spaces
 vim.o.list = true -- Show spaces
-vim.g.mapleader = ' '
-vim.g.maplocalleader = ' '
