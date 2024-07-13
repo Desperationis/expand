@@ -1,5 +1,6 @@
 return {
     "nvim-treesitter/nvim-treesitter",
+    commit="972aa54",
     config = function()
         require("nvim-treesitter.configs").setup({
         -- A list of parser names to install on boot, or "all" (the listed

@@ -1,6 +1,7 @@
 return { 
     "lukas-reineke/indent-blankline.nvim", 
     main = "ibl", 
+    tag = "v3.7.1",
     dependencies = {
         "nvim-treesitter/nvim-treesitter"
     },
