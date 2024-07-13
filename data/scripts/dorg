@@ -27,12 +27,15 @@ declare -A file_types=(
     ["torrent"]="torrents"
 )
 
+ZED_DIR=~/box/zed/
+
+
 echo -e "\e[36mOrganizing Downloads Folder...\e[0m"
-mkdir -p ~/zed/folders/
+mkdir -p ${ZED_DIR}/folders/
 
 for file in ~/Downloads/*; do
 	if [[ -d "$file" ]]; then
-		mv "$file" ~/zed/folders/
+		mv "$file" ${ZED_DIR}/folders/
 		continue
 	fi
 
@@ -42,11 +45,11 @@ for file in ~/Downloads/*; do
 		destination="misc"
 	fi
 
-	mkdir -p ~/zed/$destination
-	mv "$file" ~/zed/$destination
+	mkdir -p ${ZED_DIR}/$destination
+	mv "$file" ${ZED_DIR}/$destination
 	echo -e "Moved \e[32m${file}\e[0m to \e[36m${destination}\e[0m"
 done
 
-for directory in ~/zed/*; do
+for directory in ${ZED_DIR}/*; do
 	rmdir "$directory" 2>/dev/null
 done

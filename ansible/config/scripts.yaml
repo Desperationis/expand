@@ -9,23 +9,23 @@
     user_home: "{{ lookup('env', 'HOME') | default(lookup('env', 'USERPROFILE')) }}"
     scripts_folder: "{{ playbook_dir }}/../../data/scripts/"
   tasks:
-    - name: "Make ~/bin"
+    - name: "Make ~/box/bin"
       file:
-        path: "{{ user_home }}/bin"
+        path: "{{ user_home }}/box/bin"
         state: directory
         mode: '0755'
 
     - name: "Clear existing configuration"
       file:
-        path: "{{ user_home }}/bin"
+        path: "{{ user_home }}/box/bin"
         state: absent
 
     - name: "Copy configuration"
       copy:
         src: "{{ scripts_folder }}"
-        dest: "{{ user_home }}/bin"
+        dest: "{{ user_home }}/box/bin"
 
     - name: "Fix permissions"
       shell:
-        cmd: "chmod +x {{ user_home }}/bin/*"
+        cmd: "chmod +x {{ user_home }}/box/bin/*"
 

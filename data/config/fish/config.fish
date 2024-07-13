@@ -316,7 +316,7 @@ function show_timezone -d "Show local timezone"
 end
 
 if status is-interactive
-	fish_add_path ~/bin
+	fish_add_path ~/box/bin
 	fish_add_path ~/.local/bin
 
 	if which zoxide > /dev/null 2>&1
