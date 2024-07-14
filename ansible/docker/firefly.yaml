@@ -19,7 +19,7 @@
 
     - name: "Fix permissions"
       shell:
-        cmd: "chmod +x {{ user_home }}/box/bin/snippets-docker"
+        cmd: "chmod +x {{ user_home }}/box/bin/firefly-docker"
     - debug: var=aptout
 
 
