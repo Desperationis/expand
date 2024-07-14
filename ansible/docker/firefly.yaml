@@ -1,5 +1,5 @@
 # AnyUserNoEscalation() 
-# [LinuxProbe(), NotInDockerProbe(), WhichProbe("bash"), ExistenceProbe("~/box/bin/") ]
+# [LinuxProbe(), NotInDockerProbe(), WhichProbe("docker"), ExistenceProbe("~/box/bin/") ]
 # Install firefly iii
 
 - name: "Install Firefly iii"
