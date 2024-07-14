@@ -90,7 +90,7 @@ fi
 if which docker > /dev/null 2>&1
 then
     cd $firefly_folder
-    docker compose -f compose.yaml up --rm --pull=always
+    docker compose -f compose.yaml up --rm --pull=always -it 
 else
 	echo "Docker is not installed."
 fi
