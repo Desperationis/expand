@@ -1,0 +1,26 @@
+# AnyUserNoEscalation() 
+# [LinuxProbe(), NotInDockerProbe(), WhichProbe("bash"), ExistenceProbe("~/box/bin/") ]
+# Install firefly iii
+
+- name: "Install Firefly iii"
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    user_home: "{{ lookup('env', 'HOME') | default(lookup('env', 'USERPROFILE')) }}"
+    docker_folder: "{{ playbook_dir }}/../../data/docker/"
+  tasks:
+    - name: "Install firefly script"
+      register: aptout
+      copy:
+        src: "{{ docker_folder }}/firefly-docker" 
+        dest: "{{ user_home }}/box/bin/"
+    - debug: var=aptout
+
+    - name: "Fix permissions"
+      shell:
+        cmd: "chmod +x {{ user_home }}/box/bin/snippets-docker"
+    - debug: var=aptout
+
+
+

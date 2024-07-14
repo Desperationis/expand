@@ -40,11 +40,14 @@ then
 	exit 1
 fi
 
-if ! [[ -e ~/bin/snippet-box ]] || (docker images | grep -v "snippet-box")
+SNIPPETS=~/box/snippet-box/
+
+if ! [[ -e $SNIPPETS ]] || (docker images | grep -v "snippet-box")
 then
 	docker rmi snippet-box
-	git clone https://github.com/pawelmalak/snippet-box ~/bin/snippet-box
-	cd ~/bin/snippet-box
+    mkdir -p ~/box/
+	git clone https://github.com/pawelmalak/snippet-box $SNIPPETS
+	cd $SNIPPETS
 	docker build -t snippet-box .
 fi
 
