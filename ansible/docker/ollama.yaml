@@ -1,0 +1,26 @@
+# AnyUserNoEscalation() 
+# [LinuxProbe(), NotInDockerProbe(), WhichProbe("bash"), ExistenceProbe("~/box/bin/") ]
+# Install ollama-docker command that runs the GPU version of open-webui with no prior setup. If you have installed CUDA and it still doesn't detect the GPU, use `sudo modprobe nvidia_uvm`, and test out the CUDA in docker with `docker run --gpus all nvcr.io/nvidia/k8s/cuda-sample:nbody nbody -gpu -benchmark`. You may need to install the NVIDIA Container Toolkit
+
+- name: "Install Ollama Webui"
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    user_home: "{{ lookup('env', 'HOME') | default(lookup('env', 'USERPROFILE')) }}"
+    docker_folder: "{{ playbook_dir }}/../../data/docker/"
+  tasks:
+    - name: "Install ollama script"
+      register: aptout
+      copy:
+        src: "{{ docker_folder }}/ollama-docker" 
+        dest: "{{ user_home }}/box/bin/"
+    - debug: var=aptout
+
+    - name: "Fix permissions"
+      shell:
+        cmd: "chmod +x {{ user_home }}/box/bin/ollama-docker"
+    - debug: var=aptout
+
+
+

@@ -1,0 +1,96 @@
+#!/bin/bash
+
+firefly_folder=$HOME/box/firefly/
+
+
+
+if [[ "$1" == "export" ]]
+then
+	tmp_folder=$(mktemp -d)
+    cd $tmp_folder
+
+    echo "Backing up database container to ${tmp_folder}..."
+    if ! docker run --rm -v "firefly_firefly_iii_db:/tmp" -v "${tmp_folder}:/backup" ubuntu tar -czvf /backup/firefly_db.tar /tmp 
+    then
+        echo "Unable to save database file, exiting..."
+        exit 1
+    fi
+
+    echo "Backing up upload container to ${tmp_folder}..."
+    if ! docker run --rm -v "firefly_firefly_iii_upload:/tmp" -v "${tmp_folder}:/backup" ubuntu tar -czvf /backup/firefly_upload.tar /tmp
+    then
+        echo "Unable to save upload file, exiting..."
+        exit 1
+    fi
+
+
+    cp ${firefly_folder}/.db.env .
+    cp ${firefly_folder}/.env .
+    cp ${firefly_folder}/compose.yaml .
+
+    # Wrap them together in neat little package
+    tar -czvf firefly.tar.gz firefly_upload.tar firefly_db.tar .db.env .env compose.yaml
+
+
+    # Move to original dir
+    cd -
+    mv $tmp_folder/firefly.tar.gz .
+
+    rm -rf $tmp_folder
+
+	echo "Export success. You should see a firefly.tar.gz file. Save it."
+    exit 0
+fi
+
+
+if [[ "$1" == "import" ]] && [[ $# -eq 2 ]]
+then
+    # Copy firefly.tar.gz into random tmp folder
+	folder=$(mktemp -d)
+	cp "$2" "$folder"
+	cd "$folder"
+
+    # Unpack "nice" tar
+	if tar -xf "${2}"
+	then
+        echo "Restoring database container..."
+        docker run --rm -v "firefly_firefly_iii_db:/recover" -v "${folder}:/backup" ubuntu tar -xvf /backup/firefly_db.tar -C /recover --strip 1
+
+        echo "Restoring upload container..."
+        docker run --rm -v "firefly_firefly_iii_upload:/recover" -v "${folder}:/backup" ubuntu tar -xvf /backup/firefly_upload.tar -C /recover --strip 1
+
+
+        echo "Make firefly folder..."
+        mkdir -p $firefly_folder
+
+        echo "Restoring secret files"
+        mv .db.env .env compose.yaml $firefly_folder
+	else
+		echo "Unable to extract firefly.tar.gz"
+		exit 1
+	fi
+
+	echo "Import success. Make sure to restart docker container for changes to take effect."
+
+    # Delete tmp folder
+    rm -rf "$folder"
+	exit 0
+elif [[ "$1" == "import" ]]
+then
+	echo "Usage: firefly import <firefly.tar.gz>"
+	exit 1
+fi
+
+if ! [[ -e $firefly_folder ]] 
+then
+    echo "Can't start firefly, secret files missing."
+    exit 1
+fi
+
+if which docker > /dev/null 2>&1
+then
+    cd $firefly_folder
+    docker compose -f compose.yaml up -d --pull=always
+else
+	echo "Docker is not installed."
+fi
