@@ -1,0 +1,18 @@
+# OnlyRoot()
+# [ ]
+# Doesn't install TLP, it only adds my tlp.conf file that extends battery life by about 4-6 hours.
+
+- name: "Install tlp configuration files."
+  hosts: localhost
+  connection: local
+  become: true
+  gather_facts: false
+  vars:
+    user_home: "{{ lookup('env', 'HOME') | default(lookup('env', 'USERPROFILE')) }}"
+    config_folder: "{{ playbook_dir }}/../../data/config/"
+  tasks:
+    - name: "Move to /etc/tlp.conf"
+      register: aptout
+      shell:
+        cmd: "cp {{config_folder}}/tlp.conf /etc/tlp.conf"
+    - debug: var=aptout

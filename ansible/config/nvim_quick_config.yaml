@@ -10,32 +10,6 @@
     user_home: "{{ lookup('env', 'HOME') | default(lookup('env', 'USERPROFILE')) }}"
     config_folder: "{{ playbook_dir }}/../../data/config/"
   tasks:
-    - name: "Install npm"
-      register: aptout
-      apt:
-        update-cache: true
-        state: latest
-        name: npm
-    - debug: var=aptout
-
-    - name: "Install n"
-      register: aptout
-      shell:
-        cmd: "npm install n -g"
-    - debug: var=aptout
-
-    - name: "Install latest nodejs"
-      register: aptout
-      shell:
-        cmd: "n stable"
-    - debug: var=aptout
-
-    - name: "Install tree sitter"
-      register: aptout
-      shell:
-        cmd: "npm install -g tree-sitter-cli"
-    - debug: var=aptout
-
     - name: "Clean up previous nvim data"
       file:
         path: "{{ item }}"

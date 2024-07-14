@@ -1,18 +1,5 @@
 fish_config theme choose fish\ default
 
-function tbytes -d 'calculates the total size of the files in the current directory'
-  set -l tBytes (ls -al | grep "^-" | awk 'BEGIN {i=0} { i += $5 } END { print i }')
-  
-  if test $tBytes -lt 1048576
-    set -g total (echo -e "scale=3 \n$tBytes/1048 \nquit" | bc)
-    set -g units " Kb"
-  else
-    set -g total (echo -e "scale=3 \n$tBytes/1048576 \nquit" | bc)
-    set -g units " Mb"
-  end
-  echo -n "$total$units"
-end
-
 function fish_prompt
 
 	if fish_is_root_user
@@ -31,8 +18,6 @@ function fish_prompt
 
 	set_color brgreen
 	printf '%s ' (prompt_pwd --full-length-dirs=2)
-	set_color brblue
-	printf '%s' (tbytes)
 	set_color normal
 	printf '%s' (__fish_git_prompt)
 
@@ -301,8 +286,10 @@ function show_bluetooth -d "Print out bluetooth status"
     set --local b_status "N/A"
 
 	if test "$os_type" = "Linux"
-		if test $(hcitool dev | wc -l) -gt 1
-			set b_status "ON"
+		if which hcitool > /dev/null 2>&1
+			if test $(hcitool dev | wc -l) -gt 1
+				set b_status "ON"
+			end
 		else
 			set b_status "OFF"
 		end
@@ -329,12 +316,8 @@ function show_timezone -d "Show local timezone"
 end
 
 if status is-interactive
-	if test -d ~/bin 
-		fish_add_path ~/bin
-	end
-	if test -d ~/.local/bin
-		fish_add_path ~/.local/bin
-	end
+	fish_add_path ~/box/bin
+	fish_add_path ~/.local/bin
 
 	if which zoxide > /dev/null 2>&1
 		zoxide init fish | source

@@ -40,17 +40,20 @@ then
 	exit 1
 fi
 
-if ! [[ -e ~/bin/snippet-box ]] || (docker images | grep -v "snippet-box")
+SNIPPETS=~/box/snippet-box/
+
+if ! [[ -e $SNIPPETS ]] || (docker images | grep -v "snippet-box")
 then
 	docker rmi snippet-box
-	git clone https://github.com/pawelmalak/snippet-box ~/bin/snippet-box
-	cd ~/bin/snippet-box
+    mkdir -p ~/box/
+	git clone https://github.com/pawelmalak/snippet-box $SNIPPETS
+	cd $SNIPPETS
 	docker build -t snippet-box .
 fi
 
 if which docker > /dev/null 2>&1
 then
-	docker run --rm -d -p 5000:5000 -v ~/.local/share/snippet-box:/app/data snippet-box
+	docker run --rm -it -p 5000:5000 -v ~/.local/share/snippet-box:/app/data snippet-box
 else
 	echo "Docker is not installed."
 fi
