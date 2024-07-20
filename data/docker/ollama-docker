@@ -1,4 +1,5 @@
 #!/bin/bash
 
 # Assumes ollama is installed locally
-docker run --rm -it -p 3000:8080 --add-host=host.docker.internal:host-gateway -v open-webui:/app/backend/data --name open-webui ghcr.io/open-webui/open-webui:main
+sudo modprobe nvidia_uvm
+docker run --rm --network=host -v open-webui:/app/backend/data -e OLLAMA_BASE_URL=http://127.0.0.1:11434 --name open-webui ghcr.io/open-webui/open-webui:main
