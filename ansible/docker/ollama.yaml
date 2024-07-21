@@ -29,5 +29,10 @@
         cmd: "chmod +x {{ user_home }}/box/bin/ollama-docker"
     - debug: var=aptout
 
+    - name: Disable ollama.service
+      systemd:
+        name: ollama.service
+        enabled: no
+
 
 
