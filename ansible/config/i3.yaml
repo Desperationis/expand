@@ -14,7 +14,12 @@
         path: "{{ user_home }}/.config/i3/"
         state: absent
 
+    - name: "Create dir for data"
+      file:
+        path: "{{ user_home }}/.config/i3/"
+        state: directory
+
     - name: "Copy configuration"
       copy:
         src: "{{ config_folder }}/i3/" 
-        dest: "{{ user_home }}/.config/"
+        dest: "{{ user_home }}/.config/i3/"
