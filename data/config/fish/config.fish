@@ -323,9 +323,9 @@ if status is-interactive
 		zoxide init fish | source
 	end
 
-	alias rm 'rmtrash'
-	alias rmdir 'rmdirtrash'
-	alias sudo 'sudo '
+    #alias rm 'rmtrash'
+    #alias rmdir 'rmdirtrash'
+    #alias sudo 'sudo '
 
 	if test -f ~/anaconda3/bin/conda
 		fish_add_path ~/anaconda3/bin/
