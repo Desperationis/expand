@@ -32,6 +32,7 @@
           - checkinstall
           - software-properties-common
           - curl
+          - pv
           - wget
           - gnupg
           - lsb-release
