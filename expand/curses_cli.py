@@ -41,7 +41,6 @@ class curses_cli:
             return list(display)
 
         categories.append(("heavy", get_choices_from_folder("ansible/heavy/")))
-        categories.append(("docker", get_choices_from_folder("ansible/docker/")))
         categories.append(("trinkets", get_choices_from_folder("ansible/trinkets/")))
         categories.append(("gui", get_choices_from_folder("ansible/gui/")))
         categories.append(("config", get_choices_from_folder("ansible/config/")))

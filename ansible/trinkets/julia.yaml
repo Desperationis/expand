@@ -1,0 +1,21 @@
+# AnyUserNoEscalation() 
+# [LinuxProbe(), x86Probe(), DebianProbe(), NotInDockerProbe(), WhichProbe("bash") ]
+# Downloads julia using the official command on their website.
+
+- name: "Install Julia"
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    user_home: "{{ lookup('env', 'HOME') | default(lookup('env', 'USERPROFILE')) }}"
+    relative_folder: "{{ playbook_dir }}/../../myfolder/"
+  tasks:
+    - name: "Run Command (Shell) ($HOME, &, | works)"
+      register: aptout
+      shell:
+        chdir: "{{ user_home }}"
+        cmd: curl -fsSL https://install.julialang.org | sh -s --  --yes
+    - debug: var=aptout
+
+
+
