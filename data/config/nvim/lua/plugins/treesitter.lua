@@ -6,7 +6,7 @@ return {
         -- A list of parser names to install on boot, or "all" (the listed
         -- parsers MUST always be installed)
           -- ensure_installed = { },
-          ensure_installed = "all",
+          ensure_installed = "",
 
           -- Install parsers synchronously (only applied to `ensure_installed`)
           sync_install = false,
