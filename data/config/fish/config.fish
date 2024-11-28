@@ -1,5 +1,18 @@
 fish_config theme choose fish\ default
 
+function iso_write
+    if test (count $argv) -ne 2
+        echo "Usage: iso_write <path_to_iso> <device>"
+        return 1
+    end
+
+    set iso_path $argv[1]
+    set device $argv[2]
+
+    sudo dd bs=4M if=$iso_path of=$device status=progress oflag=sync
+end
+
+
 function fish_prompt
 
 	if fish_is_root_user
