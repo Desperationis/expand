@@ -13,6 +13,52 @@ function iso_write
 end
 
 
+function mount_thing
+    if test (count $argv) -ne 1
+        echo "Usage: mount_thing <device>"
+        return 1
+    end
+
+    set device $argv[1]
+    set random_folder (string join '' 'usb' (random 1000 9999))
+    set dir_path ~/media/$USER/$random_folder
+
+    mkdir -p $dir_path
+    if sudo mount $device $dir_path
+        echo "Mounted $device to $dir_path"
+    else
+        echo "Failed to mount $device"
+        rmdir $dir_path
+        return 1
+    end
+end
+
+function umount_thing
+    if test (count $argv) -ne 1
+        echo "Usage: umount_thing <mount_path>"
+        return 1
+    end
+
+    set mount_path $argv[1]
+
+    if not test -d $mount_path
+        echo "Error: $mount_path is not a valid directory"
+        return 1
+    end
+
+    if sudo umount $mount_path
+        rmdir $mount_path
+        echo "Unmounted and removed $mount_path"
+    else
+        echo "Failed to unmount $mount_path"
+        return 1
+    end
+end
+
+
+
+
+
 function fish_prompt
 
 	if fish_is_root_user
