@@ -1,0 +1,18 @@
+# OnlyRoot()
+# [LinuxProbe(), x86Probe(), DebianProbe() ]
+# EXTREMELY GOOD GUI for directory and file diffs.
+
+- name: "Install meld"
+  hosts: localhost
+  connection: local
+  become: true # Remove this if AnyUserNoEscalation
+  gather_facts: false
+  tasks:
+    - name: "Install meld package"
+      register: aptout
+      apt:
+        state: latest
+        update_cache: true
+        name:
+          - meld
+    - debug: var=aptout
