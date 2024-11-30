@@ -9,6 +9,18 @@
     user_home: "{{ lookup('env', 'HOME') | default(lookup('env', 'USERPROFILE')) }}"
     config_folder: "{{ playbook_dir }}/../../data/config/"
   tasks:
+    - name: "Install prereqs"
+      register: aptout
+      apt:
+        state: latest
+        update_cache: true
+        name:
+          - pulseaudio
+          - pulsemixer
+          - brightnessctl
+    - debug: var=aptout
+
+
     - name: "Clear existing configuration"
       file:
         path: "{{ user_home }}/.config/i3/"
@@ -23,3 +35,4 @@
       copy:
         src: "{{ config_folder }}/i3/" 
         dest: "{{ user_home }}/.config/i3/"
+
