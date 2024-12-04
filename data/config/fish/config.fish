@@ -23,12 +23,12 @@ function mount_thing
     set random_folder (string join '' 'usb' (random 1000 9999))
     set dir_path /media/$USER/$random_folder
 
-    mkdir -p $dir_path
+    sudo mkdir -p $dir_path
     if sudo mount $device $dir_path
         echo "Mounted $device to $dir_path"
     else
         echo "Failed to mount $device"
-        rmdir $dir_path
+        sudo rmdir $dir_path
         return 1
     end
 end
