@@ -21,7 +21,7 @@ function mount_thing
 
     set device $argv[1]
     set random_folder (string join '' 'usb' (random 1000 9999))
-    set dir_path ~/media/$USER/$random_folder
+    set dir_path /media/$USER/$random_folder
 
     mkdir -p $dir_path
     if sudo mount $device $dir_path
