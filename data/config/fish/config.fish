@@ -47,7 +47,7 @@ function umount_thing
     end
 
     if sudo umount $mount_path
-        rmdir $mount_path
+        sudo rmdir $mount_path
         echo "Unmounted and removed $mount_path"
     else
         echo "Failed to unmount $mount_path"
