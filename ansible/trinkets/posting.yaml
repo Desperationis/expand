@@ -1,0 +1,24 @@
+# OnlyRoot()
+# [LinuxProbe(), x86Probe(), DebianProbe() ]
+# Pretty fast disk usage analyzer written in Go.
+
+- name: "Install posting"
+  hosts: localhost
+  connection: local
+  become: true # Remove this if AnyUserNoEscalation
+  gather_facts: false
+  tasks:
+    - name: "Install pipx"
+      register: aptout
+      apt:
+        state: latest
+        update_cache: true
+        name:
+          - pipx
+    - debug: var=aptout
+
+    - name: "Install posting"
+      register: aptout
+      shell:
+        cmd: pipx install posting
+    - debug: var=aptout
