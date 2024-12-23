@@ -15,6 +15,7 @@
         state: latest
         name:
           - sudo
+          - xclip
           - g++
           - cmake
           - gcc

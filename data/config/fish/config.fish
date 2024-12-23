@@ -1,5 +1,13 @@
 fish_config theme choose fish\ default
 
+function dcopy
+    xclip -selection clipboard
+end
+
+function dpaste
+    xclip -selection clipboard -o
+end
+
 function iso_write
     if test (count $argv) -ne 2
         echo "Usage: iso_write <path_to_iso> <device>"
