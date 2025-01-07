@@ -1,0 +1,41 @@
+#!/bin/python3
+
+import os
+import hashlib
+
+def generate_checksums(directory):
+    """Generate a set of checksums for all files in a directory."""
+    checksums = set()
+    for root, _, files in os.walk(directory):
+        for file in files:
+            print(f"Getting checksum of {file}")
+            filepath = os.path.join(root, file)
+            with open(filepath, 'rb') as f:
+                file_hash = hashlib.md5()
+                while chunk := f.read(8192):
+                    file_hash.update(chunk)
+                checksums.add(file_hash.hexdigest())
+    return checksums
+
+def compare_directories(dir1, dir2):
+    """Compare two directories based on file checksums."""
+    checksums1 = generate_checksums(dir1)
+    checksums2 = generate_checksums(dir2)
+
+    print("Checking if all checksums match and exist...")
+    if checksums1 == checksums2:
+        print("The directories contain the same files.")
+    else:
+        print("The directories do not contain the same files.")
+        print(f"Files unique to {dir1}: {len(checksums1 - checksums2)}")
+        print(f"Files unique to {dir2}: {len(checksums2 - checksums1)}")
+
+if __name__ == "__main__":
+    import sys
+    if len(sys.argv) != 3:
+        print("Usage: python script.py <directory1> <directory2>")
+        sys.exit(1)
+    
+    dir1, dir2 = sys.argv[1], sys.argv[2]
+    compare_directories(dir1, dir2)
+
