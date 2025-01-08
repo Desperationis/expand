@@ -1,26 +1,42 @@
 #!/bin/python3
-
 import os
+import sys
 import hashlib
+from concurrent.futures import ThreadPoolExecutor
 
-def generate_checksums(directory):
-    """Generate a set of checksums for all files in a directory."""
+def generate_checksums(directory, workers):
+    """Generate a set of checksums for all files in a directory using multithreading."""
     checksums = set()
+    
+    def process_file(filepath):
+        """Calculate the checksum of a single file."""
+        with open(filepath, 'rb') as f:
+            file_hash = hashlib.md5()
+            while chunk := f.read(8192):
+                file_hash.update(chunk)
+            return file_hash.hexdigest()
+
+    def worker(filepath):
+        print(f"Getting checksum of {file}")
+        return process_file(filepath)
+
+    # Collect all file paths
+    file_paths = []
     for root, _, files in os.walk(directory):
         for file in files:
-            print(f"Getting checksum of {file}")
-            filepath = os.path.join(root, file)
-            with open(filepath, 'rb') as f:
-                file_hash = hashlib.md5()
-                while chunk := f.read(8192):
-                    file_hash.update(chunk)
-                checksums.add(file_hash.hexdigest())
+            file_paths.append(os.path.join(root, file))
+
+    # Use ThreadPoolExecutor to process files concurrently
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        for checksum in executor.map(worker, file_paths):
+            checksums.add(checksum)
+
     return checksums
 
-def compare_directories(dir1, dir2):
+def compare_directories(dir1, dir2, workers):
     """Compare two directories based on file checksums."""
-    checksums1 = generate_checksums(dir1)
-    checksums2 = generate_checksums(dir2)
+    checksums1 = generate_checksums(dir1, workers)
+    checksums2 = generate_checksums(dir2, workers)
 
     print("Checking if all checksums match and exist...")
     if checksums1 == checksums2:
@@ -31,11 +47,10 @@ def compare_directories(dir1, dir2):
         print(f"Files unique to {dir2}: {len(checksums2 - checksums1)}")
 
 if __name__ == "__main__":
-    import sys
-    if len(sys.argv) != 3:
-        print("Usage: python script.py <directory1> <directory2>")
+    if len(sys.argv) != 4:
+        print("Usage: python script.py <directory1> <directory2> <workers>")
         sys.exit(1)
-    
-    dir1, dir2 = sys.argv[1], sys.argv[2]
-    compare_directories(dir1, dir2)
+
+    dir1, dir2, workers = sys.argv[1], sys.argv[2], int(sys.argv[3])
+    compare_directories(dir1, dir2, workers)
 
