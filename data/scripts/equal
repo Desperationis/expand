@@ -2,40 +2,78 @@
 import os
 import sys
 import hashlib
+from queue import Queue
 from concurrent.futures import ThreadPoolExecutor
+from tqdm import tqdm
 
-def generate_checksums(directory, workers):
-    """Generate a set of checksums for all files in a directory using multithreading."""
-    checksums = set()
-    
-    def process_file(filepath):
-        """Calculate the checksum of a single file."""
-        with open(filepath, 'rb') as f:
+def calculate_md5(file_path):
+    """Calculate the MD5 checksum of a file."""
+    try:
+        with open(file_path, 'rb') as f:
             file_hash = hashlib.md5()
             while chunk := f.read(8192):
                 file_hash.update(chunk)
-            return file_hash.hexdigest()
+        return file_path, file_hash.hexdigest()
+    except Exception as e:
+        return file_path, f"Error: {e}"
 
-    def worker(filepath):
-        print(f"Getting checksum of {file}")
-        return process_file(filepath)
+def worker(queue, results):
+    """Worker function to process files from the queue."""
+    while True:
+        file_path = queue.get()
+        print(f"Getting checksum of {file_path}")
+        if file_path is None:
+            queue.task_done()
+            break
+        result = calculate_md5(file_path)
+        results.append(result)
+        queue.task_done()
 
+def generate_checksums(directory, workers):
+    """Generate a set of checksums for all files in a directory using multithreading."""
+    file_queue = Queue()
+    results = []
+    
     # Collect all file paths
     file_paths = []
     for root, _, files in os.walk(directory):
         for file in files:
             file_paths.append(os.path.join(root, file))
-
-    # Use ThreadPoolExecutor to process files concurrently
+    
+    # Add file paths to the queue
+    for file_path in file_paths:
+        file_queue.put(file_path)
+    
+    # Create and start worker threads
     with ThreadPoolExecutor(max_workers=workers) as executor:
-        for checksum in executor.map(worker, file_paths):
-            checksums.add(checksum)
-
+        for _ in range(workers):
+            executor.submit(worker, file_queue, results)
+            file_queue.put(None)  # Sentinel to signal worker to stop
+    
+    file_queue.join()
+    
+    # Process results and handle errors
+    checksums = set()
+    errors = []
+    for file_path, result in results:
+        if result.startswith("Error:"):
+            errors.append((file_path, result))
+        else:
+            checksums.add(result)
+    
+    # Print errors if any
+    if errors:
+        print("Errors encountered:")
+        for file_path, error in errors:
+            print(f"{file_path}: {error}")
+    
     return checksums
 
 def compare_directories(dir1, dir2, workers):
     """Compare two directories based on file checksums."""
+    print(f"Generating checksums for {dir1}...")
     checksums1 = generate_checksums(dir1, workers)
+    print(f"Generating checksums for {dir2}...")
     checksums2 = generate_checksums(dir2, workers)
 
     print("Checking if all checksums match and exist...")
