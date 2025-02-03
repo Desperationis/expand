@@ -1,4 +1,4 @@
-# AnyUserNoEscalation()
+# AnyUserEscalation()
 # [LinuxProbe(), x86Probe(), DebianProbe() ]
 # Pretty fast disk usage analyzer written in Go.
 

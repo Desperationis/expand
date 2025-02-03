@@ -1,4 +1,4 @@
-# AnyUserNoEscalation()
+# AnyUserEscalation()
 # [WhichProbe("tmux")]
 
 - name: "Install i3 configuration files"
