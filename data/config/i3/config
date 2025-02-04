@@ -24,6 +24,12 @@ bindsym XF86AudioLowerVolume exec --no-startup-id pulsemixer --change-volume -5 
 bindsym Shift+XF86AudioRaiseVolume exec --no-startup-id pulsemixer --change-volume +5 --max-volume 300 #increase sound volume
 bindsym Shift+XF86AudioLowerVolume exec --no-startup-id pulsemixer --change-volume -5 --max-volume 300 #decrease sound volume
 
+# susped on page up
+bindcode 112 exec --no-startup-id systemctl suspend
+
+# hibernate on page down
+bindcode 117 exec --no-startup-id systemctl hibernate
+
 ## CUSTOM --------  https://www.reddit.com/r/i3wm/comments/jnrrve/i3_brightness_volume_and_other_control_keys_do/
 bindsym XF86MonBrightnessUp exec brightnessctl set +2%
 bindsym XF86MonBrightnessDown exec brightnessctl set 2%-
