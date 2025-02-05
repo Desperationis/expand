@@ -18,6 +18,14 @@
         name: npm
     - debug: var=aptout
 
+    - name: "Install plugin requirements"
+      register: aptout
+      apt:
+        update-cache: true
+        state: latest
+        name: ripgrep
+    - debug: var=aptout
+
     - name: "Install n"
       register: aptout
       shell:

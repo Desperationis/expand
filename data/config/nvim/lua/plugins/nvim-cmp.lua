@@ -1,6 +1,6 @@
 return {
     "hrsh7th/nvim-cmp",
-    commit="a110e12",
+    commit="1250990",
     dependencies = {
             "neovim/nvim-lspconfig",
             "L3MON4D3/LuaSnip",
