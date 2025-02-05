@@ -15,6 +15,17 @@ from expand.colors import init_colors
 from expand.priviledge import AnyUserNoEscalation, OnlyRoot
 from expand.expansion_card import ExpansionCard
 
+class package_select:
+    def __init__(self, category: int, selection: int):
+        self.category = category
+        self.selection = selection
+
+    def __hash__(self):
+        return hash(self.category * 100 + self.selection)
+
+    def __eq__(self, other):
+        return isinstance(other, package_select) and self.category == other.category and self.selection == other.selection
+
 class curses_cli:
     def __init__(self) -> None:
         self.stdscr = curses.initscr()
@@ -81,7 +92,13 @@ class curses_cli:
             self.stdscr.addstr(4, 0, "Please Select:", 0)
 
             for i, elem in enumerate(current_display):
-                elem.set_chosen(i in selections or i == hover)
+                chosen = False
+                for s in selections:
+                    if i == s.selection and s.category == current_category:
+                        chosen = True
+                        break
+
+                elem.set_chosen(chosen or i == hover) # TODO
                 elem.set_hover(i == hover)
 
                 y = i + 6
@@ -102,22 +119,32 @@ class curses_cli:
             elif c == curses.KEY_RIGHT or c == ord("l"):
                 current_category += 1
                 hover = 0
-                selections.clear()
+                #selections.clear() 
             elif c == curses.KEY_LEFT or c == ord("h"):
                 current_category -= 1
                 hover = 0
-                selections.clear()
+                #selections.clear()
             elif c == 9:  # Tab
-                if hover in selections:
-                    selections.remove(hover)
+                obj = package_select(current_category, hover)
+
+                existing = False
+                for s in selections:
+                    if s.category == current_category and s.selection == hover:
+                        existing = True
+                        break
+
+                if existing:
+                    selections.remove(obj)
                 else:
-                    selections.add(hover)
+                    selections.add(obj)
+
             elif c == curses.KEY_ENTER or c == 10:
                 self.end()
 
                 # Run Playbooks
                 for i in selections:
-                    file_path = os.path.abspath(current_display[i].file_path)
+                    current_display = categories[i.category][1]
+                    file_path = os.path.abspath(current_display[i.selection].file_path)
 
                     priviledge = ExpansionCard(file_path).get_priviledge_level()
 
@@ -157,9 +184,9 @@ class curses_cli:
 
                     own_user = pwd.getpwuid(os.getuid()).pw_name
                     if local:
-                        InstalledCache.set_local_status(current_display[i].name, own_user, status)
+                        InstalledCache.set_local_status(current_display[i.selection].name, own_user, status)
                     else:
-                        InstalledCache.set_global_status(current_display[i].name, status)
+                        InstalledCache.set_global_status(current_display[i.selection].name, status)
 
                     # AnyUserEscalation does weird things with permissions that
                     # I will not get into here that interferes with most
