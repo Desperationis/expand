@@ -1,0 +1,25 @@
+# OnlyRoot()
+# [LinuxProbe(), x86Probe(), DebianProbe(), NotInDockerProbe(), WhichProbe("bash") ]
+# Installs keepassxc
+
+- name: "Install keepass"
+  hosts: localhost
+  connection: local
+  become: true # Remove this if AnyUserNoEscalation
+  gather_facts: false
+  vars:
+    user_home: "{{ lookup('env', 'HOME') | default(lookup('env', 'USERPROFILE')) }}"
+  tasks:
+    - name: "Install keepassxc"
+      register: aptout
+      apt:
+        state: latest
+        update_cache: true
+        name:
+          - keepassxc
+    - debug: var=aptout
+
+
+
+
+

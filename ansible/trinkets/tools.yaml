@@ -40,4 +40,7 @@
           - tmux
           - rclone
           - rsync
+          - powerstat
+          - powertop
+          - sshfs
     - debug: var=aptout
