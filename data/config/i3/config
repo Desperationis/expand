@@ -38,7 +38,9 @@ bindcode 148 exec --no-startup-id xrandr --output "eDP-1" --mode 1280x720 --rate
 # Diamond Logo
 bindcode 157 exec --no-startup-id xrandr --output "eDP-1" --mode 2560x1440 --rate 165.00 && brightnessctl set --device=nvidia_wmi_ec_backlight 80% && sed -i "s/^size = \([0-9]\+\)/size = 12/" ~/.config/alacritty/alacritty.toml
 
-## CUSTOM --------  https://www.reddit.com/r/i3wm/comments/jnrrve/i3_brightness_volume_and_other_control_keys_do/
+# Weird paper icon
+bindcode 135 exec --no-startup-id echo $(cat ~/.keepasspasswd 2>/dev/null) | keepassxc --pw-stdin ~/Desktop/Database.kdbx
+
 bindsym XF86MonBrightnessUp exec brightnessctl set +2%
 bindsym XF86MonBrightnessDown exec brightnessctl set 2%-
 
