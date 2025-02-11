@@ -24,11 +24,19 @@ bindsym XF86AudioLowerVolume exec --no-startup-id pulsemixer --change-volume -5 
 bindsym Shift+XF86AudioRaiseVolume exec --no-startup-id pulsemixer --change-volume +5 --max-volume 300 #increase sound volume
 bindsym Shift+XF86AudioLowerVolume exec --no-startup-id pulsemixer --change-volume -5 --max-volume 300 #decrease sound volume
 
-# susped on page up
+
+# Use the command `xev` to get the keycode
+# page up
 bindcode 112 exec --no-startup-id systemctl suspend
 
-# hibernate on page down
+# page down
 bindcode 117 exec --no-startup-id systemctl hibernate
+
+# Calculator logo, power mode
+bindcode 148 exec --no-startup-id xrandr --output "eDP-1" --mode 1280x720 --rate 59.93 && brightnessctl set --device=nvidia_wmi_ec_backlight 20% && sed -i "s/^size = \([0-9]\+\)/size = 6/" ~/.config/alacritty/alacritty.toml
+
+# Diamond Logo
+bindcode 157 exec --no-startup-id xrandr --output "eDP-1" --mode 2560x1440 --rate 165.00 && brightnessctl set --device=nvidia_wmi_ec_backlight 80% && sed -i "s/^size = \([0-9]\+\)/size = 12/" ~/.config/alacritty/alacritty.toml
 
 ## CUSTOM --------  https://www.reddit.com/r/i3wm/comments/jnrrve/i3_brightness_volume_and_other_control_keys_do/
 bindsym XF86MonBrightnessUp exec brightnessctl set +2%
