@@ -27,6 +27,8 @@ bindsym Shift+XF86AudioLowerVolume exec --no-startup-id pulsemixer --change-volu
 
 # Use the command `xev` to get the keycode
 # page up
+bindcode 107 exec --no-startup-id nmcli connection up id desperationis
+
 bindcode 112 exec --no-startup-id systemctl suspend
 
 # page down
