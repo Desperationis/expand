@@ -1,5 +1,100 @@
 fish_config theme choose fish\ default
 
+function install_local --description 'Install programs to /usr/local/locally_installed and symlink to /usr/local/bin'
+    if test (count $argv) -eq 2
+        # Directory + relative path mode
+        set -l src_dir (string trim --right --chars=/ "$argv[1]")
+        set -l exe_rel_path "$argv[2]"
+
+        # Validate inputs
+        if not test -d "$src_dir"
+            echo "Error: Source directory '$src_dir' not found"
+            return 1
+        end
+
+        if string match -q '/*' "$exe_rel_path"
+            echo "Error: Executable path must be relative to project directory"
+            return 1
+        end
+
+        # Install directory
+        set -l dir_name (path basename "$src_dir")
+        set -l install_dir "/usr/local/locally_installed/$dir_name"
+
+        echo "Moving $src_dir to $install_dir"
+        if not sudo mv -f "$src_dir" "$install_dir"
+            echo "Error: Failed to move directory"
+            return 1
+        end
+
+        # Validate executable exists
+        set -l target_exe "$install_dir/$exe_rel_path"
+        if not test -x "$target_exe"
+            echo "Error: Executable '$target_exe' not found or not executable. Putting directory back."
+            sudo mv -f "$install_dir" "$src_dir"
+            return 1
+        end
+
+        # Create symlink
+        set -l link_name (path basename "$exe_rel_path")
+        echo "Creating symlink: /usr/local/bin/$link_name -> $target_exe"
+        if not sudo ln -sf "$target_exe" "/usr/local/bin/$link_name"
+            echo "Error: Failed to create symlink"
+            return 1
+        end
+
+        echo "Successfully installed $link_name"
+
+    else if test (count $argv) -eq 1
+        # Single executable mode
+        set -l exe_src "$argv[1]"
+
+        # Validate input
+        if not test -f "$exe_src"
+            echo "Error: Executable '$exe_src' not found"
+            return 1
+        end
+
+        # Create install location
+        set -l exe_name (path basename "$exe_src")
+        set -l install_dir "/usr/local/locally_installed/$exe_name"
+        
+        echo "Creating installation directory: $install_dir"
+        if not sudo mkdir -p "$install_dir"
+            echo "Error: Failed to create directory"
+            return 1
+        end
+
+        # Install executable
+        set -l installed_exe "$install_dir/$exe_name"
+        echo "Moving $exe_src to $installed_exe"
+        if not sudo mv -f "$exe_src" "$installed_exe"
+            echo "Error: Failed to move executable"
+            return 1
+        end
+
+        # Create symlink
+        echo "Creating symlink: /usr/local/bin/$exe_name -> $installed_exe"
+        if not sudo ln -sf "$installed_exe" "/usr/local/bin/$exe_name"
+            echo "Error: Failed to create symlink"
+            return 1
+        end
+
+        echo "Successfully installed $exe_name"
+
+    else
+        echo "Usage:"
+        echo "install_local [project_directory] [relative_executable_path]"
+        echo "install_local [standalone_executable]"
+        return 1
+    end
+end
+
+
+
+
+
+
 function dcopy
     xclip -selection clipboard
 end
@@ -385,6 +480,8 @@ end
 if status is-interactive
 	fish_add_path ~/box/bin
 	fish_add_path ~/.local/bin
+    fish_add_path /home/adhoc/.julia/juliaup/julia-1.11.3+0.x64.linux.gnu/bin
+
 
 	if which zoxide > /dev/null 2>&1
 		zoxide init fish | source
