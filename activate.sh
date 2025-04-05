@@ -41,5 +41,6 @@ then
 	ACTIVATED_EXPAND=""
 	export ACTIVATED_EXPAND 
 else
-	 echo -e "\e[31mYou must be root to run this script. Please switch to the root user and try again.\e[0m"
+    echo -e "\e[31mYou must be root to run this script. Authenticate below to open a new shell and try again.\e[0m"
+    sudo su
 fi
