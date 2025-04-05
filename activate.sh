@@ -18,17 +18,19 @@ expand_bootstrap() {
     fi
 
     # Install uv
-    curl -LsSf https://astral.sh/uv/install.sh | sh
+	if ! which uv > /dev/null 2>&1
+	then
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        export PATH=$HOME/.local/bin/:$PATH
+	fi
 
-    # Add uv to path
-    export PATH=$HOME/.local/bin/:$PATH
 
 	if ! [[ -d .venv ]]
 	then
         uv venv
 	fi
 
-    . venv/bin/activate
+    . .venv/bin/activate
     uv pip install -r requirements.txt
 }
 
