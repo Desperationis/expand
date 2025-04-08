@@ -1,5 +1,5 @@
 # AnyUserNoEscalation()
-# [LinuxProbe(), x86Probe() ]
+# [AptProbe()]
 # Ping, but with a graph.
 
 - name: Install Rust

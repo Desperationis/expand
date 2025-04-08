@@ -1,5 +1,5 @@
 # AnyUserNoEscalation()
-# [LinuxProbe(), x86Probe()]
+# [AmdProbe()]
 # Installs a FRESH copy of Anaconda to the home directory with my custom environment, `custom`
 
 - name: "Install Anaconda Locally"

@@ -1,27 +1,39 @@
 #!/usr/bin/env fish
 
 function expand_bootstrap
-    # Navigate to the same directory as this script
-    cd (cd (dirname (status --current-filename)) > /dev/null; pwd)
+    # Navigate to script directory
+    cd (dirname (status --current-filename))
 
-    bash bootstrap/install_python.bash
-    bash bootstrap/install_ansible.bash
-    bash bootstrap/install_pip.bash
-    bash bootstrap/install_venv.bash
-
-    if not test -d venv
-        python3 -m venv venv
-        . venv/bin/activate.fish
-        pip3 install -r requirements.txt
-    else
-        . venv/bin/activate.fish
+    # Install ansible
+    if not command -q ansible
+        if command -q apt-get
+            sudo apt-get update
+            sudo apt-get install -y ansible
+        else
+            echo (set_color red)"Error: No supported package manager found. Please install ansible manually."(set_color normal)
+            exit 1
+        end
     end
+
+    # Install uv
+    if not command -q uv
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        set -gx PATH $HOME/.local/bin/ $PATH
+    end
+
+    if not test -d .venv
+        uv venv
+    end
+
+    source .venv/bin/activate.fish
+    uv pip install -r requirements.txt
 end
 
 if test (id -u) -eq 0
     expand_bootstrap
-    set -x ACTIVATED_EXPAND ""
+    set -gx ACTIVATED_EXPAND ""
 else
-    echo -e "\e[31mYou must be root to run this script. Please switch to the root user and try again.\e[0m"
+    echo (set_color red)"You must be root to run this script. Authenticate below to open a new shell and try again."(set_color normal)
+    sudo su
 end
 

@@ -51,10 +51,13 @@ class curses_cli:
             display = map(lambda name: Choice(name, files[name]), files)
             return list(display)
 
-        categories.append(("heavy", get_choices_from_folder("ansible/heavy/")))
-        categories.append(("trinkets", get_choices_from_folder("ansible/trinkets/")))
-        categories.append(("gui", get_choices_from_folder("ansible/gui/")))
-        categories.append(("config", get_choices_from_folder("ansible/config/")))
+        # Add every folder in ansible/ dynamically
+        base_dir = "ansible/"
+        categories = []
+        for entry in os.scandir(base_dir):
+            if entry.is_dir() and not entry.name.startswith('.'):
+                dir_path = os.path.join(base_dir, entry.name)
+                categories.append((entry.name, get_choices_from_folder(dir_path)))
 
         return categories
 

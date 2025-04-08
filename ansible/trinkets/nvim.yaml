@@ -1,5 +1,5 @@
 # OnlyRoot()
-# [LinuxProbe(), x86Probe() ]
+# [AmdProbe()]
 # Installs the `nvim` AppImage. This may not work out of the box on systems without FUSE.
 
 - name: "Install nvim"

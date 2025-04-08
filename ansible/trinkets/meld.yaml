@@ -1,5 +1,5 @@
 # OnlyRoot()
-# [LinuxProbe(), x86Probe(), DebianProbe() ]
+# [AptProbe()]
 # EXTREMELY GOOD GUI for directory and file diffs.
 
 - name: "Install meld"

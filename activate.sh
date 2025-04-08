@@ -4,19 +4,34 @@ expand_bootstrap() {
 	# Navigate to same directory as this script
 	cd "$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
-	bash bootstrap/install_python.bash
-	bash bootstrap/install_ansible.bash
-	bash bootstrap/install_pip.bash
-	bash bootstrap/install_venv.bash
+    # Install ansible
+    if ! which ansible > /dev/null 2>&1
+    then
+        if which apt-get > /dev/null 2>&1
+        then
+            sudo apt-get update
+            sudo apt-get install -y ansible
+        else
+            echo -e "\033[31mError: No supported package manager found. Please install ansible manually.\033[0m"
+            exit 1
+        fi
+    fi
 
-	if ! [[ -d venv ]]
+    # Install uv
+	if ! which uv > /dev/null 2>&1
 	then
-		python3 -m venv venv
-		. venv/bin/activate
-		pip3 install -r requirements.txt
-	else
-		. venv/bin/activate
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        export PATH=$HOME/.local/bin/:$PATH
 	fi
+
+
+	if ! [[ -d .venv ]]
+	then
+        uv venv
+	fi
+
+    . .venv/bin/activate
+    uv pip install -r requirements.txt
 }
 
 
@@ -26,5 +41,6 @@ then
 	ACTIVATED_EXPAND=""
 	export ACTIVATED_EXPAND 
 else
-	 echo -e "\e[31mYou must be root to run this script. Please switch to the root user and try again.\e[0m"
+    echo -e "\e[31mYou must be root to run this script. Authenticate below to open a new shell and try again.\e[0m"
+    sudo su
 fi

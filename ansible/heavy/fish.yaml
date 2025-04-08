@@ -1,6 +1,6 @@
 # OnlyRoot()
-# [LinuxProbe(), x86Probe(), DebianProbe(), WhichProbe("make")]
-# Builds `fish` from source on Debian-based systems as well as zoxide and fzf. The last two are due to plugins from my configuration.
+# [AmdProbe(), AptProbe()]
+# Builds `fish` from source on Arm-based systems as well as zoxide and fzf. The last two are due to plugins from my configuration.
 
 - name: "Install fish shell"
   hosts: localhost
@@ -17,6 +17,7 @@
           - cmake
           - libncurses5-dev
           - libncursesw5-dev
+          - make
 
     - name: Download Fish Source
       get_url:

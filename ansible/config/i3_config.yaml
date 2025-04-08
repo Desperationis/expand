@@ -1,5 +1,5 @@
 # AnyUserEscalation()
-# [WhichProbe("tmux")]
+# [AptProbe(), WhichProbe("tmux")]
 
 - name: "Install i3 configuration files"
   hosts: localhost

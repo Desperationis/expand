@@ -1,5 +1,5 @@
 # OnlyRoot()
-# [LinuxProbe(), DebianProbe() ]
+# [AptProbe(), AmdProbe()]
 # Easy GPU switching for Nvidia Optimus laptops under Linux 
 
 - name: "Install envycontrol"

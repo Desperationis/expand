@@ -1,5 +1,5 @@
 # OnlyRoot()
-# [LinuxProbe(), DebianProbe(), NotInDockerProbe()]
+# [AptProbe(), AmdProbe()]
 # Installs the GUI client for Mullvad via .deb
 
 - name: "Install Mullvad"
