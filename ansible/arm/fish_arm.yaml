@@ -1,5 +1,5 @@
 # OnlyRoot()
-# [AmdProbe(), AptProbe()]
+# [ArmProbe(), AptProbe()]
 # Builds `fish` from source as well as installs fzf. The last two are due to plugins from my configuration.
 
 - name: "Install fish shell"
@@ -52,7 +52,7 @@
     - name: "Download fzf"
       register: aptout
       get_url:
-        url: https://github.com/junegunn/fzf/releases/download/v0.61.1/fzf-0.61.1-linux_amd64.tar.gz
+        url: https://github.com/junegunn/fzf/releases/download/v0.61.1/fzf-0.61.1-linux_arm64.tar.gz
         dest: /tmp/fzf.tar.gz
     - debug: var=aptout
 
