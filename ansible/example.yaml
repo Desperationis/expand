@@ -1,5 +1,5 @@
 # OnlyRoot() | AnyUserEscalation() | AnyUserNoEscalation() 
-# [LinuxProbe(), x86Probe(), DebianProbe(), NotInDockerProbe(), WhichProbe("bash") ]
+# [AmdProbe(), ArmProbe(), AptProbe(), WhichProbe("bash") ]
 # description on this line
 #
 # Other paragraph description on this line

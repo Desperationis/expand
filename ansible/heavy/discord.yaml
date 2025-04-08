@@ -1,5 +1,5 @@
 # OnlyRoot()
-# [LinuxProbe(), DebianProbe(), NotInDockerProbe(), x86Probe()]
+# [AptProbe(), AmdProbe()]
 # Downloads latest .deb package for Discord from the website.
 
 - name: "Install Discord"

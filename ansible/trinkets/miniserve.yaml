@@ -1,5 +1,5 @@
 # OnlyRoot()
-# [LinuxProbe(), x86Probe()]
+# [AmdProbe(), AptProbe()]
 # Install miniserver directly from the Github.
 
 - name: "Install Miniserve"

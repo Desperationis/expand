@@ -1,5 +1,5 @@
 # AnyUserNoEscalation() 
-# [LinuxProbe(), x86Probe(), DebianProbe(), NotInDockerProbe(), WhichProbe("bash") ]
+# []
 # Downloads julia using the official command on their website.
 
 - name: "Install Julia"

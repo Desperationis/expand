@@ -1,5 +1,5 @@
 # AnyUserEscalation()
-# [WhichProbe("nvim")]
+# [AptProbe(), WhichProbe("nvim")]
 
 - name: "Install nvim configuration files"
   hosts: localhost

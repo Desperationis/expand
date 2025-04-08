@@ -18,47 +18,30 @@ class CompatibilityProbe(ABC):
     def is_compatible(self) -> bool:
         pass
 
-
-class LinuxProbe(CompatibilityProbe):
+# Used to be x86Probe
+class AmdProbe(CompatibilityProbe):
     def get_error_message(self) -> str:
-        return "Not on Linux System."
+        return "Not on amd64."
 
     def is_compatible(self) -> bool:
-        return platform.system() == "Linux"
+        machine = platform.machine().lower()
+        return machine in {'x86_64', 'amd64', 'x86', 'i386'}
 
-
-class x86Probe(CompatibilityProbe):
+class ArmProbe(CompatibilityProbe):
     def get_error_message(self) -> str:
-        return "Not on x86."
+        return "Not on arm."
 
     def is_compatible(self) -> bool:
-        return platform.system() == "Linux"
+        machine = platform.machine().lower()
+        return machine in {'arm64', 'aarch64', 'armv7l', 'arm'}
 
-
-class DebianProbe(CompatibilityProbe):
+# Used to be DebianProbe
+class AptProbe(CompatibilityProbe):
     def get_error_message(self) -> str:
-        return "Not Debian based."
+        return "apt doesn't exist"
 
     def is_compatible(self) -> bool:
         return which("apt") is not None
-
-
-class NotInDockerProbe(CompatibilityProbe):
-    def get_error_message(self) -> str:
-        return "This is a Docker container."
-
-    def is_compatible(self) -> bool:
-        # Detects Docker
-        # https://stackoverflow.com/questions/43878953/how-does-one-detect-if-one-is-running-within-a-docker-container-within-python
-        def text_in_file(text, filename):
-            try:
-                with open(filename, encoding="utf-8") as lines:
-                    return any(text in line for line in lines)
-            except OSError:
-                return False
-
-        cgroup = "/proc/self/cgroup"
-        return not (os.path.exists("/.dockerenv") or text_in_file("docker", cgroup))
 
 
 class WhichProbe(CompatibilityProbe):

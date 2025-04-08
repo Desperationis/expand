@@ -1,5 +1,5 @@
 # AnyUserEscalation()
-# [LinuxProbe(), WhichProbe("docker") ]
+# [WhichProbe("docker") ]
 # # Adds the current user to the docker group so that no `sudo` is needed to run docker. You need to log out and log back in for the changes to take place.
 
 - name: "Install Docker so no sudo is needed"
