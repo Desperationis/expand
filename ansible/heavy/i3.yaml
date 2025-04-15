@@ -1,0 +1,22 @@
+# OnlyRoot()
+# [AptProbe()]
+# This installs i3 only
+
+- name: "Installs i3"
+  hosts: localhost
+  connection: local
+  become: true
+  gather_facts: false
+  tasks:
+    - name: "Install i3"
+      register: aptout
+      apt:
+        state: latest
+        update_cache: true
+        name:
+          - i3
+    - debug: var=aptout
+
+
+
+

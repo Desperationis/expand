@@ -12,11 +12,23 @@
 
 # Reload config with i3-msg reload
 
+
+# Startup cool names for workspace numbers
+exec_always --no-startup-id exec i3-workspace-names-daemon
+
+
+
+
 ## CUSTOM -------- https://unix.stackexchange.com/questions/96798/i3wm-start-applications-on-specific-workspaces-when-i3-starts
 ## https://askubuntu.com/questions/1277864/how-to-launch-specific-programs-on-particular-workspaces-at-i3-startup-without-a
-# Run sudo prop | grep CLASS and click on the window to get its class
+# Run sudo xprop | grep CLASS and click on the window to get its class
 assign [class="firefox-esr"] $ws1
-exec --no-startup-id i3-msg 'workspace 1; exec /usr/bin/firefox; workspace 1'
+assign [class="google-chrome"] $ws2
+assign [class="Google-chrome"] $ws2
+assign [class="discord"] $ws4
+exec --no-startup-id i3-msg 'exec /usr/bin/firefox'
+exec --no-startup-id i3-msg 'exec /usr/bin/google-chrome-stable'
+exec --no-startup-id i3-msg 'exec /usr/bin/discord'
 
 ## CUSTOM -------- https://www.reddit.com/r/i3wm/comments/zfaaks/how_do_i_prevent_i3_from_almost_destroying_my/
 bindsym XF86AudioRaiseVolume exec --no-startup-id pulsemixer --change-volume +5 --max-volume 100 #increase sound volume

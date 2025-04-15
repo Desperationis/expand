@@ -1,0 +1,27 @@
+# OnlyRoot()
+# [AptProbe()]
+# This installs the gdm login manager, and sets it as the default.
+
+- name: "Installs gdm"
+  hosts: localhost
+  connection: local
+  become: true
+  gather_facts: false
+  tasks:
+    - name: "Install gdm3"
+      register: aptout
+      apt:
+        state: latest
+        update_cache: true
+        name:
+          - gdm3
+    - debug: var=aptout
+
+    - name: "Set gdm3 as the default"
+      register: aptout
+      shell:
+        cmd: sudo dpkg-reconfigure --frontend noninteractive gdm3
+    - debug: var=aptout
+
+
+
