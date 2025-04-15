@@ -1,5 +1,6 @@
 # AnyUserEscalation()
-# [AptProbe(), WhichProbe("tmux")]
+# [AptProbe()]
+# Installs my i3 config as well as any packages it uses.
 
 - name: "Install i3 configuration files"
   hosts: localhost
@@ -9,7 +10,7 @@
     user_home: "{{ lookup('env', 'HOME') | default(lookup('env', 'USERPROFILE')) }}"
     config_folder: "{{ playbook_dir }}/../../data/config/"
   tasks:
-    - name: "Install prereqs"
+    - name: "Install prereqs for my config specifically"
       register: aptout
       apt:
         state: latest
@@ -18,6 +19,14 @@
           - pulseaudio
           - pulsemixer
           - brightnessctl
+          - fonts-font-awesome
+          - pipx
+    - debug: var=aptout
+
+    - name: "Install i3-workspace-names-daemon"
+      register: aptout
+      shell:
+        cmd: pipx install i3-workspace-names-daemon
     - debug: var=aptout
 
 
