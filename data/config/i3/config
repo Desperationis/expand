@@ -26,10 +26,10 @@ assign [class="firefox-esr"] $ws1
 assign [class="google-chrome"] $ws2
 assign [class="Google-chrome"] $ws2
 assign [class="discord"] $ws4
-exec --no-startup-id i3-msg 'workspace number 1; exec /usr/bin/firefox; workspace number 1'
-exec --no-startup-id i3-msg 'workspace number 2; exec /usr/bin/google-chrome-stable; workspace number 1'
-exec --no-startup-id i3-msg 'workspace number 2; exec /usr/bin/google-chrome-stable; workspace number 1'
-exec --no-startup-id i3-msg 'workspace number 4; exec /usr/bin/discord; workspace number 1'
+exec --no-startup-id i3-msg 'exec /usr/bin/firefox'
+exec --no-startup-id i3-msg 'exec /usr/bin/google-chrome-stable'
+exec --no-startup-id i3-msg 'exec /usr/local/bin/alacritty'
+exec --no-startup-id i3-msg 'exec /usr/bin/discord'
 
 ## CUSTOM -------- https://www.reddit.com/r/i3wm/comments/zfaaks/how_do_i_prevent_i3_from_almost_destroying_my/
 bindsym XF86AudioRaiseVolume exec --no-startup-id pulsemixer --change-volume +5 --max-volume 100 #increase sound volume
