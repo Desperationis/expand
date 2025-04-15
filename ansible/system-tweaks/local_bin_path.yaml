@@ -1,0 +1,14 @@
+# OnlyRoot()
+# []
+# For any new bash shell opened, it adds the user's ~/.local/bin to PATH
+
+- name: "Add ~/.local/bin/ to PATH"
+  hosts: localhost
+  connection: local
+  become: true
+  gather_facts: false
+  tasks:
+    - name: "Add to PATH"
+      shell:
+        cmd: sh -c "echo 'export PATH=\"\$PATH:\$HOME/.local/bin\"' > /etc/profile.d/local_bin.sh"
+
