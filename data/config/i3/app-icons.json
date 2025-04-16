@@ -2,5 +2,8 @@
     "firefox-esr": "firefox",
     "google-chrome": "chrome",
     "Google-chrome": "chrome",
-    "alacritty": "terminal"
+    "alacritty": "square-terminal",
+    "discord": "discord",
+    "keepassxc": "key",
+    "KeePassXC": "key"
 }
