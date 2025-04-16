@@ -2,8 +2,8 @@
     "firefox-esr": "firefox",
     "google-chrome": "chrome",
     "Google-chrome": "chrome",
-    "alacritty": "square-terminal",
-    "discord": "discord",
+    "alacritty": "window-maximize",
+    "discord": "comments",
     "keepassxc": "key",
     "KeePassXC": "key"
 }
