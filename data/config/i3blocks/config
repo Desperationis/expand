@@ -1,3 +1,12 @@
+[ethernet]
+command=~/.config/i3blocks/wifi 
+interval=1
+markup=pango
+
+[ethernet]
+command=~/.config/i3blocks/ethernet
+interval=1
+
 [volume-pulseaudio]
 command=~/.config/i3blocks/volume-show
 label=VOLUME: 
@@ -21,7 +30,7 @@ label=☀
 interval=3
 
 [batterybar]
-command=bash ~/.config/i3blocks/batterybar/batterybar
+command=bash ~/.config/i3blocks/batterybar
 label=BAT
 interval=5
 markup=pango

@@ -1,0 +1,43 @@
+#!/bin/sh
+
+INTERFACE="${instance:-_first_}"
+FORMAT_UP="${format_up:-E: %ip (%speed)}"
+FORMAT_DOWN="${format_down:-E: down}"
+
+_first_ () {
+  for i in /sys/class/net/*
+  do
+    if [ -d "$i/device" ] && [ ! -d "$i/wireless" ]; then
+      basename "$i"
+      break
+    fi
+  done
+}
+
+if [ "$INTERFACE" = "_first_" ]; then
+  INTERFACE="$(_first_)"
+fi
+
+get_ip () {
+  # Extract the first IPv4 address (without CIDR) for the interface
+  ip -4 addr show dev "$INTERFACE" | awk '/inet / {print $2}' | cut -d/ -f1
+}
+
+speed () {
+  sed -e 's,$, MBit/s,' "/sys/class/net/$INTERFACE/speed"
+}
+
+if grep -wq up "/sys/class/net/$INTERFACE/operstate"; then
+  echo "$FORMAT_UP" | sed \
+    -e "s,%ip,$(get_ip),g" \
+    -e "s,%speed,$(speed),g" \
+    -e q
+  echo
+  echo '#00FF00'
+else
+  echo "$FORMAT_DOWN"
+  echo
+  echo '#FF0000'
+fi
+
+exit
