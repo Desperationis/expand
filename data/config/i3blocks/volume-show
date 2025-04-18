@@ -1,0 +1,9 @@
+#!/bin/bash
+
+case $BLOCK_BUTTON in
+  1) ~/.config/i3blocks/volume set 0;; # Left click
+  4) ~/.config/i3blocks/volume up 10;; # scroll up
+  5) ~/.config/i3blocks/volume down 10;; # scroll down
+esac
+
+~/.config/i3blocks/volume output %v

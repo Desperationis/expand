@@ -1,7 +1,8 @@
 [volume-pulseaudio]
-command=MIXER="PulseAudio"; ~/.config/i3blocks/volume-pulseaudio
-interval=once
-signal=1
+command=~/.config/i3blocks/volume-show
+label=VOLUME: 
+interval=3
+min_width=VOLUME: 100%
 
 [memory]
 command=~/.config/i3blocks/memory
@@ -17,7 +18,7 @@ interval=30
 [backlight]
 command=~/.config/i3blocks/backlight
 label=☀
-interval=20
+interval=3
 
 [batterybar]
 command=bash ~/.config/i3blocks/batterybar/batterybar
@@ -31,3 +32,6 @@ command=~/.config/i3blocks/cpu_usage
 label=CPU
 interval=10
 
+[date]
+command=date "+%D %I:%M:%S %p"
+interval=1
