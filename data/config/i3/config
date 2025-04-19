@@ -22,7 +22,6 @@ exec_always --no-startup-id exec i3-workspace-names-daemon
 ## CUSTOM -------- https://unix.stackexchange.com/questions/96798/i3wm-start-applications-on-specific-workspaces-when-i3-starts
 ## https://askubuntu.com/questions/1277864/how-to-launch-specific-programs-on-particular-workspaces-at-i3-startup-without-a
 # Run sudo xprop | grep CLASS and click on the window to get its class
-set $ws1 "1: ""
 assign [class="firefox-esr"] number $ws1
 assign [class="google-chrome"] number $ws2
 assign [class="Google-chrome"] number $ws2
