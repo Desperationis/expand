@@ -5,6 +5,7 @@
 - name: "Install i3 configuration files"
   hosts: localhost
   connection: local
+  become: true
   gather_facts: false
   vars:
     user_home: "{{ lookup('env', 'HOME') | default(lookup('env', 'USERPROFILE')) }}"
@@ -22,6 +23,40 @@
           - fonts-font-awesome
           - pipx
           - i3blocks
+    - debug: var=aptout
+
+    - name: "Download Monocraft font"
+      register: aptout 
+      get_url:
+        url: "https://github.com/IdreesInc/Monocraft/releases/download/v4.0/Monocraft-ttf-otf.zip"
+        dest: /tmp/Monocraft.zip
+        mode: '0775'
+    - debug: var=aptout
+
+    - name: "Uncompress Monocraft font"
+      register: aptout
+      unarchive:
+        src: "/tmp/Monocraft.zip"
+        dest: "/tmp/"
+        remote_src: yes
+    - debug: var=aptout
+
+    - name: "Make Monocraft folder"
+      file:
+        path: /usr/share/fonts/Monocraft/
+        state: directory
+        mode: '0755'
+
+    - name: "Install Monocraft font"
+      register: aptout
+      shell:
+        cmd: mv /tmp/other-formats/Monocraft.ttf /usr/share/fonts/Monocraft/
+    - debug: var=aptout
+
+    - name: "Reload fonts"
+      register: aptout
+      shell:
+        cmd: fc-cache -f -v
     - debug: var=aptout
 
     - name: "Install i3-workspace-names-daemon"
