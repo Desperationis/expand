@@ -19,7 +19,6 @@ if [ "$INTERFACE" = "_first_" ]; then
 fi
 
 get_ip () {
-  # Extract the first IPv4 address (without CIDR) for the interface
   ip -4 addr show dev "$INTERFACE" | awk '/inet / {print $2}' | cut -d/ -f1
 }
 
@@ -27,7 +26,10 @@ speed () {
   sed -e 's,$, MBit/s,' "/sys/class/net/$INTERFACE/speed"
 }
 
-if grep -wq up "/sys/class/net/$INTERFACE/operstate"; then
+# Check if NetworkManager reports the interface as connected
+NM_STATE=$(nmcli -t -f DEVICE,TYPE,STATE device | awk -F: -v iface="$INTERFACE" '$1 == iface && $2 == "ethernet" {print $3}')
+
+if [ "$NM_STATE" = "connected" ]; then
   echo "$FORMAT_UP" | sed \
     -e "s,%ip,$(get_ip),g" \
     -e "s,%speed,$(speed),g" \
