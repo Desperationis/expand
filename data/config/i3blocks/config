@@ -1,0 +1,46 @@
+[ethernet]
+command=~/.config/i3blocks/wifi 
+interval=1
+markup=pango
+
+[ethernet]
+command=~/.config/i3blocks/ethernet
+interval=1
+
+[volume-pulseaudio]
+command=~/.config/i3blocks/volume-show
+label=VOLUME: 
+interval=3
+min_width=VOLUME: 100%
+
+[memory]
+command=~/.config/i3blocks/memory
+label=MEM
+interval=30
+
+[memory]
+command=~/.config/i3blocks/memory
+label=SWAP
+instance=swap
+interval=30
+
+[backlight]
+command=~/.config/i3blocks/backlight
+label=☀
+interval=3
+
+[batterybar]
+command=bash ~/.config/i3blocks/batterybar
+label=BAT
+interval=5
+markup=pango
+min_width=BAT ■■■■■
+
+[cpu_usage]
+command=~/.config/i3blocks/cpu_usage
+label=CPU
+interval=10
+
+[date]
+command=date "+%D %I:%M:%S %p"
+interval=1

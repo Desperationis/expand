@@ -1,0 +1,131 @@
+#!/bin/bash
+
+## Configuration Variables
+BLOCK_SIZE="256K"
+LOOP_DEVICE="/dev/loop0"
+NUM_PARTS=10
+CHECKSUM_FILE="CHECKSUM"
+SINGLE_PART_DIR="parts/"
+MULTI_PART_PREFIX="parts_"
+INITIAL_OFFSET=0
+BACKUP1_COUNT=100000
+BACKUP10_COUNT=10
+FINAL_COUNT=1000000  # For last partition in 10-part backup
+
+## Helper Functions
+cleanup() {
+	sudo rm -rf "$CHECKSUM_FILE" "$SINGLE_PART_DIR" super_disk "${MULTI_PART_PREFIX}"*/
+	sudo losetup -d "$LOOP_DEVICE" 2>/dev/null
+}
+
+make_random_disk() {
+	sudo dd if=/dev/urandom count=64 bs=1M of=super_disk
+}
+
+run_backup() {
+	local dir="$1"
+	local offset="$2"
+	local count="$3"
+	sudo ~/box/bin/super_backup "$LOOP_DEVICE" "$dir" "$offset" "$count" "$BLOCK_SIZE"
+}
+
+run_unbackup() {
+	local dir="$1"
+	sudo ~/box/bin/super_unbackup "$dir" "$LOOP_DEVICE" "$BLOCK_SIZE"
+}
+
+## Backup Functions
+backup_1() {
+	run_backup "$SINGLE_PART_DIR" "$INITIAL_OFFSET" "$BACKUP1_COUNT"
+}
+
+backup_10() {
+	for i in {0..9}; do
+    	local dir="${MULTI_PART_PREFIX}${i}/"
+    	local offset=$((i * BACKUP10_COUNT))
+    	local count=$((i == 9 ? FINAL_COUNT : BACKUP10_COUNT))
+    	run_backup "$dir" "$offset" "$count"
+	done
+}
+
+## Validation Functions
+validate_checksum() {
+	local file="$1"
+	local message="$2"
+    
+	sudo chown "$USER:$USER" -R .
+	local current_checksum=$(md5sum "$file" | cut -d ' ' -f1)
+	echo "$current_checksum"
+    
+	if grep -q "^$current_checksum" "$CHECKSUM_FILE"; then
+    	echo "$message verification passed."
+	else
+    	echo "Checksum mismatch! $message failed."
+    	exit 1
+	fi
+}
+
+## Unbackup Functions
+unbackup_1() {
+	run_unbackup "$SINGLE_PART_DIR"
+}
+
+unbackup_10() {
+	for i in {0..9}; do
+    	run_unbackup "${MULTI_PART_PREFIX}${i}/"
+	done
+}
+
+## Main Execution
+cleanup
+make_random_disk
+sudo losetup "$LOOP_DEVICE" super_disk
+
+# Initial backup and validation
+{
+	echo "ORIGINAL"
+	md5sum super_disk
+	echo ""
+} >> "$CHECKSUM_FILE"
+
+backup_1
+
+sudo ~/box/bin/super_combine ${SINGLE_PART_DIR}
+validate_checksum "${SINGLE_PART_DIR}whole" "Backup Checksum"
+
+# Scramble contents
+make_random_disk
+{
+	echo "AFTER RANDOMIZATION"
+	md5sum super_disk
+	echo ""
+} >> "$CHECKSUM_FILE"
+
+# Unbackup and validate
+unbackup_1
+{
+	echo "AFTER UNBACKUP_1"
+	md5sum super_disk
+	echo ""
+} >> "$CHECKSUM_FILE"
+validate_checksum "super_disk" "Unbackup Checksum"
+
+# Multiple partition backup
+backup_10
+
+# Scramble again
+make_random_disk
+{
+	echo "AFTER RANDOMIZATION"
+	md5sum super_disk
+	echo ""
+} >> "$CHECKSUM_FILE"
+
+# Restore from multiple partitions
+unbackup_10
+{
+	echo "AFTER UNBACKUP_10"
+	md5sum super_disk
+	echo ""
+} >> "$CHECKSUM_FILE"
+validate_checksum "super_disk" "Final Unbackup Checksum"

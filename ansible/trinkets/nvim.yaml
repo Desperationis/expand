@@ -8,6 +8,15 @@
   become: true
   gather_facts: false
   tasks:
+    - name: "Install FUSE to run AppImage"
+      register: aptout
+      apt:
+        update-cache: true
+        state: latest
+        name: 
+        - fuse
+    - debug: var=aptout
+    
     - name: "Download nvim AppImage"
       register: aptout
       get_url:

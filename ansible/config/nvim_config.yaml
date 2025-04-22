@@ -1,5 +1,6 @@
 # AnyUserEscalation()
 # [AptProbe(), WhichProbe("nvim")]
+# # Installs my nvim config as well as any other packages it needs.
 
 - name: "Install nvim configuration files"
   hosts: localhost
@@ -10,20 +11,22 @@
     user_home: "{{ lookup('env', 'HOME') | default(lookup('env', 'USERPROFILE')) }}"
     config_folder: "{{ playbook_dir }}/../../data/config/"
   tasks:
+    - name: "Install plugin requirements"
+      register: aptout
+      apt:
+        update-cache: true
+        state: latest
+        name: 
+        - ripgrep
+        - xclip
+    - debug: var=aptout
+
     - name: "Install npm"
       register: aptout
       apt:
         update-cache: true
         state: latest
         name: npm
-    - debug: var=aptout
-
-    - name: "Install plugin requirements"
-      register: aptout
-      apt:
-        update-cache: true
-        state: latest
-        name: ripgrep
     - debug: var=aptout
 
     - name: "Install n"
