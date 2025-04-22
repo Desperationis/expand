@@ -26,12 +26,12 @@ run_backup() {
 	local dir="$1"
 	local offset="$2"
 	local count="$3"
-	sudo super_backup "$LOOP_DEVICE" "$dir" "$offset" "$count" "$BLOCK_SIZE"
+	sudo ~/box/bin/super_backup "$LOOP_DEVICE" "$dir" "$offset" "$count" "$BLOCK_SIZE"
 }
 
 run_unbackup() {
 	local dir="$1"
-	sudo super_unbackup "$dir" "$LOOP_DEVICE" "$BLOCK_SIZE"
+	sudo ~/box/bin/super_unbackup "$dir" "$LOOP_DEVICE" "$BLOCK_SIZE"
 }
 
 ## Backup Functions
@@ -89,6 +89,7 @@ sudo losetup "$LOOP_DEVICE" super_disk
 } >> "$CHECKSUM_FILE"
 
 backup_1
+sudo ~/box/bin/super_combine ${SINGLE_PART_DIR}
 validate_checksum "${SINGLE_PART_DIR}whole" "Backup Checksum"
 
 # Scramble contents
