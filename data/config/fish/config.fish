@@ -480,6 +480,7 @@ end
 if status is-interactive
 	fish_add_path ~/box/bin
 	fish_add_path ~/.local/bin
+	fish_add_path ~/.cargo/bin
     fish_add_path /home/adhoc/.julia/juliaup/julia-1.11.3+0.x64.linux.gnu/bin
 
 
