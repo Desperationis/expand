@@ -1,0 +1,11 @@
+#!/bin/bash
+
+if [[ $# -ne 2 ]] then
+    echo "Usage: iso_write <path_to_iso> <device>"
+    exit 1
+fi
+
+iso_path=$1
+device=$2
+
+sudo dd bs=4M if=$iso_path of=$device status=progress oflag=sync
