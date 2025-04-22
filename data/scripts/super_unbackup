@@ -1,0 +1,109 @@
+#!/bin/bash
+
+if [[ "$(id -u)" -ne 0 ]]; then
+	echo "Error: This script must be run as root"
+	exit 1
+fi
+
+set -euo pipefail
+
+trap 'echo "Interrupted. Exiting..."; exit 130' INT
+
+# Validate arguments
+if [ $# -ne 3 ]; then
+	echo "Usage: $0 PART_FOLDER DEVICE PART_SIZE"
+	exit 1
+fi
+
+PART_FOLDER="$1"
+DEVICE="$2"
+PART_SIZE="$3"
+
+BS=131072 # Must match backup script's block size
+
+# Convert part size to bytes
+if ! part_size_bytes=$(numfmt --from=iec "$PART_SIZE"); then
+	echo "Invalid part size: $PART_SIZE"
+	exit 1
+fi
+
+# Verify part size alignment
+if (( part_size_bytes % BS != 0 )); then
+	echo "Part size must be a multiple of 128K"
+	exit 1
+fi
+
+# Verify checksum file exists
+CHECKSUM_FILE="$PART_FOLDER/PART_CHECKSUMS"
+if [ ! -f "$CHECKSUM_FILE" ]; then
+	echo "Missing PART_CHECKSUMS file in backup folder"
+	exit 1
+fi
+
+
+# Load checksums into associative array
+declare -A checksums
+while read -r sum file; do
+	checksums["$file"]="$sum"
+done < "$CHECKSUM_FILE"
+
+cd "$PART_FOLDER"
+
+RESTORED_RECORD="RESTORED_PARTS"
+touch "$RESTORED_RECORD"
+
+# Find all part files and sort numerically
+shopt -s nullglob
+parts=( part_*.gz )
+shopt -u nullglob
+
+if [ ${#parts[@]} -eq 0 ]; then
+	echo "No part files found in $PART_FOLDER"
+	exit 1
+fi
+
+# Process parts in numerical order
+while read -r part_file; do
+	# Extract part number from filename
+	part_number="${part_file#part_}"
+	part_number="${part_number%.gz}"
+
+    # Skip already restored parts
+    if grep -qFx "$part_file" "$RESTORED_RECORD"; then
+        echo "Skipping already restored part: $part_file"
+        continue
+    fi
+    
+	if ! [[ "$part_number" =~ ^[0-9]+$ ]]; then
+    	echo "Invalid part filename: $part_file"
+    	exit 1
+	fi
+
+	# Verify checksum
+	echo "Verifying $part_file..."
+	expected_sum="${checksums[$part_file]}"
+	actual_sum=$(sha256sum "$part_file" | cut -d' ' -f1)
+    
+	if [ "$expected_sum" != "$actual_sum" ]; then
+    	echo "Checksum mismatch for $part_file (expected: ${expected_sum:0:8}..., actual: ${actual_sum:0:8}...)"
+    	exit 1
+	fi
+
+	# Calculate write position
+	offset=$(( part_number * part_size_bytes ))
+	seek_blocks=$(( offset / BS ))
+    
+	echo "Restoring part $part_number (offset: $(numfmt --to=iec $offset))"
+    
+	# Decompress and write with verification
+	pigz -d -c "$part_file" | dd of="$DEVICE" \
+    	bs=$BS \
+    	seek=$seek_blocks \
+    	conv=notrunc,noerror \
+    	status=progress
+   	 
+    echo "$part_file" >> "$RESTORED_RECORD"
+	echo "Successfully wrote part $part_number"
+done < <(printf '%s\n' "${parts[@]}" | sort -t_ -k2 -n)
+
+echo "Restoration complete. All parts verified and written to $DEVICE"

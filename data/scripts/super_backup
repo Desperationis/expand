@@ -1,0 +1,109 @@
+#!/bin/bash
+
+if [[ "$(id -u)" -ne 0 ]]; then
+  echo "Error: This script must be run as root."
+  exit 1
+fi
+
+set -euo pipefail
+
+# Validate arguments
+if [ $# -ne 5 ]; then
+	echo "Usage: $0 DEVICE PART_FOLDER STARTING_PART PARTS_TO_READ PART_SIZE"
+	exit 1
+fi
+
+DEVICE="$1"
+PART_FOLDER="$2"
+STARTING_PART="$3"
+PARTS_TO_READ="$4"
+PART_SIZE="$5"
+BS=131072  # 128K block size
+
+# Convert part size to bytes
+if ! part_size_bytes=$(numfmt --from=iec "$PART_SIZE"); then
+	echo "Invalid part size: $PART_SIZE"
+	exit 1
+fi
+
+# Validate part size alignment
+if (( part_size_bytes % BS != 0 )); then
+	echo "Part size must be a multiple of 128K"
+	exit 1
+fi
+
+mkdir -p "$PART_FOLDER"
+cd $PART_FOLDER
+
+# Calculate blocks per part
+count_blocks=$(( part_size_bytes / BS ))
+
+device_size=$(sudo blockdev --getsize64 "$DEVICE")
+if [ $? -ne 0 ]; then
+	echo "Failed to get device size for $DEVICE"
+	exit 1
+fi
+
+
+MAX_PARTS=$(( (device_size + part_size_bytes - 1) / part_size_bytes ))
+
+# Main backup loop
+for (( i=0; i < PARTS_TO_READ; i++ )); do
+	current_part=$(( STARTING_PART + i ))
+	output_file="part_${current_part}.gz"
+
+	# Stop if already processed
+	if grep -q "  $output_file\$" PART_CHECKSUMS 2>/dev/null; then
+    	echo "Skipping part $current_part ($output_file): already processed."
+    	continue
+	fi
+
+    
+	# Stop if beyond device capacity
+	if (( current_part >= MAX_PARTS )); then
+    	echo "Part $current_part exceeds device capacity (max: $((MAX_PARTS - 1)))"
+    	break
+	fi
+
+	# Calculate offsets
+	start_offset=$(( current_part * part_size_bytes ))
+	remaining_bytes=$(( device_size - start_offset ))
+    
+	# Handle final partial part
+	if (( remaining_bytes < part_size_bytes )); then
+    	echo "Processing FINAL PART $current_part (${remaining_bytes} bytes)..."
+   	 
+    	# Calculate full blocks and remainder
+    	full_blocks=$(( remaining_bytes / BS ))
+    	remainder_bytes=$(( remaining_bytes % BS ))
+   	 
+    	# Build dd command
+    	dd_cmd="dd if='$DEVICE' bs=$BS skip=$((start_offset/BS))"
+    	[ "$full_blocks" -gt 0 ] && dd_cmd+=" count=$full_blocks"
+   	 
+    	# Add remainder if needed
+    	if (( remainder_bytes > 0 )); then
+        	dd_cmd+=" status=none"
+        	dd_cmd+=" && dd if='$DEVICE' bs=1 skip=$((start_offset + full_blocks*BS)) count=$remainder_bytes"
+    	fi
+
+    	# Execute with precise progress
+    	eval "$dd_cmd" 2>/dev/null | pv -s "$remaining_bytes" | pigz --fast > "$output_file"
+	else
+    	# Standard full-size part
+    	echo "Processing FULL PART $current_part (${PART_SIZE}/part)..."
+    	blocks_needed=$(( part_size_bytes / BS ))
+   	 
+    	dd if="$DEVICE" bs=$BS \
+       	skip=$(( start_offset / BS )) \
+       	count=$blocks_needed 2>/dev/null \
+       	| pv -s "$part_size_bytes" \
+       	| pigz --fast > "$output_file"
+	fi
+
+	# Checksum verification
+	echo "Verifying checksum for part $current_part..."
+	sha256sum "$output_file" >> PART_CHECKSUMS
+done
+
+echo "Backup completed successfully. Checksums stored in PART_CHECKSUMS"

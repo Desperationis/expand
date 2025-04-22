@@ -1,0 +1,36 @@
+#!/bin/bash
+set -e
+
+target_dir="$1"
+if [[ ! -d "$target_dir" ]]; then
+	echo "Error: Directory '$target_dir' does not exist" >&2
+	exit 1
+fi
+
+cd "$target_dir"
+
+# Validate part sequence completeness
+shopt -s nullglob
+parts=(part_*.gz)
+if [[ ${#parts[@]} -eq 0 ]]; then
+	echo "Error: No part files found in directory" >&2
+	exit 1
+fi
+
+max_part=$(printf "%s\n" "${parts[@]}" | grep -oP '(?<=part_)\d+' | sort -n | tail -1)
+
+for ((i=0; i<=max_part; i++)); do
+	if [[ ! -f "part_$i.gz" ]]; then
+    	echo "Error: Missing part_$i.gz in sequence" >&2
+    	exit 1
+	fi
+done
+
+# Combine parts
+> whole  # Create/truncate output file
+for ((i=0; i<=max_part; i++)); do
+	gunzip -c "part_$i.gz" >> whole
+done
+
+echo "Successfully combined $((max_part+1)) parts into 'whole'"
+
