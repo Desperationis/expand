@@ -89,6 +89,7 @@ sudo losetup "$LOOP_DEVICE" super_disk
 } >> "$CHECKSUM_FILE"
 
 backup_1
+
 sudo ~/box/bin/super_combine ${SINGLE_PART_DIR}
 validate_checksum "${SINGLE_PART_DIR}whole" "Backup Checksum"
 
