@@ -23,6 +23,7 @@
           - fonts-font-awesome
           - pipx
           - i3blocks
+          - picom
     - debug: var=aptout
 
     - name: "Download Monocraft font"

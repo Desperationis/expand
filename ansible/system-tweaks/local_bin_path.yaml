@@ -1,6 +1,7 @@
 # OnlyRoot()
 # []
-# For any new bash shell opened, it adds the user's ~/.local/bin to PATH
+# For any new bash shell opened, it adds the common bin paths to PATH.
+# This includes ~/.local/bin, ~/box/bin, etc.
 
 - name: "Add ~/.local/bin/ to PATH"
   hosts: localhost
@@ -8,7 +9,18 @@
   become: true
   gather_facts: false
   tasks:
-    - name: "Add to PATH"
+    - name: "Add .local"
       shell:
-        cmd: sh -c "echo 'export PATH=\"\$PATH:\$HOME/.local/bin\"' > /etc/profile.d/local_bin.sh"
+        cmd: sh -c "echo 'export PATH=\"\$PATH:\$HOME/.local/bin\"' >> /etc/profile.d/local_bin.sh"
 
+    - name: "Add box"
+      shell:
+        cmd: sh -c "echo 'export PATH=\"\$PATH:\$HOME/box/bin\"' >> /etc/profile.d/local_bin.sh"
+
+    - name: "Add cargo"
+      shell:
+        cmd: sh -c "echo 'export PATH=\"\$PATH:\$HOME/.cargo/bin\"' >> /etc/profile.d/local_bin.sh"
+
+    - name: "Add julia"
+      shell:
+        cmd: sh -c "echo 'export PATH=\"\$PATH:\$HOME/.julia/juliaup/julia-1.11.3+0.x64.linux.gnu/bin\"' >> /etc/profile.d/local_bin.sh"

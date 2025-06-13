@@ -92,30 +92,6 @@ end
 
 
 
-
-
-
-function dcopy
-    xclip -selection clipboard
-end
-
-function dpaste
-    xclip -selection clipboard -o
-end
-
-function iso_write
-    if test (count $argv) -ne 2
-        echo "Usage: iso_write <path_to_iso> <device>"
-        return 1
-    end
-
-    set iso_path $argv[1]
-    set device $argv[2]
-
-    sudo dd bs=4M if=$iso_path of=$device status=progress oflag=sync
-end
-
-
 function mount_thing
     if test (count $argv) -ne 1
         echo "Usage: mount_thing <device>"
@@ -478,9 +454,11 @@ function show_timezone -d "Show local timezone"
 end
 
 if status is-interactive
+    # Matches what I put in /etc/profile.d/
 	fish_add_path ~/box/bin
 	fish_add_path ~/.local/bin
-    fish_add_path /home/adhoc/.julia/juliaup/julia-1.11.3+0.x64.linux.gnu/bin
+	fish_add_path ~/.cargo/bin
+    fish_add_path ~/.julia/juliaup/julia-1.11.3+0.x64.linux.gnu/bin
 
 
 	if which zoxide > /dev/null 2>&1
