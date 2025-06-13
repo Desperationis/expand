@@ -34,6 +34,9 @@
 # use the form "number [workspace]" to work properly.
 exec_always --no-startup-id exec i3-workspace-names-daemon
 
+# ARGB windows for overlay
+exec --no-startup-id picom --experimental-backends
+
 # Whenever any new instance of these opens, always put them in the correct
 # window.
 assign [class="firefox-esr"] number $ws1
@@ -87,7 +90,8 @@ set $mod Mod4
 
 # xss-lock grabs a logind suspend inhibit lock and will use i3lock to lock the
 # screen before suspend. Use loginctl lock-session to lock your screen.
-exec --no-startup-id xss-lock --transfer-sleep-lock -- i3lock --nofork
+# UNCOMMENT THIS FOR SLEEPING
+# exec --no-startup-id xss-lock --transfer-sleep-lock -- i3lock --nofork
 
 
 set $refresh_i3status killall -SIGUSR1 i3status
