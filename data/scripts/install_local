@@ -1,0 +1,91 @@
+#!/usr/bin/env bash
+
+# install_local.sh
+# Install programs to /usr/local/locally_installed and symlink to /usr/local/bin
+
+set -e
+
+usage() {
+    echo "Usage:"
+    echo "  $0 [project_directory] [relative_executable_path]"
+    echo "  $0 [standalone_executable]"
+    exit 1
+}
+
+if [[ $# -eq 2 ]]; then
+    # Directory + relative path mode
+    src_dir="${1%/}"  # Trim trailing slash
+    exe_rel_path="$2"
+
+    # Validate inputs
+    if [[ ! -d "$src_dir" ]]; then
+        echo "Error: Source directory '$src_dir' not found"
+        exit 1
+    fi
+
+    if [[ "$exe_rel_path" = /* ]]; then
+        echo "Error: Executable path must be relative to project directory"
+        exit 1
+    fi
+
+    dir_name="$(basename "$src_dir")"
+    install_dir="/usr/local/locally_installed/$dir_name"
+
+    echo "Moving $src_dir to $install_dir"
+    if ! sudo mv -f "$src_dir" "$install_dir"; then
+        echo "Error: Failed to move directory"
+        exit 1
+    fi
+
+    target_exe="$install_dir/$exe_rel_path"
+    if [[ ! -x "$target_exe" ]]; then
+        echo "Error: Executable '$target_exe' not found or not executable. Putting directory back."
+        sudo mv -f "$install_dir" "$src_dir"
+        exit 1
+    fi
+
+    link_name="$(basename "$exe_rel_path")"
+    echo "Creating symlink: /usr/local/bin/$link_name -> $target_exe"
+    if ! sudo ln -sf "$target_exe" "/usr/local/bin/$link_name"; then
+        echo "Error: Failed to create symlink"
+        exit 1
+    fi
+
+    echo "Successfully installed $link_name"
+
+elif [[ $# -eq 1 ]]; then
+    # Single executable mode
+    exe_src="$1"
+
+    if [[ ! -f "$exe_src" ]]; then
+        echo "Error: Executable '$exe_src' not found"
+        exit 1
+    fi
+
+    exe_name="$(basename "$exe_src")"
+    install_dir="/usr/local/locally_installed/$exe_name"
+
+    echo "Creating installation directory: $install_dir"
+    if ! sudo mkdir -p "$install_dir"; then
+        echo "Error: Failed to create directory"
+        exit 1
+    fi
+
+    installed_exe="$install_dir/$exe_name"
+    echo "Moving $exe_src to $installed_exe"
+    if ! sudo mv -f "$exe_src" "$installed_exe"; then
+        echo "Error: Failed to move executable"
+        exit 1
+    fi
+
+    echo "Creating symlink: /usr/local/bin/$exe_name -> $installed_exe"
+    if ! sudo ln -sf "$installed_exe" "/usr/local/bin/$exe_name"; then
+        echo "Error: Failed to create symlink"
+        exit 1
+    fi
+
+    echo "Successfully installed $exe_name"
+
+else
+    usage
+fi
