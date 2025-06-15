@@ -6,6 +6,10 @@
 set -e
 
 usage() {
+    echo "install_local"
+    echo ""
+    echo "install_local adds either a standalone executable to /usr/local/ or a"
+    echo "folder with a single executable to run. Good for quick install to PATH."
     echo "Usage:"
     echo "  $0 [project_directory] [relative_executable_path]"
     echo "  $0 [standalone_executable]"
