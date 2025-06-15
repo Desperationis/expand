@@ -54,23 +54,30 @@ end
 
 
 function fish_greeting -d "Greeting message on shell session start up"
+    set ascii_art (cat ~/.config/fish/ascii_art.txt | string split0)
 
-	echo ""
-	echo  "           (              "			(welcome_message)
-	echo  "            )             "
-	echo  "           (              "			(show_os_info)	
-	echo  "     /\\  .-\"\"\"-.  /\\      "		(show_cpu_cores)
-	echo  "    //\\\\/  ,,,  \\//\\\\     "		(show_cpu_processors)
-	echo  "    |/\\| ,;;;;;, |/\\|     "		
-	echo  "    //\\\\\\;-\"\"\"-;///\\\\     "	(show_wifi_ssid)
-	echo  "   //  \\/   .   \\/  \\\\    "		(show_ip)
-	echo  "  (| ,-_| \\ | / |_-, |)   "			(show_gateway)
-	echo  "    //`__\\.-.-./__`\\\\     "		(show_nc_count)
-	echo  "   // /.-(() ())-.\\ \\\\    "
-	echo  "  (\\ |)   '---'   (| /)   "			(show_hostname)
-	echo  "   ` (|           |) `    "			(show_bluetooth)
-	echo  "     \\)           (/      "			(show_timezone)
-	echo ""
+    # This assumes 'welcome_message', 'show_os_info', etc., are functions
+    # or commands that output the desired values.
+    set -l values \
+        (welcome_message) \
+        (show_os_info) \
+        (show_cpu_cores) \
+        (show_cpu_processors) \
+        (show_wifi_ssid) \
+        (show_ip) \
+        (show_gateway) \
+        (show_nc_count) \
+        (show_hostname) \
+        (show_bluetooth) \
+        (show_timezone)
+
+    # Corrected loop: uses (count) instead of (math (count)) and $values[$i] for indexing.
+    for i in (seq 1 (count $values))
+        set ascii_art (string replace -r "\{$i\}" -- $values[$i] $ascii_art | string split0 | head -n -2 | string split0)
+    end
+
+    echo
+    echo $ascii_art
 end
 
 
