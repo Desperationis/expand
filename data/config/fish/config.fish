@@ -96,12 +96,12 @@ function welcome_message -d "Say welcome to user"
     case "days" "day"
         set formatted_uptime "$up_time"
     case "min"
-        set formatted_uptime $up_time"utes"
+        set formatted_uptime $up_time
     case '*'
         set formatted_uptime "$formatted_uptime hours"
     end
 
-    echo -en " Today is "
+    echo -en " "
     set_color brblue
     echo -en (date +%m/%d/%Y)
     set_color normal
@@ -109,7 +109,6 @@ function welcome_message -d "Say welcome to user"
     set_color brblue
     echo -en "$formatted_uptime"
     set_color normal
-    echo -en "."
 end
 
 function show_os_info -d "Prints operating system info"
