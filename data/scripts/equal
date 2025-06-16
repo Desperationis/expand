@@ -86,7 +86,10 @@ def compare_directories(dir1, dir2, workers):
 
 if __name__ == "__main__":
     if len(sys.argv) != 4:
-        print("Usage: python script.py <directory1> <directory2> <workers>")
+        print("Usage: python equal <directory1> <directory2> <workers>")
+        print("")
+        print("Whether two directories share the same files by checksum. Does")
+        print("not check in any other way.")
         sys.exit(1)
 
     dir1, dir2, workers = sys.argv[1], sys.argv[2], int(sys.argv[3])
