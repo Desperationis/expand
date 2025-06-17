@@ -1,10 +1,12 @@
 #!/bin/python3
+
 import os
 import sys
 import hashlib
 from queue import Queue
 from concurrent.futures import ThreadPoolExecutor
 from tqdm import tqdm
+from collections import Counter
 
 def calculate_md5(file_path):
     """Calculate the MD5 checksum of a file."""
@@ -21,77 +23,90 @@ def worker(queue, results):
     """Worker function to process files from the queue."""
     while True:
         file_path = queue.get()
-        print(f"Getting checksum of {file_path}")
         if file_path is None:
+            print("Worker thread exiting...")
             queue.task_done()
             break
+        print(f"Getting checksum of {file_path}")
         result = calculate_md5(file_path)
         results.append(result)
         queue.task_done()
 
 def generate_checksums(directory, workers):
-    """Generate a set of checksums for all files in a directory using multithreading."""
+    """Generate a Counter of checksums for all files in a directory using multithreading."""
     file_queue = Queue()
     results = []
-    
+
     # Collect all file paths
     file_paths = []
     for root, _, files in os.walk(directory):
         for file in files:
             file_paths.append(os.path.join(root, file))
-    
+
     # Add file paths to the queue
     for file_path in file_paths:
         file_queue.put(file_path)
-    
+
     # Create and start worker threads
     with ThreadPoolExecutor(max_workers=workers) as executor:
         for _ in range(workers):
             executor.submit(worker, file_queue, results)
-            file_queue.put(None)  # Sentinel to signal worker to stop
-    
-    file_queue.join()
-    
+        for _ in range(workers):
+            file_queue.put(None)  # One sentinel per worker
+
+        file_queue.join()
+
     # Process results and handle errors
-    checksums = set()
+    checksums = []
     errors = []
     for file_path, result in results:
         if result.startswith("Error:"):
             errors.append((file_path, result))
         else:
-            checksums.add(result)
-    
+            checksums.append(result)
+
     # Print errors if any
     if errors:
         print("Errors encountered:")
         for file_path, error in errors:
             print(f"{file_path}: {error}")
-    
-    return checksums
+
+    return Counter(checksums)
 
 def compare_directories(dir1, dir2, workers):
-    """Compare two directories based on file checksums."""
+    """Compare two directories based on file checksums (as multisets)."""
     print(f"Generating checksums for {dir1}...")
     checksums1 = generate_checksums(dir1, workers)
     print(f"Generating checksums for {dir2}...")
     checksums2 = generate_checksums(dir2, workers)
 
-    print("Checking if all checksums match and exist...")
+    print("Checking if all checksums match and exist (including duplicates)...")
     if checksums1 == checksums2:
-        print("The directories contain the same files.")
+        print("The directories contain the same files (by content and count).")
     else:
         print("The directories do not contain the same files.")
-        print(f"Files unique to {dir1}: {len(checksums1 - checksums2)}")
-        print(f"Files unique to {dir2}: {len(checksums2 - checksums1)}")
+        diff1 = checksums1 - checksums2
+        diff2 = checksums2 - checksums1
+        print(f"Files unique to {dir1} (by content and count): {sum(diff1.values())}")
+        print(f"Files unique to {dir2} (by content and count): {sum(diff2.values())}")
 
 if __name__ == "__main__":
     if len(sys.argv) != 4:
-        print("Usage: python equal <directory1> <directory2> <workers>")
+        print("Usage: python equal <dir1> <dir2> <num_workers>")
         print("")
         print("Whether two directories share the same files by checksum. Does")
         print("not check in any other way.")
         sys.exit(1)
 
     dir1, dir2, workers = sys.argv[1], sys.argv[2], int(sys.argv[3])
-    compare_directories(dir1, dir2, workers)
+    if not os.path.exists(dir1):
+        print(f"{dir1} does not exist.")
+        exit(1)
 
+    if not os.path.exists(dir2):
+        print(f"{dir2} does not exist.")
+        exit(1)
+
+
+
+    compare_directories(dir1, dir2, workers)
