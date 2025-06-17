@@ -37,6 +37,9 @@ exec_always --no-startup-id exec i3-workspace-names-daemon
 # ARGB windows for overlay (transparency)
 exec --no-startup-id picom --experimental-backends
 
+# Disable screen turn off (from x server)
+exec --no-startup-id xset s off; xset -dpms; xset s noblank
+
 # Whenever any new instance of these opens, always put them in the correct
 # window.
 assign [class="firefox-esr"] number $ws1
