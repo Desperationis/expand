@@ -23,4 +23,4 @@ if ! grep -qxF "$EXPORT_LINE" "$PROFILE_SCRIPT" 2>/dev/null; then
   echo "$EXPORT_LINE" | sudo tee -a "$PROFILE_SCRIPT" > /dev/null
 fi
 
-echo "Path '$ABS_PATH' added to PATH globally (in $PROFILE_SCRIPT). Please restart or do source $ABS_PATH."
+echo "Path '$ABS_PATH' added to PATH globally (in $PROFILE_SCRIPT). Please restart for changes to take effect."
