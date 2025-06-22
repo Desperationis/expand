@@ -68,7 +68,7 @@ bindsym XF86MonBrightnessUp exec brightnessctl set +2%
 bindsym XF86MonBrightnessDown exec brightnessctl set 2%-
 
 # These are my shortcuts in this order; PRT SC; Calculator; Omen Diamond; Bottom Script; Pause
-bindcode 107 exec --no-startup-id nmcli connection up id desperationis
+bindcode 107 exec --no-startup-id flameshot gui
 bindcode 148 exec --no-startup-id xrandr --output "eDP-1" --mode 1280x720 --rate 59.93 && brightnessctl set --device=nvidia_wmi_ec_backlight 20% && sed -i "s/^size = \([0-9]\+\)/size = 6/" ~/.config/alacritty/alacritty.toml
 bindcode 157 exec --no-startup-id xrandr --output "eDP-1" --mode 2560x1440 --rate 165.00 && brightnessctl set --device=nvidia_wmi_ec_backlight 80% && sed -i "s/^size = \([0-9]\+\)/size = 12/" ~/.config/alacritty/alacritty.toml
 bindcode 135 exec --no-startup-id echo $(cat ~/.keepasspasswd 2>/dev/null) | keepassxc --pw-stdin ~/Desktop/Database.kdbx

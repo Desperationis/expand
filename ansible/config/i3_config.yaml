@@ -24,6 +24,7 @@
           - pipx
           - i3blocks
           - picom
+          - flameshot
     - debug: var=aptout
 
     - name: "Download Monocraft font"

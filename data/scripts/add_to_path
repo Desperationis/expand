@@ -1,0 +1,26 @@
+#!/bin/bash
+
+# Check if a path was provided
+if [ -z "$1" ]; then
+  echo "Usage: $0 <path-to-add>"
+  exit 1
+fi
+
+INPUT_PATH="$1"
+PROFILE_SCRIPT="/etc/profile.d/local_bin.sh"
+
+# Resolve to absolute path
+if command -v realpath >/dev/null 2>&1; then
+  ABS_PATH="$(realpath -m "$INPUT_PATH")"
+else
+  ABS_PATH="$(python3 -c "import os; print(os.path.abspath('$INPUT_PATH'))")"
+fi
+
+EXPORT_LINE="export PATH=\"\$PATH:$ABS_PATH\""
+
+# Add the export line only if it is not already present
+if ! grep -qxF "$EXPORT_LINE" "$PROFILE_SCRIPT" 2>/dev/null; then
+  echo "$EXPORT_LINE" | sudo tee -a "$PROFILE_SCRIPT" > /dev/null
+fi
+
+echo "Path '$ABS_PATH' added to PATH globally (in $PROFILE_SCRIPT). Please restart or do source $ABS_PATH."
