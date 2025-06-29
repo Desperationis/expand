@@ -344,6 +344,8 @@ if status is-interactive
 		conda activate custom
 	end
 
-	#[ -z "$TMUX" ] && exec tmux
+    if which tmux >/dev/null && [ -z "$TMUX" ]
+        tmux attach-session -t default >/dev/null || tmux new-session -s default >/dev/null
+    end
 end
 
