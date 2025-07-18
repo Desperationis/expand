@@ -29,6 +29,7 @@
 #
 #
 
+exec --no-startup-id /home/adhoc/secondscreen_RELEASE/build/out > /home/adhoc/secondscreen.log 2>&1
 
 # Startup cool names for workspace numbers. This forces every script in here to
 # use the form "number [workspace]" to work properly.
