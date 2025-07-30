@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat <<EOF
+Usage: $0 [-n|--no-mount] <menu-entry-name> <linux-partition-device>
+
+Options:
+  -n, --no-mount   Don’t mount the partition; loader/initrd info will be left blank.
+EOF
+  exit 1
+}
+
+# parse options
+NO_MOUNT=false
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -n|--no-mount)
+      NO_MOUNT=true
+      shift
+      ;;
+    -h|--help)
+      usage
+      ;;
+    *)
+      break
+      ;;
+  esac
+done
+
+# require exactly two positional args after flags
+if [[ $# -ne 2 ]]; then
+  usage
+fi
+
+MENU_NAME="$1"
+PART_DEV="$2"
+
+# always available via blkid
+VOLUME=$(sudo blkid -s PARTUUID -o value "$PART_DEV" || echo "")
+ROOT_UUID=$(sudo blkid -s UUID -o value "$PART_DEV"   || echo "")
+
+LOADER_PATH=""
+INITRD_PATH=""
+
+if ! $NO_MOUNT; then
+  # mount to inspect /boot
+  TMP_MNT=$(mktemp -d)
+  trap 'umount "$TMP_MNT" >/dev/null 2>&1 || true; rmdir "$TMP_MNT"' EXIT
+
+  mount "$PART_DEV" "$TMP_MNT"
+  # pick the latest vmlinuz and initrd files (basename only)
+  LOADER_FILE=$(ls "$TMP_MNT"/boot/vmlinuz-* 2>/dev/null | sort | tail -n1 | xargs -n1 basename || echo "")
+  INITRD_FILE=$(ls "$TMP_MNT"/boot/initrd.img-* "$TMP_MNT"/boot/initrd-* 2>/dev/null \
+                  | sort | tail -n1 | xargs -n1 basename || echo "")
+  umount "$TMP_MNT"
+  rmdir "$TMP_MNT"
+  trap - EXIT
+
+  [[ -n "$LOADER_FILE" ]]  && LOADER_PATH="/boot/${LOADER_FILE}"
+  [[ -n "$INITRD_FILE" ]]  && INITRD_PATH="/boot/${INITRD_FILE}"
+fi
+
+cat <<EOF
+menuentry ${MENU_NAME} {
+    icon     EFI/refind/themes/darkmini/icons/os_void.png
+    volume   ${VOLUME}
+    loader   ${LOADER_PATH}
+    initrd   ${INITRD_PATH}
+    options  "root=UUID=${ROOT_UUID} ro quiet splash \$vt_handoff"
+}
+EOF
