@@ -1,0 +1,23 @@
+# AnyUserEscalation()
+# [AptProbe()]
+# Best program for copying files
+
+- name: "Install copyparty"
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: "Install pipx"
+      register: aptout
+      apt:
+        state: latest
+        update_cache: true
+        name:
+          - pipx
+    - debug: var=aptout
+
+    - name: "Install copyparty"
+      register: aptout
+      shell:
+        cmd: pipx install copyparty
+    - debug: var=aptout
