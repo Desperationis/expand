@@ -17,6 +17,8 @@
         state: latest
         update_cache: true
         name:
+          - git
+          - pipx
           - pulseaudio
           - pulsemixer
           - brightnessctl
@@ -103,6 +105,29 @@
       shell:
         chdir: "{{ user_home }}/.config/i3blocks/"
         cmd: chmod +x *
+    - debug: var=aptout
+
+    - name: "Clear existing i3-workspace-names-daemon build"
+      file:
+        path: "/tmp/i3workspace"
+        state: absent
+
+    - name: "Create repo for i3-workspace-names-daemon"
+      file:
+        path: "/tmp/i3workspace"
+        state: directory
+
+    - name: "Install i3-workspace-names-daemon"
+      register: aptout
+      shell:
+        chdir: "/tmp/i3workspace"
+        cmd: git clone https://github.com/i3-workspace-names-daemon/i3-workspace-names-daemon
+
+    - name: "Install i3-workspace-names-daemon"
+      register: aptout
+      shell:
+        chdir: "/tmp/i3workspace/i3-workspace-names-daemon"
+        cmd: pipx install .
     - debug: var=aptout
 
 
