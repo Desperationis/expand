@@ -98,3 +98,12 @@
         src: "{{ config_folder }}/i3blocks/" 
         dest: "{{ user_home }}/.config/i3blocks/"
 
+    - name: "Make i3blocks scripts executable"
+      register: aptout
+      shell:
+        chdir: "{{ user_home }}/.config/i3blocks/"
+        cmd: chmod +x *
+    - debug: var=aptout
+
+
+
