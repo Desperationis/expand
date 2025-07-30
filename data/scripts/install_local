@@ -16,6 +16,8 @@ usage() {
     exit 1
 }
 
+sudo mkdir -p /usr/local/locally_installed
+
 if [[ $# -eq 2 ]]; then
     # Directory + relative path mode
     src_dir="${1%/}"  # Trim trailing slash
