@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+# localpwr: current/list/set CPU frequency governor (Linux cpufreq)
+
+set -euo pipefail
+
+SYS_CPU_DIR="/sys/devices/system/cpu"
+CPU0_DIR="$SYS_CPU_DIR/cpu0/cpufreq"
+GOV_FILE="$CPU0_DIR/scaling_governor"
+AVAIL_FILE="$CPU0_DIR/scaling_available_governors"
+
+usage() {
+  echo "Usage: $(basename "$0") {current|list|set <governor>}"
+  exit 1
+}
+
+# basic sanity check (cpufreq present)
+if [[ ! -d "$CPU0_DIR" ]]; then
+  echo "cpufreq not available at $CPU0_DIR" >&2
+  exit 1
+fi
+
+cmd="${1:-}"
+case "$cmd" in
+  current)
+    cat "$GOV_FILE"
+    ;;
+  list)
+    cat "$AVAIL_FILE"
+    ;;
+  set)
+    [[ $# -ge 2 ]] || usage
+    gov="$2"
+
+    # write to all CPUs
+    shopt -s nullglob
+    files=( "$SYS_CPU_DIR"/cpu*/cpufreq/scaling_governor )
+    if (( ${#files[@]} == 0 )); then
+      echo "No scaling_governor files found." >&2
+      exit 1
+    fi
+    echo "$gov" | sudo tee "${files[@]}" >/dev/null
+    echo "Set governor to: $gov"
+    ;;
+  *)
+    usage
+    ;;
+esac
