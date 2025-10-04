@@ -29,7 +29,7 @@
 #
 #
 
-exec --no-startup-id /home/adhoc/secondscreen_RELEASE/build/out > /home/adhoc/secondscreen.log 2>&1
+# exec --no-startup-id /home/adhoc/secondscreen_RELEASE/build/out > /home/adhoc/secondscreen.log 2>&1
 
 # Startup cool names for workspace numbers. This forces every script in here to
 # use the form "number [workspace]" to work properly.
@@ -40,6 +40,8 @@ exec --no-startup-id picom --experimental-backends
 
 # Disable screen turn off (from x server)
 exec --no-startup-id xset s off; xset -dpms; xset s noblank
+
+exec --no-startup-id feh --bg-fill /usr/share/wallpaper.jpg
 
 # Whenever any new instance of these opens, always put them in the correct
 # window.
@@ -79,7 +81,7 @@ bindcode 127 exec --no-startup-id bash ~/.config/i3/switch_network_state.bash
 
 
 # Font for window titles and bar
-font pango:Monocraft 8
+font pango:Monocraft Nerd Font 8
 
 # These are my applets
 exec --no-startup-id nm-applet

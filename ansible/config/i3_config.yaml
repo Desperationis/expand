@@ -27,6 +27,7 @@
           - i3blocks
           - picom
           - flameshot
+          - feh
     - debug: var=aptout
 
     - name: "Make Monocraft folder"
@@ -109,8 +110,17 @@
       register: aptout
       shell:
         chdir: "/tmp/i3workspace/i3-workspace-names-daemon"
-        cmd: python3 -m pip install --break-system-packages .
+        cmd: /usr/bin/python3 -m pip install --break-system-packages .
     - debug: var=aptout
+
+    - name: Remove wallpaper
+      file:
+        state: absent
+        path: "/usr/share/wallpaper.jpg"
+
+    - name: Download wallpaper
+      shell:
+        cmd: curl "https://w.wallhaven.cc/full/4v/wallhaven-4vzex3.jpg" > "/usr/share/wallpaper.jpg"
 
 
 
