@@ -63,13 +63,6 @@
         cmd: fc-cache -f -v
     - debug: var=aptout
 
-    - name: "Install i3-workspace-names-daemon"
-      register: aptout
-      shell:
-        cmd: pipx install i3-workspace-names-daemon
-    - debug: var=aptout
-
-
     - name: "Clear existing configuration of i3"
       file:
         path: "{{ user_home }}/.config/i3/"
@@ -127,7 +120,7 @@
       register: aptout
       shell:
         chdir: "/tmp/i3workspace/i3-workspace-names-daemon"
-        cmd: pipx install .
+        cmd: python3 -m pip install --break-system-packages .
     - debug: var=aptout
 
 
