@@ -16,11 +16,17 @@
         name: 
         - fuse
     - debug: var=aptout
+
+    - name: "Delete nvim AppImage"
+      file:
+        state: absent
+        path: /usr/bin/nvim
+    - debug: var=aptout
     
     - name: "Download nvim AppImage"
       register: aptout
       get_url:
-        url: https://github.com/neovim/neovim/releases/download/v0.10.4/nvim-linux-x86_64.appimage
+        url: https://github.com/neovim/neovim/releases/download/v0.11.4/nvim-linux-x86_64.appimage
         dest: /usr/bin/nvim
         mode: '0775'
     - debug: var=aptout
