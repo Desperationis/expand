@@ -31,7 +31,6 @@
           - pkg-config
           - build-essential
           - checkinstall
-          - software-properties-common
           - curl
           - pv
           - wget

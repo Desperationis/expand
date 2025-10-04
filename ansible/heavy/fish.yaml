@@ -29,10 +29,16 @@
         src: /tmp/fish.tar.xz
         dest: /tmp/
 
-    - name: Make Build Folder
-      command:
-        cmd: mkdir build
-        chdir: /tmp/fish-3.7.1/
+    - name: Remove Build Folder
+      file:
+        path: /tmp/fish-3.7.1/build
+        state: absent
+
+    - name: Remove Build Folder
+      file:
+        path: /tmp/fish-3.7.1/build
+        state: directory
+        mode: '0755'
 
     - name: Install Fish
       shell:
