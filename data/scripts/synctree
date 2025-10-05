@@ -1,0 +1,242 @@
+#!/usr/bin/env bash
+# synctree.sh — filesystem-aware rsync wrapper
+# Makes DEST a faithful mirror of SRC using the best flags each filesystem can support.
+# Usage: sudo ./synctree.sh [--dry-run] [--no-progress] [--xdev] [--checksum]
+#                             [--log FILE] SRC/ DEST/
+# Notes:
+#   * --xdev confines the copy to the SRC filesystem (rsync -x).
+#   * --checksum uses rsync --checksum for change detection (slower, stronger).
+#   * Requires rsync; probing uses setfattr/getfattr & setfacl if available.
+
+set -Eeuo pipefail
+
+die() { echo "Error: $*" >&2; exit 1; }
+
+# Defaults
+DRY_RUN=0
+SHOW_PROGRESS=1
+ONE_FS=0
+USE_CHECKSUM=0
+LOGFILE=""
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --dry-run|-n) DRY_RUN=1; shift ;;
+    --no-progress) SHOW_PROGRESS=0; shift ;;
+    --xdev|-x) ONE_FS=1; shift ;;
+    --checksum|-c) USE_CHECKSUM=1; shift ;;
+    --log) LOGFILE="${2-}"; shift 2 ;;
+    -h|--help)
+      cat <<'USAGE'
+Usage: sudo ./synctree.sh [options] SRC/ DEST/
+
+Options:
+  --dry-run|-n       : Plan only (no changes).
+  --no-progress      : Hide rsync progress.
+  --xdev|-x          : Stay on the source filesystem (rsync -x).
+  --checksum|-c      : Use checksum-based change detection (slower, stronger).
+  --log FILE         : Append rsync output to FILE as well as stderr/stdout.
+
+Examples:
+  # ext4 -> ext4 (preserve everything)
+  sudo ./synctree.sh . /mnt/myfolder
+
+  # ext4 -> exFAT (safe flags for exFAT, copy symlink targets, modify-window=1)
+  sudo ./synctree.sh ~/data /media/exfat/backup
+USAGE
+      exit 0 ;;
+    *) break ;;
+  esac
+done
+
+[[ $# -ne 2 ]] && die "Need SRC and DEST paths."
+SRC="$1"; DEST="$2"
+
+# Ensure trailing slash on SRC to copy *contents* (standard rsync practice)
+[[ -d "$SRC" ]] || die "SRC is not a directory: $SRC"
+case "$SRC" in */) ;; *) SRC="${SRC}/";; esac
+mkdir -p -- "$DEST" || die "Cannot create destination: $DEST"
+
+# Check rsync presence
+command -v rsync >/dev/null || die "rsync not found."
+
+# Utility: filesystem type at a path (normalized)
+fs_type() {
+  local p="$1" t=""
+  # Try findmnt (best), then df -T, then stat
+  if command -v findmnt >/dev/null; then
+    t=$(findmnt -no FSTYPE -T "$p" 2>/dev/null || true)
+  fi
+  if [[ -z "$t" ]]; then
+    t=$(df -T "$p" 2>/dev/null | awk 'NR==2{print $2}')
+  fi
+  if [[ -z "$t" ]]; then
+    t=$(stat -f -c %T "$p" 2>/dev/null || true)
+  fi
+  t=$(echo "$t" | tr '[:upper:]' '[:lower:]')
+  # Normalize families
+  case "$t" in
+    ext2|ext3|ext4|ext2/ext3|ext2/ext3/ext4) echo "ext";;
+    vfat|fat|fat32|msdos) echo "fat";;
+    exfat) echo "exfat";;
+    ntfs|ntfs3|fuseblk) echo "ntfs";;  # ntfs-3g often shows as fuseblk
+    xfs) echo "xfs";;
+    btrfs) echo "btrfs";;
+    zfs) echo "zfs";;
+    *) echo "$t";;
+  esac
+}
+
+SRC_FS=$(fs_type "$SRC")
+DST_FS=$(fs_type "$DEST")
+
+# Capability probing (non-destructive: creates a temp dir, removes it)
+# Returns 8 booleans via global assoc array "CAP_$side[...]"
+# Keys: symlink hardlink chmod chown xattr acl timestamp_prec
+declare -A CAP_SRC CAP_DST
+
+probe_caps() {
+  local side="$1" dir="$2"
+  local -n CAP=$3
+
+  # Make a throwaway workspace
+  local w="$dir/.rsync-probe.$$"
+  rm -rf -- "$w" 2>/dev/null || true
+  mkdir -p -- "$w" || { CAP[symlink]=0; CAP[hardlink]=0; CAP[chmod]=0; CAP[chown]=0; CAP[xattr]=0; CAP[acl]=0; CAP[timestamp_prec]="unknown"; return; }
+
+  # Baseline file
+  printf 'probe\n' > "$w/f1" || true
+
+  # Symlink support?
+  CAP[symlink]=0
+  if ln -s f1 "$w/symlink_test" 2>/dev/null; then CAP[symlink]=1; fi
+
+  # Hardlink support?
+  CAP[hardlink]=0
+  if ln "$w/f1" "$w/f2" 2>/dev/null; then CAP[hardlink]=1; fi
+
+  # chmod/chown support?
+  CAP[chmod]=0; CAP[chown]=0
+  if chmod 600 "$w/f1" 2>/dev/null; then CAP[chmod]=1; fi
+  if chown 0:0 "$w/f1" 2>/dev/null; then CAP[chown]=1; fi
+
+  # xattr support?
+  CAP[xattr]=0
+  if command -v setfattr >/dev/null && command -v getfattr >/dev/null; then
+    if setfattr -n user.rsync.probe -v 1 "$w/f1" 2>/dev/null && getfattr -n user.rsync.probe "$w/f1" >/dev/null 2>&1; then
+      CAP[xattr]=1
+    fi
+  fi
+
+  # ACL support?
+  CAP[acl]=0
+  if command -v setfacl >/dev/null && command -v getfacl >/dev/null; then
+    if setfacl -m u:0:rw "$w/f1" 2>/dev/null && getfacl -p "$w/f1" >/dev/null 2>&1; then
+      CAP[acl]=1
+    fi
+  fi
+
+  # Timestamp precision heuristic (coarse on FAT/exFAT; fine on ext/ntfs/xfs/btrfs)
+  local t0=$(date +%s)
+  touch -d "@$((t0))" "$w/f1" 2>/dev/null || true
+  local t1=$(stat -c %Y "$w/f1" 2>/dev/null || echo "$t0")
+  if [[ $((t1 - t0)) -ge 1 ]]; then
+    CAP[timestamp_prec]="coarse"
+  else
+    CAP[timestamp_prec]="fine"
+  fi
+
+  rm -rf -- "$w" || true
+}
+
+probe_caps "SRC" "$SRC" CAP_SRC
+probe_caps "DST" "$DEST" CAP_DST
+
+# Compose rsync flags based on destination capabilities.
+RS=(rsync -r)      # always recursive (-r)
+
+# Times always, so that quick-check (size+mtime) works and re-runs are fast.
+RS+=(-t)
+
+# Symlinks: keep if dest supports; else copy targets
+if [[ "${CAP_DST[symlink]:-0}" -eq 1 ]]; then
+  RS+=(-l)  # preserve symlinks
+else
+  RS+=(--copy-links)  # turn symlinks into regular files at dest
+fi
+
+# Hard links: preserve only if dest supports
+if [[ "${CAP_DST[hardlink]:-0}" -eq 1 ]]; then
+  RS+=(-H)
+fi
+
+# Devices/special files: only if dest likely supports (ext/xfs/btrfs/zfs)
+case "$DST_FS" in
+  ext|xfs|btrfs|zfs) RS+=(-D) ;;             # devices & specials
+  *) RS+=(--no-specials --no-devices) ;;
+esac
+
+# Ownership & permissions:
+if [[ $EUID -eq 0 && "${CAP_DST[chown]:-0}" -eq 1 ]]; then
+  RS+=(-o -g --numeric-ids)
+else
+  RS+=(--no-owner --no-group)
+fi
+
+if [[ "${CAP_DST[chmod]:-0}" -eq 1 ]]; then
+  RS+=(-p)
+else
+  RS+=(--no-perms)
+fi
+
+# ACLs & xattrs if both sides support and dest can store them
+if [[ "${CAP_SRC[acl]:-0}" -eq 1 && "${CAP_DST[acl]:-0}" -eq 1 ]]; then
+  RS+=(-A)  # ACLs
+fi
+if [[ "${CAP_SRC[xattr]:-0}" -eq 1 && "${CAP_DST[xattr]:-0}" -eq 1 ]]; then
+  RS+=(-X)  # xattrs
+fi
+
+# Modify-window for coarse-timestamp filesystems (FAT/exFAT) to avoid re-copies
+if [[ "$DST_FS" == "fat" || "$DST_FS" == "exfat" || "${CAP_DST[timestamp_prec]}" == "coarse" ]]; then
+  RS+=(--modify-window=1)
+fi
+
+# One-filesystem confinement if requested
+if [[ $ONE_FS -eq 1 ]]; then
+  RS+=(-x)
+fi
+
+# Delete to make dest mirror src
+RS+=(--delete)
+
+# Resume-friendly & faster re-runs
+RS+=(--partial --partial-dir=.rsync-partial)
+
+# Progress & info
+if [[ $SHOW_PROGRESS -eq 1 ]]; then
+  RS+=(--info=progress2)
+fi
+
+# Optional checksum-based change detection
+if [[ $USE_CHECKSUM -eq 1 ]]; then
+  RS+=(--checksum)
+fi
+
+# Add log if requested
+if [[ -n "$LOGFILE" ]]; then
+  exec > >(tee -a "$LOGFILE") 2>&1
+fi
+
+# Add dry-run if requested
+if [[ $DRY_RUN -eq 1 ]]; then
+  RS+=(--dry-run)
+fi
+
+# Final arguments: SRC -> DEST
+RS+=("$SRC" "$DEST")
+
+echo "Source FS: $SRC_FS   Dest FS: $DST_FS"
+echo "Dest capabilities: symlink=${CAP_DST[symlink]-0} hardlink=${CAP_DST[hardlink]-0} perms=${CAP_DST[chmod]-0} chown=${CAP_DST[chown]-0} acl=${CAP_DST[acl]-0} xattr=${CAP_DST[xattr]-0} ts=${CAP_DST[timestamp_prec]-unknown}"
+echo "Running: ${RS[*]}"
+"${RS[@]}"
