@@ -67,6 +67,6 @@ menuentry ${MENU_NAME} {
     volume   ${VOLUME}
     loader   ${LOADER_PATH}
     initrd   ${INITRD_PATH}
-    options  "root=UUID=${ROOT_UUID} ro quiet splash \$vt_handoff"
+    options  "root=UUID=${ROOT_UUID} ro quiet"
 }
 EOF
