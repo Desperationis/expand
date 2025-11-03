@@ -77,8 +77,7 @@ bindcode 157 exec --no-startup-id xrandr --output "eDP-1" --mode 2560x1440 --rat
 bindcode 135 exec --no-startup-id echo $(cat ~/.keepasspasswd 2>/dev/null) | keepassxc --pw-stdin ~/Desktop/Database.kdbx
 bindcode 127 exec --no-startup-id bash ~/.config/i3/switch_network_state.bash
 
-bindcode 62 exec --no-startup-id i3-msg '[class="^Alacritty$"] kill'
-
+bindcode 62 exec --no-startup-id bash ~/.config/i3/kill_all_unused_terminals.bash
 
 
 
