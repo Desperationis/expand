@@ -1,0 +1,23 @@
+# AnyUserEscalation()
+# [AptProbe()]
+# Why is this running?
+
+- name: "Install witr"
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: "Install curl"
+      register: aptout
+      apt:
+        state: latest
+        update_cache: true
+        name:
+          - curl
+    - debug: var=aptout
+
+    - name: "Install witr"
+      register: aptout
+      shell:
+        cmd: curl -fsSL https://raw.githubusercontent.com/pranshuparmar/witr/main/install.sh | bash
+    - debug: var=aptout
