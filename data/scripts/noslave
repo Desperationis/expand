@@ -35,8 +35,14 @@ then
 	# Push new main branch to remote
 	git push -u origin main
 
+	# Change default branch to main on GitHub before deleting master
+	if command -v gh &> /dev/null
+	then
+		gh repo edit --default-branch main 2>/dev/null
+	fi
+
 	# Delete old master branch on remote
-	git push origin --delete master
+	git push origin --delete master 2>/dev/null || true
 
 	echo "Published changes to remote: pushed 'main', deleted 'master'."
 else
