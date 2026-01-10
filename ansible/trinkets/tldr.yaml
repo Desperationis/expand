@@ -1,0 +1,18 @@
+# OnlyRoot()
+# [AptProbe()]
+# Installs tldr, a collection of simplified man pages.
+
+- name: "Install tldr"
+  hosts: localhost
+  connection: local
+  become: true
+  gather_facts: false
+  tasks:
+    - name: "Install tldr"
+      register: aptout
+      apt:
+        state: latest
+        update_cache: true
+        name:
+          - tldr
+    - debug: var=aptout

@@ -36,7 +36,7 @@
 exec_always --no-startup-id exec i3-workspace-names-daemon
 
 # ARGB windows for overlay (transparency)
-exec --no-startup-id picom --experimental-backends
+exec --no-startup-id picom --backend glx
 
 # Disable screen turn off (from x server)
 exec --no-startup-id xset s off; xset -dpms; xset s noblank
