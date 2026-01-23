@@ -4,9 +4,13 @@
 if which nvim > /dev/null
 then
 	git config --global core.editor nvim
+	git config --global merge.tool nvimdiff
+	git config --global diff.tool nvimdiff
 elif which vim > /dev/null
 then
 	git config --global core.editor vim
+	git config --global merge.tool vimdiff
+	git config --global diff.tool vimdiff
 elif which nano > /dev/null
 then
 	git config --global core.editor nano
