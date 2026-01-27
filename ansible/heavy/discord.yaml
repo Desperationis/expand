@@ -1,5 +1,5 @@
 # OnlyRoot()
-# [AptProbe(), AmdProbe()]
+# [AptProbe(), AmdProbe(), DisplayProbe()]
 # Downloads latest .deb package for Discord from the website.
 
 - name: "Install Discord"

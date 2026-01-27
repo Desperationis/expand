@@ -69,5 +69,23 @@ class ExistenceProbe(CompatibilityProbe):
         return os.path.exists(self.path)
 
 
+class DisplayProbe(CompatibilityProbe):
+    def get_error_message(self) -> str:
+        return "No display/GUI detected."
+
+    def is_compatible(self) -> bool:
+        # Check if currently in a graphical session
+        if os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY"):
+            return True
+
+        # Check if system has GUI capability (desktop sessions installed)
+        session_dirs = ["/usr/share/xsessions", "/usr/share/wayland-sessions"]
+        for session_dir in session_dirs:
+            if os.path.isdir(session_dir) and os.listdir(session_dir):
+                return True
+
+        return False
+
+
 
 

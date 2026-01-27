@@ -1,5 +1,5 @@
 # OnlyRoot()
-# [AptProbe(), AmdProbe()]
+# [AptProbe(), AmdProbe(), DisplayProbe()]
 # Installs the localsend client directly from github.
 
 - name: "Install LocalSend"

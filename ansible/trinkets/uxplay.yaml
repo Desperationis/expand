@@ -1,5 +1,5 @@
 # OnlyRoot()
-# [AptProbe()]
+# [AptProbe(), DisplayProbe()]
 # AirPlay Unix mirroring server. Allows you to stream your screen or audio from an Apple device to your Linux desktop.
 
 - name: "Install uxplay"
