@@ -1,0 +1,37 @@
+# AnyUserNoEscalation()
+# [AptProbe()]
+# Terminal session recorder (asciinema) and GIF generator (agg). Record your terminal sessions and convert them to animated GIFs.
+
+- name: Install Rust
+  import_playbook: ../heavy/rust.yaml
+
+
+- name: "Install asciinema and agg"
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    user_home: "{{ lookup('env', 'HOME') | default(lookup('env', 'USERPROFILE')) }}"
+    cargo: "PATH={{ user_home }}/.cargo/bin/:$PATH && cargo"
+  tasks:
+    - name: "Install pipx"
+      register: aptout
+      apt:
+        state: latest
+        update_cache: true
+        name:
+          - pipx
+    - debug: var=aptout
+
+    - name: "Install asciinema via pipx"
+      register: aptout
+      shell:
+        cmd: pipx install asciinema
+    - debug: var=aptout
+
+    - name: "Install agg (asciinema gif generator) via cargo"
+      register: aptout
+      become_user: "{{ lookup('env', 'USER') }}"
+      shell:
+        cmd: "{{ cargo }} install agg"
+    - debug: var=aptout

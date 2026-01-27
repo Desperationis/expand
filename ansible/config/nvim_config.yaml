@@ -1,6 +1,6 @@
 # AnyUserEscalation()
 # [AptProbe(), WhichProbe("nvim")]
-# # Installs my nvim config as well as any other packages it needs.
+# Installs my nvim config as well as any other packages it needs.
 
 - name: "Install nvim configuration files"
   hosts: localhost
@@ -14,7 +14,7 @@
     - name: "Install plugin requirements"
       register: aptout
       apt:
-        update-cache: true
+        update_cache: true
         state: latest
         name: 
         - ripgrep
@@ -24,7 +24,7 @@
     - name: "Install npm"
       register: aptout
       apt:
-        update-cache: true
+        update_cache: true
         state: latest
         name: npm
     - debug: var=aptout

@@ -1,0 +1,15 @@
+# OnlyRoot()
+# [AptProbe()]
+# Installs lazygit via apt-get.
+
+- name: "Install lazygit"
+  hosts: localhost
+  connection: local
+  become: true
+  gather_facts: false
+  tasks:
+    - name: "Install lazygit"
+      register: aptout
+      shell:
+        cmd: apt-get install -y lazygit
+    - debug: var=aptout

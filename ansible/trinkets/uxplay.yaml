@@ -1,18 +1,18 @@
 # OnlyRoot()
 # [AptProbe(), DisplayProbe()]
-# EXTREMELY GOOD GUI for directory and file diffs.
+# AirPlay Unix mirroring server. Allows you to stream your screen or audio from an Apple device to your Linux desktop.
 
-- name: "Install meld"
+- name: "Install uxplay"
   hosts: localhost
   connection: local
-  become: true # Remove this if AnyUserNoEscalation
+  become: true
   gather_facts: false
   tasks:
-    - name: "Install meld package"
+    - name: "Install uxplay and dependencies"
       register: aptout
       apt:
         state: latest
         update_cache: true
         name:
-          - meld
+          - uxplay
     - debug: var=aptout

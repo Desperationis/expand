@@ -1,0 +1,52 @@
+#!/bin/bash
+
+
+if ! git status 2>&1 >/dev/null
+then
+	echo "This is not a git repository."
+	exit 1
+fi
+
+# Navigate to root directory
+cd $(git rev-parse --show-toplevel)
+
+# Check if master branch exists
+if ! git show-ref --verify --quiet refs/heads/master
+then
+	echo "No 'master' branch found in this repository."
+	exit 0
+fi
+
+# Check if main branch already exists
+if git show-ref --verify --quiet refs/heads/main
+then
+	echo "A 'main' branch already exists. Cannot rename master to main."
+	exit 1
+fi
+
+# Rename master to main locally
+git branch -m master main
+
+echo "Renamed local branch 'master' to 'main'."
+
+# Check if there's a remote origin
+if git remote | grep -q '^origin$'
+then
+	# Push new main branch to remote
+	git push -u origin main
+
+	# Change default branch to main on GitHub before deleting master
+	if command -v gh &> /dev/null
+	then
+		gh repo edit --default-branch main 2>/dev/null
+	fi
+
+	# Delete old master branch on remote
+	git push origin --delete master 2>/dev/null || true
+
+	echo "Published changes to remote: pushed 'main', deleted 'master'."
+else
+	echo "No remote 'origin' found. Local rename complete."
+fi
+
+echo "Done."

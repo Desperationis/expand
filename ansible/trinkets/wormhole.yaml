@@ -1,8 +1,8 @@
 # AnyUserEscalation()
 # [AptProbe()]
-# A modern, feature-rich TUI HTTP client for testing and exploring APIs.
+# Magic Wormhole - get things from one computer to another, safely. Generates a short one-time code that both sender and receiver use to transfer files securely.
 
-- name: "Install posting"
+- name: "Install magic-wormhole"
   hosts: localhost
   connection: local
   become: true
@@ -17,8 +17,8 @@
           - pipx
     - debug: var=aptout
 
-    - name: "Install posting"
+    - name: "Install magic-wormhole via pipx"
       register: aptout
       shell:
-        cmd: pipx install posting
+        cmd: pipx install magic-wormhole
     - debug: var=aptout
