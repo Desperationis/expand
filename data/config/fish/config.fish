@@ -347,5 +347,8 @@ if status is-interactive
     if which tmux >/dev/null && [ -z "$TMUX" ]
         tmux attach-session -t default >/dev/null || tmux new-session -s default >/dev/null
     end
-end
 
+    export CUDA_HOME=/usr/local/cuda
+    fish_add_path {$CUDA_HOME}/bin
+    export LD_LIBRARY_PATH={$CUDA_HOME}/lib64:$LD_LIBRARY_PATH
+end
