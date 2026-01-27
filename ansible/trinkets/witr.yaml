@@ -5,6 +5,7 @@
 - name: "Install witr"
   hosts: localhost
   connection: local
+  become: true
   gather_facts: false
   tasks:
     - name: "Install curl"

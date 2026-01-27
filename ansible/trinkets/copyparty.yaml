@@ -5,6 +5,7 @@
 - name: "Install copyparty"
   hosts: localhost
   connection: local
+  become: true
   gather_facts: false
   tasks:
     - name: "Install pipx"

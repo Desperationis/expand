@@ -1,5 +1,6 @@
 # AnyUserNoEscalation()
 # [WhichProbe("fish")]
+# Installs fish shell configuration files including aliases, functions, and theme settings.
 
 - name: "Install fish configuration files"
   hosts: localhost
