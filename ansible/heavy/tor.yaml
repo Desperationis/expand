@@ -1,5 +1,5 @@
 # AnyUserEscalation()
-# [AmdProbe() ]
+# [AmdProbe(), DisplayProbe()]
 # Downloads the tor browser to ~/.local/bin/
 
 - name: Install Tor Browser securely

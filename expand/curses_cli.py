@@ -29,6 +29,26 @@ class package_select:
 class curses_cli:
     def __init__(self) -> None:
         self.stdscr = curses.initscr()
+        self.show_hidden = False
+
+    def should_hide(self, choice: 'Choice') -> bool:
+        """Check if a choice should be hidden based on privilege and probes."""
+        # Hide OnlyRoot items if user is not root
+        privilege = choice.expansion_card.get_priviledge_level()
+        if isinstance(privilege, OnlyRoot) and os.getuid() != 0:
+            return True
+
+        # Hide items with failing probes
+        if len(choice.failing_probes()) > 0:
+            return True
+
+        return False
+
+    def get_visible_choices(self, choices: list) -> list[tuple[int, 'Choice']]:
+        """Return list of (original_index, choice) for visible items."""
+        if self.show_hidden:
+            return list(enumerate(choices))
+        return [(i, c) for i, c in enumerate(choices) if not self.should_hide(c)]
 
     def setup(self):
         curses.noecho()
@@ -74,13 +94,14 @@ class curses_cli:
 
         while True:
             current_display = categories[current_category][1]
+            visible_choices = self.get_visible_choices(current_display)
             rows, cols = self.stdscr.getmaxyx()
 
             self.stdscr.erase()
 
             user_info = pwd.getpwnam(os.environ["USER"])
             self.stdscr.addstr(0, 0, f"ENV: {os.environ['USER']}  UID: {user_info.pw_uid} EUID: {os.geteuid()}", 0)
-           
+
             # Draw Categories
             running_length = 0
             for i, elem in enumerate(categories):
@@ -94,24 +115,35 @@ class curses_cli:
 
             self.stdscr.addstr(4, 0, "Please Select:", 0)
 
-            for i, elem in enumerate(current_display):
+            for display_idx, (orig_idx, elem) in enumerate(visible_choices):
                 chosen = False
                 for s in selections:
-                    if i == s.selection and s.category == current_category:
+                    if orig_idx == s.selection and s.category == current_category:
                         chosen = True
                         break
 
-                elem.set_chosen(chosen or i == hover) # TODO
-                elem.set_hover(i == hover)
+                elem.set_chosen(chosen or display_idx == hover)
+                elem.set_hover(display_idx == hover)
 
-                y = i + 6
+                y = display_idx + 6
                 x = 5
                 elem.draw(self.stdscr, y, x, cols - x - 5)
 
+            # Draw legend at bottom
+            hidden_count = len(current_display) - len(visible_choices)
+            legend = "TAB: select  h: show hidden" if hidden_count > 0 or self.show_hidden else "TAB: select"
+            if self.show_hidden and hidden_count > 0:
+                legend = "TAB: select  h: hide incompatible"
+            try:
+                self.stdscr.addstr(rows - 1, 0, legend, curses.A_DIM)
+            except curses.error:
+                pass
+
             # 5 from offset of `Choice`, 3 for offset
             x = round(cols - (cols / 3))
-            if x + 3 > Choice.get_min_width() + 5:
-                preview = ChoicePreview(current_display[hover].name, current_display[hover].file_path)
+            if x + 3 > Choice.get_min_width() + 5 and len(visible_choices) > 0:
+                hovered_choice = visible_choices[hover][1]
+                preview = ChoicePreview(hovered_choice.name, hovered_choice.file_path)
                 preview.draw(self.stdscr, 0, x, cols - x, rows)
 
             c = self.stdscr.getch()
@@ -122,24 +154,29 @@ class curses_cli:
             elif c == curses.KEY_RIGHT or c == ord("l"):
                 current_category += 1
                 hover = 0
-                #selections.clear() 
-            elif c == curses.KEY_LEFT or c == ord("h"):
+                #selections.clear()
+            elif c == curses.KEY_LEFT:
                 current_category -= 1
                 hover = 0
                 #selections.clear()
+            elif c == ord("h"):
+                self.show_hidden = not self.show_hidden
+                hover = 0
             elif c == 9:  # Tab
-                obj = package_select(current_category, hover)
+                if len(visible_choices) > 0:
+                    orig_idx = visible_choices[hover][0]
+                    obj = package_select(current_category, orig_idx)
 
-                existing = False
-                for s in selections:
-                    if s.category == current_category and s.selection == hover:
-                        existing = True
-                        break
+                    existing = False
+                    for s in selections:
+                        if s.category == current_category and s.selection == orig_idx:
+                            existing = True
+                            break
 
-                if existing:
-                    selections.remove(obj)
-                else:
-                    selections.add(obj)
+                    if existing:
+                        selections.remove(obj)
+                    else:
+                        selections.add(obj)
 
             elif c == curses.KEY_ENTER or c == 10:
                 self.end()
@@ -207,7 +244,10 @@ class curses_cli:
 
             current_category %= len(categories)
 
-            hover %= len(current_display)
+            if len(visible_choices) > 0:
+                hover %= len(visible_choices)
+            else:
+                hover = 0
 
             self.stdscr.refresh()
 
