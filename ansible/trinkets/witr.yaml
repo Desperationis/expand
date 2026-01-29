@@ -1,5 +1,6 @@
 # AnyUserEscalation()
 # [AptProbe()]
+# [CommandProbe("witr")]
 # Why is this running?
 
 - name: "Install witr"

@@ -1,5 +1,6 @@
 # OnlyRoot()
 # [AptProbe(), DisplayProbe()]
+# [CommandProbe("meld")]
 # EXTREMELY GOOD GUI for directory and file diffs.
 
 - name: "Install meld"

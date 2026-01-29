@@ -1,5 +1,6 @@
 # OnlyRoot()
 # [AptProbe()]
+# [CommandProbe("tldr")]
 # Installs tldr, a collection of simplified man pages.
 
 - name: "Install tldr"

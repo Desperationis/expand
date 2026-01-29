@@ -1,5 +1,6 @@
 # OnlyRoot()
 # [AmdProbe(), AptProbe()]
+# [CommandProbe("bat")]
 # Installs the `bat` executable directly from the Github page.
 
 - name: "Install bat"

@@ -1,5 +1,6 @@
 # OnlyRoot()
 # [AmdProbe()]
+# [CommandProbe("btop")]
 # Install btop++ directly from the Github.
 
 - name: "Install btop++"

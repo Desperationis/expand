@@ -1,5 +1,6 @@
 # AnyUserEscalation()
 # [AptProbe()]
+# [PipxProbe("posting")]
 # A modern, feature-rich TUI HTTP client for testing and exploring APIs.
 
 - name: "Install posting"

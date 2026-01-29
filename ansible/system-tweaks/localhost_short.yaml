@@ -1,5 +1,6 @@
 # OnlyRoot()
 # []
+# [GrepProbe("/etc/hosts", "127.0.0.1   lh")]
 # Make "localhost" synonymous with "lh"
 
 - name: "Make Shorthand for Localhost to lh"

@@ -1,5 +1,6 @@
 # OnlyRoot()
 # [AmdProbe(), DisplayProbe()]
+# [CommandProbe("anki")]
 # Installs Anki directly from the website.
 
 - name: "Install Anki"

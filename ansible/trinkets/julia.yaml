@@ -1,5 +1,6 @@
-# AnyUserNoEscalation() 
+# AnyUserNoEscalation()
 # []
+# [CommandProbe("julia")]
 # Downloads julia using the official command on their website.
 
 - name: "Install Julia"

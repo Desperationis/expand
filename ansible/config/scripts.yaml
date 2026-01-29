@@ -1,5 +1,7 @@
 # AnyUserNoEscalation()
 # []
+# [FileProbe("~/box/bin")]
+# Installs scripts to ~/box/bin
 
 - name: "Install scripts to ~/bin"
   hosts: localhost

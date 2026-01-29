@@ -1,5 +1,7 @@
 # AnyUserNoEscalation()
 # [WhichProbe("tmux")]
+# [FileProbe("~/.config/tmux/tmux.conf")]
+# Installs tmux configuration files.
 
 - name: "Install tmux configuration files"
   hosts: localhost

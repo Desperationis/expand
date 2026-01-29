@@ -1,5 +1,6 @@
 # OnlyRoot()
 # [AmdProbe(), AptProbe()]
+# [CommandProbe("fish")]
 # Builds `fish` from source on Arm-based systems as well as zoxide and fzf. The last two are due to plugins from my configuration.
 
 - name: "Install fish shell"

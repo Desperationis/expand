@@ -87,5 +87,129 @@ class DisplayProbe(CompatibilityProbe):
         return False
 
 
+# =============================================================================
+# InstalledProbe classes - Real-time detection of installed software
+# =============================================================================
+
+class InstalledProbe(ABC):
+    """Abstract base class for probes that detect if software is installed."""
+
+    @abstractmethod
+    def is_installed(self) -> bool:
+        """Return True if the software is detected as installed."""
+        pass
+
+
+class CommandProbe(InstalledProbe):
+    """Check if a command exists in PATH."""
+
+    def __init__(self, command: str) -> None:
+        self.command = command
+
+    def is_installed(self) -> bool:
+        return which(self.command) is not None
+
+
+class FileProbe(InstalledProbe):
+    """Check if a file or directory exists."""
+
+    def __init__(self, path: str) -> None:
+        self.path = os.path.expanduser(path)
+
+    def is_installed(self) -> bool:
+        return os.path.exists(self.path)
+
+
+class AptPackageProbe(InstalledProbe):
+    """Check if an apt package is installed."""
+
+    def __init__(self, package: str) -> None:
+        self.package = package
+
+    def is_installed(self) -> bool:
+        result = subprocess.run(
+            ["dpkg", "-s", self.package],
+            capture_output=True,
+            check=False
+        )
+        return result.returncode == 0
+
+
+class PipxProbe(InstalledProbe):
+    """Check if a pipx package is installed."""
+
+    def __init__(self, package: str) -> None:
+        self.package = package
+
+    def is_installed(self) -> bool:
+        result = subprocess.run(
+            ["pipx", "list", "--short"],
+            capture_output=True,
+            text=True,
+            check=False
+        )
+        if result.returncode != 0:
+            return False
+        # pipx list --short outputs "package version" per line
+        for line in result.stdout.splitlines():
+            if line.split()[0] == self.package:
+                return True
+        return False
+
+
+class GroupMemberProbe(InstalledProbe):
+    """Check if the current user is a member of a group."""
+
+    def __init__(self, group: str) -> None:
+        self.group = group
+
+    def is_installed(self) -> bool:
+        import grp
+        import pwd
+        try:
+            user = pwd.getpwuid(os.getuid()).pw_name
+            group_info = grp.getgrnam(self.group)
+            return user in group_info.gr_mem or group_info.gr_gid == os.getgid()
+        except KeyError:
+            return False
+
+
+class AllProbes(InstalledProbe):
+    """All probes must pass for is_installed to return True."""
+
+    def __init__(self, probes: list) -> None:
+        self.probes = probes
+
+    def is_installed(self) -> bool:
+        return all(probe.is_installed() for probe in self.probes)
+
+
+class AnyProbes(InstalledProbe):
+    """Any probe passing makes is_installed return True."""
+
+    def __init__(self, probes: list) -> None:
+        self.probes = probes
+
+    def is_installed(self) -> bool:
+        return any(probe.is_installed() for probe in self.probes)
+
+
+class GrepProbe(InstalledProbe):
+    """Check if a pattern exists in a file."""
+
+    def __init__(self, path: str, pattern: str) -> None:
+        self.path = os.path.expanduser(path)
+        self.pattern = pattern
+
+    def is_installed(self) -> bool:
+        if not os.path.exists(self.path):
+            return False
+        try:
+            with open(self.path, "r", encoding="UTF-8") as f:
+                return self.pattern in f.read()
+        except (IOError, UnicodeDecodeError):
+            return False
+
+
 
 

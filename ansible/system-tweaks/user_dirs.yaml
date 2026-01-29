@@ -1,5 +1,7 @@
 # AnyUserNoEscalation()
 # []
+# [FileProbe("~/.config/user-dirs.conf")]
+# Removes default folders in ~/
 
 - name: "Removes default folders in ~/"
   hosts: localhost

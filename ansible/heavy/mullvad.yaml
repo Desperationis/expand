@@ -1,5 +1,6 @@
 # OnlyRoot()
 # [AptProbe(), AmdProbe(), DisplayProbe()]
+# [CommandProbe("mullvad")]
 # Installs the GUI client for Mullvad via .deb
 
 - name: "Install Mullvad"

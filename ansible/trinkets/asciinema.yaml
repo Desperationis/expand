@@ -1,5 +1,6 @@
 # AnyUserNoEscalation()
 # [AptProbe()]
+# [PipxProbe("asciinema")]
 # Terminal session recorder (asciinema) and GIF generator (agg). Record your terminal sessions and convert them to animated GIFs.
 
 - name: Install Rust

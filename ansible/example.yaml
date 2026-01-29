@@ -1,5 +1,6 @@
-# OnlyRoot() | AnyUserEscalation() | AnyUserNoEscalation() 
+# OnlyRoot() | AnyUserEscalation() | AnyUserNoEscalation()
 # [AmdProbe(), ArmProbe(), AptProbe(), WhichProbe("bash") ]
+# [CommandProbe("bash"), FileProbe("~/.bashrc"), AptPackageProbe("bash"), PipxProbe("pkg"), GroupMemberProbe("docker"), GrepProbe("/etc/hosts", "pattern"), AllProbes([...]), AnyProbes([...])]
 # description on this line
 #
 # Other paragraph description on this line

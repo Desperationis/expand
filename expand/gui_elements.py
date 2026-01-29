@@ -3,8 +3,8 @@ import pwd
 import curses
 import threading
 from expand import util
-from expand.probes import CompatibilityProbe
-from expand.cache import InstalledCache
+from expand.probes import CompatibilityProbe, InstalledProbe
+from expand.failure_cache import FailureCache
 from expand.colors import expand_color_palette
 from expand.expansion_card import ExpansionCard
 from expand.priviledge import OnlyRoot, AnyUserEscalation, AnyUserNoEscalation
@@ -118,17 +118,27 @@ class Choice:
         if hasattr(self, "_installed_status"):
             return self._installed_status
 
-        user = pwd.getpwuid(os.getuid()).pw_name
-        status = InstalledCache.get_status(self.name, user)
-
-        if status == True:
-            self._installed_status = "Installed"
-        elif status == False:
+        # First check failure cache - if failed, return "Failure"
+        if FailureCache.has_failed(self.name):
             self._installed_status = "Failure"
-        elif status == None:
+            return self._installed_status
+
+        # Then run installed probes
+        installed_probes = self.expansion_card.get_installed_probes()
+        if len(installed_probes) == 0:
+            # No probes defined, status is unknown
+            self._installed_status = "Unknown"
+        elif all(probe.is_installed() for probe in installed_probes):
+            self._installed_status = "Installed"
+        else:
             self._installed_status = "Not Installed"
 
         return self._installed_status
+
+    def clear_installed_status(self):
+        """Clear cached installed status to force re-evaluation."""
+        if hasattr(self, "_installed_status"):
+            delattr(self, "_installed_status")
 
 
     def set_chosen(self, chosen: bool):
@@ -155,12 +165,15 @@ class Choice:
             data["URL"] = "✔", "GREEN"
 
         # If package was able to be installed or not
-        if self.installed_status() == "Failure":
-            data["installed"] = self.installed_status(), "RED"
-        elif self.installed_status() == "Installed":
-            data["installed"] = self.installed_status(), "GREEN"
+        status = self.installed_status()
+        if status == "Failure":
+            data["installed"] = status, "RED"
+        elif status == "Installed":
+            data["installed"] = status, "GREEN"
+        elif status == "Unknown":
+            data["installed"] = status, "NORMAL"
         else:
-            data["installed"] = self.installed_status(), "YELLOW"
+            data["installed"] = status, "YELLOW"
 
         level = self.expansion_card.get_priviledge_level()
         if isinstance(level, OnlyRoot):

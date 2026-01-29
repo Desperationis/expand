@@ -1,5 +1,6 @@
 # OnlyRoot()
 # [AptProbe(), DisplayProbe()]
+# [CommandProbe("keepassxc")]
 # Installs keepassxc
 
 - name: "Install keepass"

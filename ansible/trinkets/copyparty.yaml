@@ -1,5 +1,6 @@
 # AnyUserEscalation()
 # [AptProbe()]
+# [PipxProbe("copyparty")]
 # Best program for copying files
 
 - name: "Install copyparty"

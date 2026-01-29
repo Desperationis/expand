@@ -1,5 +1,6 @@
 # OnlyRoot()
 # [AptProbe()]
+# [CommandProbe("curl")]
 # Installs a bunch of the basic tools I expect to find on a linux system, such as rsync, sudo, rclone, curl, zip, etc.
 
 - name: "Packages for Debian"

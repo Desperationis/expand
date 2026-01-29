@@ -9,9 +9,9 @@ import os
 import pwd
 import shutil
 from expand import util
-from expand.cache import InstalledCache
+from expand.failure_cache import FailureCache
 from expand.gui_elements import ChoicePreview, Choice
-from expand.colors import init_colors 
+from expand.colors import init_colors
 from expand.priviledge import AnyUserNoEscalation, OnlyRoot
 from expand.expansion_card import ExpansionCard
 
@@ -32,7 +32,7 @@ class curses_cli:
         self.show_hidden = False
 
     def should_hide(self, choice: 'Choice') -> bool:
-        """Check if a choice should be hidden based on privilege and probes."""
+        """Check if a choice should be hidden based on privilege, probes, and install status."""
         # Hide OnlyRoot items if user is not root
         privilege = choice.expansion_card.get_priviledge_level()
         if isinstance(privilege, OnlyRoot) and os.getuid() != 0:
@@ -40,6 +40,10 @@ class curses_cli:
 
         # Hide items with failing probes
         if len(choice.failing_probes()) > 0:
+            return True
+
+        # Hide installed packages
+        if choice.installed_status() == "Installed":
             return True
 
         return False
@@ -131,9 +135,9 @@ class curses_cli:
 
             # Draw legend at bottom
             hidden_count = len(current_display) - len(visible_choices)
-            legend = "TAB: select  h: show hidden" if hidden_count > 0 or self.show_hidden else "TAB: select"
+            legend = "TAB: select  h: show all" if hidden_count > 0 or self.show_hidden else "TAB: select"
             if self.show_hidden and hidden_count > 0:
-                legend = "TAB: select  h: hide incompatible"
+                legend = "TAB: select  h: hide installed/incompatible"
             try:
                 self.stdscr.addstr(rows - 1, 0, legend, curses.A_DIM)
             except curses.error:
@@ -204,9 +208,6 @@ class curses_cli:
                     # keep track of who to downgrade to in the case of
                     # AnyUserNoEscalation, and in every other case run as root.
                     tmp = "root"
-                    local = True
-                    if isinstance(priviledge, OnlyRoot):
-                        local = False
                     if isinstance(priviledge, AnyUserNoEscalation):
                         tmp = pwd.getpwuid(os.getuid()).pw_name
 
@@ -220,19 +221,23 @@ class curses_cli:
                     if os.path.exists(ansible_tmp_dir):
                         shutil.rmtree(ansible_tmp_dir)
 
-                    status = p.returncode == 0
-
-                    own_user = pwd.getpwuid(os.getuid()).pw_name
-                    if local:
-                        InstalledCache.set_local_status(current_display[i.selection].name, own_user, status)
+                    package_name = current_display[i.selection].name
+                    if p.returncode == 0:
+                        # Success - clear any failure entry
+                        FailureCache.clear_failed(package_name)
                     else:
-                        InstalledCache.set_global_status(current_display[i.selection].name, status)
+                        # Failure - record it
+                        FailureCache.set_failed(package_name)
+
+                    # Clear cached status so it gets re-evaluated
+                    current_display[i.selection].clear_installed_status()
 
                     # AnyUserEscalation does weird things with permissions that
                     # I will not get into here that interferes with most
                     # programs installed on HOME. So, make everything in HOME
                     # belong to the user, because that is how it is supposed to
                     # be in the first place.
+                    own_user = pwd.getpwuid(os.getuid()).pw_name
                     p = subprocess.Popen(f"chown -R {own_user}:{own_user} {os.path.expanduser('~')}".split(" "), user="root")
                     p.wait()
 

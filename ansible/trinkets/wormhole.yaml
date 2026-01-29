@@ -1,5 +1,6 @@
 # AnyUserEscalation()
 # [AptProbe()]
+# [PipxProbe("magic-wormhole")]
 # Magic Wormhole - get things from one computer to another, safely. Generates a short one-time code that both sender and receiver use to transfer files securely.
 
 - name: "Install magic-wormhole"

@@ -10,12 +10,13 @@ class ExpansionCard:
     FORMAT:
         # PriviledgeLevel()
         # [ CompatibilityProbe(), ... ]
+        # [ InstalledProbe(), ... ]
         # This is the description for this file. It is important that the length of this description doesn't have a newline unless starting a new paragraph, as `expand` wraps this description on changing screen sizes.
         #
         #
         #
-        # As long as there are consecutive # characters, you can keep extending the description as long as you want. 
-        
+        # As long as there are consecutive # characters, you can keep extending the description as long as you want.
+
     """
     
     def __init__(self, file_path: str):
@@ -62,6 +63,26 @@ class ExpansionCard:
 
         raise LookupError(f"Probes not found in {self.file_path}")
 
+    def get_installed_probes(self):
+        """
+        Given an ansible file, return the list of installed probes by parsing the third line.
+        If the ansible file doesn't have a list on line 3, return an empty list.
+        """
+
+        lines = self.content.split("\n")
+        if len(lines) < 3:
+            return []
+
+        third_line = lines[2]
+        if third_line.startswith("#"):
+            third_line = third_line[1:].strip()
+            # If it looks like a list, eval it
+            if third_line.startswith("["):
+                result = eval(third_line)
+                if isinstance(result, list):
+                    return result
+        return []
+
     def get_ansible_description(self, max_length: int) -> list[str]:
         """
         Given the CONTENT (string form) of a ansible file specifically made for
@@ -91,12 +112,12 @@ class ExpansionCard:
             else:
                 break
         
-        if len(comments) <= 1:
+        if len(comments) <= 2:
             return ["N/A"]
 
-        # This starts on Line 3
+        # This starts on Line 4 (after privilege, probes, and installed probes)
         # These lines are all descriptions without # or whitespace
-        comments = list(map(lambda a: a.lstrip("# \t"), comments[2:]))
+        comments = list(map(lambda a: a.lstrip("# \t"), comments[3:]))
 
         def split_sentence(sentence, index):
             # Find the closest space before the index to split the sentence

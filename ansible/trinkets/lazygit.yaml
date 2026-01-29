@@ -1,5 +1,6 @@
 # OnlyRoot()
 # [AptProbe()]
+# [CommandProbe("lazygit")]
 # Installs lazygit via apt-get.
 
 - name: "Install lazygit"

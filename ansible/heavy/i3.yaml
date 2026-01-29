@@ -1,5 +1,6 @@
 # OnlyRoot()
 # [AptProbe()]
+# [CommandProbe("i3")]
 # This installs i3 only
 
 - name: "Installs i3"

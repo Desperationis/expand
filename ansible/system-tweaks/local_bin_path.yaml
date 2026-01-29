@@ -1,5 +1,6 @@
 # OnlyRoot()
 # []
+# [FileProbe("/etc/profile.d/local_bin.sh")]
 # For any new bash shell opened, it adds the common bin paths to PATH.
 # This includes ~/.local/bin, ~/box/bin, etc.
 
