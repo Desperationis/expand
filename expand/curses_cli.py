@@ -8,6 +8,7 @@ import subprocess
 import os
 import pwd
 import shutil
+from concurrent.futures import ThreadPoolExecutor
 from expand import util
 from expand.failure_cache import FailureCache
 from expand.gui_elements import ChoicePreview, Choice
@@ -27,9 +28,10 @@ class package_select:
         return isinstance(other, package_select) and self.category == other.category and self.selection == other.selection
 
 class curses_cli:
-    def __init__(self) -> None:
+    def __init__(self, workers: int = 4) -> None:
         self.stdscr = curses.initscr()
         self.show_hidden = False
+        self.workers = workers
 
     def should_hide(self, choice: 'Choice') -> bool:
         """Check if a choice should be hidden based on privilege, probes, and install status."""
@@ -85,9 +87,17 @@ class curses_cli:
 
         return categories
 
+    def precompute_installed_statuses(self, categories):
+        """Precompute all installed statuses in parallel using thread pool."""
+        all_choices = [choice for _, choices in categories for choice in choices]
+        with ThreadPoolExecutor(max_workers=self.workers) as executor:
+            executor.map(lambda c: c.installed_status(), all_choices)
 
     def loop(self):
         categories = self.create_ansible_data_structure()
+
+        # Precompute all installed statuses in parallel to avoid lag when switching tabs
+        self.precompute_installed_statuses(categories)
 
         # Index of Current Category
         current_category = 0
@@ -243,6 +253,8 @@ class curses_cli:
 
                 # Everything ran successfully, reset requirements
                 categories = self.create_ansible_data_structure()
+                # Precompute installed statuses in parallel for new data structure
+                self.precompute_installed_statuses(categories)
                 selections.clear()
 
                 self.setup()

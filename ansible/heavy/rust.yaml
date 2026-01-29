@@ -1,6 +1,6 @@
 # AnyUserNoEscalation()
 # [ AptProbe() ]
-# [CommandProbe("cargo")]
+# [FileProbe("~/.cargo/bin/cargo")]
 # This installs rust using the one-line installer from sh.rustup.rs. It is important to note that this installs rust to the current user's home directory.
 #
 # No preference is given to root or the user, as both may need rust for their own purposes.

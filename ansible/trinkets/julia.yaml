@@ -1,6 +1,6 @@
 # AnyUserNoEscalation()
 # []
-# [CommandProbe("julia")]
+# [FileProbe("~/.juliaup/bin/julia")]
 # Downloads julia using the official command on their website.
 
 - name: "Install Julia"

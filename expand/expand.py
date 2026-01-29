@@ -1,12 +1,13 @@
-"""expand
+"""expand - Interactive TUI for installing software via Ansible playbooks.
 
 Usage:
-  expand [--user=<name>] [-v | --verbose]
+  expand [options]
 
 Options:
-  -h --help     Show this screen.
-  -v --verbose  Write `expand.log`
-  --user=<name> Change User [default: root]
+  -h --help          Show this screen.
+  -v --verbose       Write debug output to `expand.log`
+  --user=<name>      Install packages for specified user [default: root]
+  --workers=<n>      Number of parallel workers for status checks [default: 4]
 """
 
 import os
@@ -41,10 +42,13 @@ def main():
     This function is what is called when the module is run.
     """
 
+    # Parse workers option
+    workers = int(args["--workers"])
+
     # Curses is initialized first because it doesn't like changing user in this
     # context. If it is initialized after changing user, the program won't work
     # on some computers.
-    cli = curses_cli.curses_cli()
+    cli = curses_cli.curses_cli(workers=workers)
 
     if args["--user"]:
         try:

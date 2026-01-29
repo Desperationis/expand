@@ -1,6 +1,6 @@
 # AnyUserNoEscalation()
 # [AptProbe()]
-# [CommandProbe("gping")]
+# [FileProbe("~/.cargo/bin/gping")]
 # Ping, but with a graph.
 
 - name: Install Rust
