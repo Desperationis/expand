@@ -48,6 +48,10 @@ sync_dir "$USER_CONFIG/alacritty" "$DATA_CONFIG/alacritty" "alacritty"
 sync_dir "$USER_CONFIG/tmux" "$DATA_CONFIG/tmux" "tmux"
 sync_file "$USER_CONFIG/user-dirs.conf" "$DATA_CONFIG/user-dirs.conf" "user-dirs.conf"
 
+# Claude Code (~/.claude/)
+sync_file "$HOME/.claude/settings.json" "$DATA_CONFIG/claude/settings.json" "claude settings.json"
+sync_dir "$HOME/.claude/skills" "$DATA_CONFIG/claude/skills" "claude skills"
+
 # System config (requires root)
 if [ -f "/etc/tlp.conf" ]; then
     if [ "$(id -u)" -eq 0 ]; then

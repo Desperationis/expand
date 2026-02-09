@@ -1,0 +1,33 @@
+# AnyUserNoEscalation()
+# [WhichProbe("claude")]
+# [FileProbe("~/.claude/settings.json")]
+# Installs Claude Code configuration files including settings and custom skills.
+
+- name: "Install Claude Code configuration files"
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    user_home: "{{ lookup('env', 'HOME') | default(lookup('env', 'USERPROFILE')) }}"
+    config_folder: "{{ playbook_dir }}/../../data/config/"
+  tasks:
+
+    - name: "Ensure .claude directory exists"
+      file:
+        path: "{{ user_home }}/.claude"
+        state: directory
+
+    - name: "Copy settings.json"
+      copy:
+        src: "{{ config_folder }}/claude/settings.json"
+        dest: "{{ user_home }}/.claude/settings.json"
+
+    - name: "Clear existing skills"
+      file:
+        path: "{{ user_home }}/.claude/skills/"
+        state: absent
+
+    - name: "Copy skills"
+      copy:
+        src: "{{ config_folder }}/claude/skills"
+        dest: "{{ user_home }}/.claude/"
