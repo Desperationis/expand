@@ -160,6 +160,41 @@ def get_formatted_columns(
 
     return output
 
+def get_ansible_description(content: str, max_length: int) -> list[str]:
+    """
+    Given the raw content of an ansible file, extract its description.
+    The first comment line is treated as a header and skipped.
+    All subsequent consecutive comment lines are the description.
+    Lines longer than `max_length` are split at that boundary.
+    Returns ["N/A"] if no description is found.
+    """
+
+    lines = content.split("\n")
+    comments = []
+    for line in lines:
+        if line.startswith("#"):
+            comments.append(line)
+        else:
+            break
+
+    if len(comments) <= 1:
+        return ["N/A"]
+
+    descriptions = [c.lstrip("# \t") for c in comments[1:]]
+
+    if max_length <= 0:
+        return ["N/A"]
+
+    result = []
+    for string in descriptions:
+        while len(string) > max_length:
+            result.append(string[:max_length])
+            string = string[max_length:]
+        result.append(string)
+
+    return result
+
+
 def change_user(username, euid=0):
     """
     Effectively change the user running this program by changing the UID, GUID,
