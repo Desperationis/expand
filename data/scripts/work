@@ -4,7 +4,13 @@ set -euo pipefail
 n="${1:-1}"
 
 for ((i = 1; i <= n; i++)); do
-  echo "=== Run $i of $n ==="
-  claude --dangerously-skip-permissions -p "/find-next" --output-format stream-text
+  printf '\033[1;34m=== Run %d of %d ===\033[0m\n' "$i" "$n"
+  claude --dangerously-skip-permissions -p "/find-next" --output-format stream-json | while IFS= read -r line; do
+    type=$(printf '%s' "$line" | jq -r '.type // empty' 2>/dev/null) || continue
+    if [ "$type" = "assistant" ]; then
+      text=$(printf '%s' "$line" | jq -r '.message.content[] | select(.type == "text") | .text' 2>/dev/null) || true
+      [ -n "$text" ] && printf '\033[0;36m%s\033[0m' "$text"
+    fi
+  done
   echo ""
 done
