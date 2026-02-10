@@ -5,6 +5,6 @@ n="${1:-1}"
 
 for ((i = 1; i <= n; i++)); do
   echo "=== Run $i of $n ==="
-  claude --dangerously-skip-permissions -p "/find-next"
+  claude --dangerously-skip-permissions -p "/find-next" --output-format stream-text
   echo ""
 done
