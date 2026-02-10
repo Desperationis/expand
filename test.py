@@ -307,3 +307,224 @@ def test_ansible_description():
     assert util.get_ansible_description("# Test\n#he\n#Hello, World!", 3) == ["he", "Hel", "lo,", " Wo", "rld", "!"]
     assert util.get_ansible_description("# Test\n#he\n#Hello, World!\n#\n#", 3) == ["he", "Hel", "lo,", " Wo", "rld", "!", "", ""]
 
+
+def test_install_progress_title():
+    from expand.curses_cli import format_install_title
+
+    assert format_install_title(1, 5, "git") == "Installing [1/5]: git"
+    assert format_install_title(1, 1, "git") == "Installing [1/1]: git"
+    assert format_install_title(5, 5, "git") == "Installing [5/5]: git"
+    assert format_install_title(3, 10, "firefox") == "Installing [3/10]: firefox"
+
+
+def test_failure_cache(tmp_path, monkeypatch):
+    from expand.failure_cache import FailureCache
+
+    cache_file = tmp_path / "failures.json"
+    monkeypatch.setattr(FailureCache, "CACHE_FILE", str(cache_file))
+
+    # has_failed returns False when no cache file exists
+    assert FailureCache.has_failed("pkg") is False
+
+    # set_failed then has_failed returns True
+    FailureCache.set_failed("pkg")
+    assert FailureCache.has_failed("pkg") is True
+
+    # clear_failed then has_failed returns False
+    FailureCache.clear_failed("pkg")
+    assert FailureCache.has_failed("pkg") is False
+
+    # set_failed is idempotent (calling twice doesn't duplicate)
+    FailureCache.set_failed("pkg")
+    FailureCache.set_failed("pkg")
+    import json
+    with open(str(cache_file)) as f:
+        data = json.load(f)
+    assert data["failures"].count("pkg") == 1
+
+    # clear_failed on a non-existent package doesn't crash
+    FailureCache.clear_failed("nonexistent")
+
+
+def test_failure_cache_corrupted(tmp_path, monkeypatch):
+    from expand.failure_cache import FailureCache
+
+    cache_file = tmp_path / "failures.json"
+    monkeypatch.setattr(FailureCache, "CACHE_FILE", str(cache_file))
+
+    # Invalid JSON string
+    cache_file.write_text("not json")
+    assert FailureCache.has_failed("pkg") is False
+
+    # Empty string
+    cache_file.write_text("")
+    assert FailureCache.has_failed("pkg") is False
+
+    # Malformed JSON (extra brace)
+    cache_file.write_text('{}}')
+    assert FailureCache.has_failed("pkg") is False
+
+
+def test_failure_cache_missing_key(tmp_path, monkeypatch):
+    from expand.failure_cache import FailureCache
+
+    cache_file = tmp_path / "failures.json"
+    monkeypatch.setattr(FailureCache, "CACHE_FILE", str(cache_file))
+
+    # Valid JSON but missing "failures" key
+    cache_file.write_text('{"other_key": 1}')
+    assert FailureCache.has_failed("pkg") is False
+
+
+# =============================================================================
+# 3B: ExpansionCard Parsing Tests
+# =============================================================================
+
+
+def _write_expansion_yaml(tmp_path, filename, privilege, probes, installed_probes,
+                          description_lines=None, body=None):
+    """Helper that writes a temporary YAML file with the proper 4-line header."""
+    lines = [
+        f"# {privilege}",
+        f"# {probes}",
+        f"# {installed_probes}",
+    ]
+    if description_lines:
+        for desc in description_lines:
+            lines.append(f"# {desc}" if desc else "#")
+    if body:
+        lines.append(body)
+    path = tmp_path / filename
+    path.write_text("\n".join(lines) + "\n")
+    return str(path)
+
+
+def test_expansion_card_privilege(tmp_path):
+    from expand.expansion_card import ExpansionCard
+    from expand.priviledge import OnlyRoot, AnyUserEscalation, AnyUserNoEscalation
+
+    cases = [
+        ("OnlyRoot()", OnlyRoot),
+        ("AnyUserEscalation()", AnyUserEscalation),
+        ("AnyUserNoEscalation()", AnyUserNoEscalation),
+    ]
+    for priv_str, expected_cls in cases:
+        path = _write_expansion_yaml(
+            tmp_path, f"test_{priv_str}.yaml",
+            privilege=priv_str, probes="[]", installed_probes="[]",
+            description_lines=["test description"],
+        )
+        card = ExpansionCard(path)
+        result = card.get_priviledge_level()
+        assert isinstance(result, expected_cls), (
+            f"Expected {expected_cls.__name__}, got {type(result).__name__}"
+        )
+
+
+def test_expansion_card_probes(tmp_path):
+    from expand.expansion_card import ExpansionCard
+    from expand.probes import AmdProbe
+
+    # Empty probes list
+    path = _write_expansion_yaml(
+        tmp_path, "empty_probes.yaml",
+        privilege="OnlyRoot()", probes="[]", installed_probes="[]",
+        description_lines=["desc"],
+    )
+    card = ExpansionCard(path)
+    assert card.get_probes() == []
+
+    # Single probe
+    path = _write_expansion_yaml(
+        tmp_path, "one_probe.yaml",
+        privilege="OnlyRoot()", probes="[AmdProbe()]", installed_probes="[]",
+        description_lines=["desc"],
+    )
+    card = ExpansionCard(path)
+    result = card.get_probes()
+    assert len(result) == 1
+    assert isinstance(result[0], AmdProbe)
+
+
+def test_expansion_card_installed_probes(tmp_path):
+    from expand.expansion_card import ExpansionCard
+    from expand.probes import CommandProbe
+
+    # With installed probes
+    path = _write_expansion_yaml(
+        tmp_path, "installed.yaml",
+        privilege="OnlyRoot()", probes="[]",
+        installed_probes='[CommandProbe("git")]',
+        description_lines=["desc"],
+    )
+    card = ExpansionCard(path)
+    result = card.get_installed_probes()
+    assert len(result) == 1
+    assert isinstance(result[0], CommandProbe)
+    assert result[0].command == "git"
+
+    # Empty installed probes
+    path = _write_expansion_yaml(
+        tmp_path, "no_installed.yaml",
+        privilege="OnlyRoot()", probes="[]", installed_probes="[]",
+        description_lines=["desc"],
+    )
+    card = ExpansionCard(path)
+    assert card.get_installed_probes() == []
+
+    # File with only 2 lines (no installed probes line) → returns []
+    two_line = tmp_path / "two_line.yaml"
+    two_line.write_text("# OnlyRoot()\n# []\n")
+    card = ExpansionCard(str(two_line))
+    assert card.get_installed_probes() == []
+
+
+def test_expansion_card_description(tmp_path):
+    from expand.expansion_card import ExpansionCard
+
+    # Normal description
+    path = _write_expansion_yaml(
+        tmp_path, "desc.yaml",
+        privilege="OnlyRoot()", probes="[]", installed_probes="[]",
+        description_lines=["This is a description", "Second line here"],
+    )
+    card = ExpansionCard(path)
+    result = card.get_ansible_description(80)
+    assert result == ["This is a description", "Second line here"]
+
+    # No description lines (file has exactly 3 comment lines) → returns []
+    path = _write_expansion_yaml(
+        tmp_path, "no_desc.yaml",
+        privilege="OnlyRoot()", probes="[]", installed_probes="[]",
+    )
+    card = ExpansionCard(path)
+    result = card.get_ansible_description(80)
+    assert result == []
+
+    # File with only 2 comment lines → returns ["N/A"]
+    two_line_desc = tmp_path / "two_line_desc.yaml"
+    two_line_desc.write_text("# OnlyRoot()\n# []\n")
+    card = ExpansionCard(str(two_line_desc))
+    result = card.get_ansible_description(80)
+    assert result == ["N/A"]
+
+    # Description with empty lines (paragraph breaks)
+    path = _write_expansion_yaml(
+        tmp_path, "para_desc.yaml",
+        privilege="OnlyRoot()", probes="[]", installed_probes="[]",
+        description_lines=["First paragraph", "", "Second paragraph"],
+    )
+    card = ExpansionCard(path)
+    result = card.get_ansible_description(80)
+    assert result == ["First paragraph", "", "Second paragraph"]
+
+    # Description that gets word-wrapped at word boundaries
+    path = _write_expansion_yaml(
+        tmp_path, "wrap_desc.yaml",
+        privilege="OnlyRoot()", probes="[]", installed_probes="[]",
+        description_lines=["Install git from source"],
+    )
+    card = ExpansionCard(path)
+    result = card.get_ansible_description(11)
+    assert result == ["Install git", "from source"]
+
