@@ -12,35 +12,35 @@ Options:
 
 import os
 import sys
-if "ACTIVATED_EXPAND" not in os.environ:
-    print("Please run activate.sh as the root user first.")
-    sys.exit(1)
-
-
 import traceback
 import logging
 import pwd
 import grp
-from docopt import docopt
-from expand import curses_cli
-from expand.util import change_user
-
-args = docopt(__doc__)
-
-if args["--verbose"]:
-    logging.basicConfig(
-        filename="expand.log",
-        filemode="a",
-        format="%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s",
-        datefmt="%H:%M:%S",
-        level=logging.DEBUG,
-    )
 
 
 def main():
     """
     This function is what is called when the module is run.
     """
+
+    if "ACTIVATED_EXPAND" not in os.environ:
+        print("Please run activate.sh as the root user first.")
+        sys.exit(1)
+
+    from docopt import docopt
+    from expand import curses_cli
+    from expand.util import change_user
+
+    args = docopt(__doc__)
+
+    if args["--verbose"]:
+        logging.basicConfig(
+            filename="expand.log",
+            filemode="a",
+            format="%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s",
+            datefmt="%H:%M:%S",
+            level=logging.DEBUG,
+        )
 
     # Parse workers option
     workers = int(args["--workers"])
