@@ -7,6 +7,7 @@ from expand.probes import CompatibilityProbe, InstalledProbe
 from expand.failure_cache import FailureCache
 from expand.colors import expand_color_palette
 from expand.expansion_card import ExpansionCard
+from expand.line_buffer import LineBuffer
 from expand.priviledge import OnlyRoot, AnyUserEscalation, AnyUserNoEscalation
 
 class ChoicePreview:
@@ -215,5 +216,52 @@ class Choice:
                 pass
 
 
+class OutputPanel:
+    """
+    Full-screen panel that displays streaming output from a subprocess.
+    Owns a LineBuffer and draws it to the curses screen with a title,
+    divider, scrollable output area, and a status bar.
+    """
 
+    def __init__(self, title):
+        self.title = title
+        self.buffer = LineBuffer()
+        self.status_text = "Running..."
+        self.status_color = "YELLOW"
+
+    def append(self, line):
+        self.buffer.append(util.strip_ansi(line))
+
+    def set_status(self, text, color):
+        self.status_text = text
+        self.status_color = color
+
+    def draw(self, stdscr, rows, cols, scroll_offset):
+        # Row 0: bold title
+        try:
+            stdscr.addstr(0, 0, self.title[:cols], curses.A_BOLD)
+        except curses.error:
+            pass
+
+        # Row 1: horizontal divider
+        try:
+            stdscr.addstr(1, 0, "\u2500" * cols, 0)
+        except curses.error:
+            pass
+
+        # Rows 2..(rows-2): output lines from buffer
+        content_height = max(0, rows - 3)
+        visible = self.buffer.get_visible(content_height, scroll_offset)
+        for i, line in enumerate(visible):
+            try:
+                stdscr.addstr(2 + i, 0, line[:cols], 0)
+            except curses.error:
+                pass
+
+        # Row (rows-1): status bar
+        try:
+            attrs = expand_color_palette.get(self.status_color, 0)
+            stdscr.addstr(rows - 1, 0, self.status_text[:cols], attrs | curses.A_BOLD)
+        except curses.error:
+            pass
 

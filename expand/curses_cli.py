@@ -8,10 +8,11 @@ import subprocess
 import os
 import pwd
 import shutil
+import threading
 from concurrent.futures import ThreadPoolExecutor
 from expand import util
 from expand.failure_cache import FailureCache
-from expand.gui_elements import ChoicePreview, Choice
+from expand.gui_elements import ChoicePreview, Choice, OutputPanel
 from expand.colors import init_colors
 from expand.priviledge import AnyUserNoEscalation, OnlyRoot
 from expand.expansion_card import ExpansionCard
@@ -32,6 +33,9 @@ class curses_cli:
         self.stdscr = curses.initscr()
         self.show_hidden = False
         self.workers = workers
+        self.filter_mode = False
+        self.filter_query = ""
+        self.filter_active = False
 
     def should_hide(self, choice: 'Choice') -> bool:
         """Check if a choice should be hidden based on privilege, probes, and install status."""
@@ -53,8 +57,16 @@ class curses_cli:
     def get_visible_choices(self, choices: list) -> list[tuple[int, 'Choice']]:
         """Return list of (original_index, choice) for visible items."""
         if self.show_hidden:
-            return list(enumerate(choices))
-        return [(i, c) for i, c in enumerate(choices) if not self.should_hide(c)]
+            result = list(enumerate(choices))
+        else:
+            result = [(i, c) for i, c in enumerate(choices) if not self.should_hide(c)]
+
+        if self.filter_active or self.filter_mode:
+            names = [c.name for _, c in result]
+            matching_indices = set(util.filter_choices(names, self.filter_query))
+            result = [pair for idx, pair in enumerate(result) if idx in matching_indices]
+
+        return result
 
     def setup(self):
         curses.noecho()
@@ -66,6 +78,93 @@ class curses_cli:
         self.stdscr.keypad(True)
 
         init_colors()
+
+    def run_playbook_live(self, file_path, package_name, user, panel):
+        """Run an ansible-playbook in a subprocess, streaming output to an OutputPanel.
+
+        Returns the process return code.
+        """
+        proc = subprocess.Popen(
+            ["ansible-playbook", file_path],
+            user=user,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1,
+        )
+
+        def reader():
+            for line in proc.stdout:
+                panel.append(line.rstrip("\n"))
+            proc.stdout.close()
+
+        t = threading.Thread(target=reader, daemon=True)
+        t.start()
+
+        scroll_offset = 0
+        self.stdscr.timeout(100)
+
+        while True:
+            rows, cols = self.stdscr.getmaxyx()
+            content_height = max(0, rows - 3)
+
+            # Auto-scroll: keep at bottom if enabled
+            if panel.buffer.auto_scroll:
+                scroll_offset = max(0, panel.buffer.total_lines() - content_height)
+
+            self.stdscr.erase()
+            panel.draw(self.stdscr, rows, cols, scroll_offset)
+            self.stdscr.refresh()
+
+            c = self.stdscr.getch()
+            if c == curses.KEY_UP or c == ord("k"):
+                scroll_offset = max(0, scroll_offset - 1)
+                panel.buffer.auto_scroll = False
+            elif c == curses.KEY_DOWN or c == ord("j"):
+                scroll_offset += 1
+                if panel.buffer.is_at_bottom(content_height, scroll_offset):
+                    panel.buffer.auto_scroll = True
+            elif c == curses.KEY_PPAGE:  # PgUp
+                scroll_offset = max(0, scroll_offset - content_height)
+                panel.buffer.auto_scroll = False
+            elif c == curses.KEY_NPAGE:  # PgDn
+                scroll_offset += content_height
+                if panel.buffer.is_at_bottom(content_height, scroll_offset):
+                    panel.buffer.auto_scroll = True
+            elif c == curses.KEY_HOME:
+                scroll_offset = 0
+                panel.buffer.auto_scroll = False
+            elif c == curses.KEY_END:
+                scroll_offset = max(0, panel.buffer.total_lines() - content_height)
+                panel.buffer.auto_scroll = True
+
+            # Clamp scroll_offset
+            max_offset = max(0, panel.buffer.total_lines() - content_height)
+            scroll_offset = max(0, min(scroll_offset, max_offset))
+
+            # Check if process finished
+            if proc.poll() is not None:
+                t.join()
+                break
+
+        # Set final status
+        if proc.returncode == 0:
+            panel.set_status("SUCCESS — press any key to continue", "GREEN")
+        else:
+            panel.set_status(f"FAILED rc={proc.returncode} — press any key to continue", "RED")
+
+        # Final draw with status
+        self.stdscr.timeout(-1)  # blocking getch
+        rows, cols = self.stdscr.getmaxyx()
+        content_height = max(0, rows - 3)
+        if panel.buffer.auto_scroll:
+            scroll_offset = max(0, panel.buffer.total_lines() - content_height)
+        self.stdscr.erase()
+        panel.draw(self.stdscr, rows, cols, scroll_offset)
+        self.stdscr.refresh()
+        self.stdscr.getch()  # wait for any key
+
+        return proc.returncode
 
     def create_ansible_data_structure(self):
         # `categories` defines the possible pages available to `expand`:
@@ -143,13 +242,20 @@ class curses_cli:
                 x = 5
                 elem.draw(self.stdscr, y, x, cols - x - 5)
 
-            # Draw legend at bottom
-            hidden_count = len(current_display) - len(visible_choices)
-            legend = "TAB: select  h: show all  q: quit" if hidden_count > 0 or self.show_hidden else "TAB: select  q: quit"
-            if self.show_hidden and hidden_count > 0:
-                legend = "TAB: select  h: hide installed/incompatible  q: quit"
+            # Draw legend or filter bar at bottom
             try:
-                self.stdscr.addstr(rows - 1, 0, legend, curses.A_DIM)
+                if self.filter_mode:
+                    filter_text = f"/ {self.filter_query}_"
+                    self.stdscr.addstr(rows - 1, 0, filter_text, curses.A_BOLD)
+                elif self.filter_active:
+                    filter_text = f"filter: {self.filter_query}  (/ to edit, Esc to clear)"
+                    self.stdscr.addstr(rows - 1, 0, filter_text, curses.A_DIM)
+                else:
+                    hidden_count = len(current_display) - len(visible_choices)
+                    legend = "TAB: select  /: search  h: show all  q: quit" if hidden_count > 0 or self.show_hidden else "TAB: select  /: search  q: quit"
+                    if self.show_hidden and hidden_count > 0:
+                        legend = "TAB: select  /: search  h: hide installed/incompatible  q: quit"
+                    self.stdscr.addstr(rows - 1, 0, legend, curses.A_DIM)
             except curses.error:
                 pass
 
@@ -161,8 +267,40 @@ class curses_cli:
                 preview.draw(self.stdscr, 0, x, cols - x, rows)
 
             c = self.stdscr.getch()
-            if c == ord("q") or c == 27:  # q or Escape
+            if self.filter_mode:
+                if c == 27:  # Escape - cancel filter
+                    self.filter_mode = False
+                    self.filter_active = False
+                    self.filter_query = ""
+                    hover = 0
+                elif c == curses.KEY_ENTER or c == 10:  # Enter - confirm filter
+                    self.filter_mode = False
+                    if self.filter_query:
+                        self.filter_active = True
+                    else:
+                        self.filter_active = False
+                    hover = 0
+                elif c in (127, curses.KEY_BACKSPACE, 8):  # Backspace
+                    self.filter_query = self.filter_query[:-1]
+                    hover = 0
+                elif c == curses.KEY_UP or c == ord("k"):
+                    hover -= 1
+                elif c == curses.KEY_DOWN or c == ord("j"):
+                    hover += 1
+                elif 32 <= c <= 126:  # Printable ASCII
+                    self.filter_query += chr(c)
+                    hover = 0
+                # All other keys ignored in filter mode
+            elif c == 27 and self.filter_active:  # Escape clears active filter
+                self.filter_active = False
+                self.filter_query = ""
+                hover = 0
+            elif c == ord("q") or c == 27:  # q or Escape
                 break
+            elif c == ord("/"):
+                self.filter_mode = True
+                self.filter_query = ""
+                hover = 0
             elif c == curses.KEY_UP or c == ord("k"):
                 hover -= 1
             elif c == curses.KEY_DOWN or c == ord("j"):
@@ -170,10 +308,16 @@ class curses_cli:
             elif c == curses.KEY_RIGHT or c == ord("l"):
                 current_category += 1
                 hover = 0
+                self.filter_mode = False
+                self.filter_active = False
+                self.filter_query = ""
                 #selections.clear()
             elif c == curses.KEY_LEFT:
                 current_category -= 1
                 hover = 0
+                self.filter_mode = False
+                self.filter_active = False
+                self.filter_query = ""
                 #selections.clear()
             elif c == ord("h"):
                 self.show_hidden = not self.show_hidden
@@ -195,16 +339,18 @@ class curses_cli:
                         selections.add(obj)
 
             elif c == curses.KEY_ENTER or c == 10:
-                self.end()
+                # Run Playbooks with live output
+                succeeded = 0
+                total = len(selections)
 
-                # Run Playbooks
                 for i in selections:
                     current_display = categories[i.category][1]
                     file_path = os.path.abspath(current_display[i.selection].file_path)
+                    package_name = current_display[i.selection].name
 
                     priviledge = ExpansionCard(file_path).get_priviledge_level()
 
-                    # The choices I made here a bit confusing so I'll try to explain. 
+                    # The choices I made here a bit confusing so I'll try to explain.
                     #
                     # At this point in the code, EUID == 0 and UID is set to
                     # the user the user is trying to install things too. We
@@ -223,8 +369,8 @@ class curses_cli:
                     if isinstance(priviledge, AnyUserNoEscalation):
                         tmp = pwd.getpwuid(os.getuid()).pw_name
 
-                    p = subprocess.Popen(["ansible-playbook", file_path], user=tmp)
-                    p.wait()
+                    panel = OutputPanel(f"Installing: {package_name}")
+                    rc = self.run_playbook_live(file_path, package_name, tmp, panel)
 
                     # For some reason the Ansible tmp files are owned by root
                     # when run with EUID 0. Just clear out cache to avoid
@@ -233,12 +379,10 @@ class curses_cli:
                     if os.path.exists(ansible_tmp_dir):
                         shutil.rmtree(ansible_tmp_dir)
 
-                    package_name = current_display[i.selection].name
-                    if p.returncode == 0:
-                        # Success - clear any failure entry
+                    if rc == 0:
                         FailureCache.clear_failed(package_name)
+                        succeeded += 1
                     else:
-                        # Failure - record it
                         FailureCache.set_failed(package_name)
 
                     # Clear cached status so it gets re-evaluated
@@ -253,13 +397,25 @@ class curses_cli:
                     p = subprocess.Popen(f"chown -R {own_user}:{own_user} {os.path.expanduser('~')}".split(" "), user="root")
                     p.wait()
 
-                # Everything ran successfully, reset requirements
+                # Show summary panel
+                if total > 0:
+                    summary = OutputPanel("Install Summary")
+                    summary.append(f"{succeeded}/{total} playbooks succeeded.")
+                    if succeeded == total:
+                        summary.set_status("All installations succeeded — press any key to continue", "GREEN")
+                    else:
+                        summary.set_status(f"{total - succeeded} installation(s) failed — press any key to continue", "RED")
+                    self.stdscr.timeout(-1)
+                    rows, cols = self.stdscr.getmaxyx()
+                    self.stdscr.erase()
+                    summary.draw(self.stdscr, rows, cols, 0)
+                    self.stdscr.refresh()
+                    self.stdscr.getch()
+
+                # Rebuild data structure and resume
                 categories = self.create_ansible_data_structure()
-                # Precompute installed statuses in parallel for new data structure
                 self.precompute_installed_statuses(categories)
                 selections.clear()
-
-                self.setup()
 
             current_category %= len(categories)
 

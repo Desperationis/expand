@@ -71,6 +71,185 @@ def test_columns():
     assert expand.get_formatted_columns(data, 20, [1, 1, -1, -1]) == [("d", 0), ("d", 1), ("data3", 2), ("data4", 11)]
 
 
+def test_filter_choices():
+    from expand import filter_choices
+
+    names = ["firefox", "Chrome", "git", "GIMP", "vlc"]
+
+    # Empty query returns all indices
+    assert filter_choices(names, "") == [0, 1, 2, 3, 4]
+
+    # Single match
+    assert filter_choices(names, "firefox") == [0]
+
+    # Multiple matches (case-insensitive 'gi' matches 'git' and 'GIMP')
+    assert filter_choices(names, "gi") == [2, 3]
+
+    # No matches
+    assert filter_choices(names, "zzz") == []
+
+    # Case insensitivity
+    assert filter_choices(names, "CHROME") == [1]
+    assert filter_choices(names, "gimp") == [3]
+
+    # Special characters in query
+    assert filter_choices(["c++", "c#", "go"], "+") == [0]
+    assert filter_choices(["c++", "c#", "go"], "#") == [1]
+
+    # Empty names list
+    assert filter_choices([], "anything") == []
+    assert filter_choices([], "") == []
+
+
+def test_filter_visible_choices():
+    """Test that filter_choices correctly narrows a list of names,
+    mirroring the integration in get_visible_choices."""
+    from expand import filter_choices
+
+    # Simulate names that would come from visible choices
+    names = ["firefox", "git", "GIMP", "vlc", "Chrome"]
+
+    # No filter: all returned
+    assert filter_choices(names, "") == [0, 1, 2, 3, 4]
+
+    # Filter narrows to matching items
+    matching = filter_choices(names, "gi")
+    assert matching == [1, 2]  # git, GIMP
+
+    # Filtered list keeps only matched entries
+    filtered = [names[i] for i in matching]
+    assert filtered == ["git", "GIMP"]
+
+    # Single match
+    assert [names[i] for i in filter_choices(names, "fire")] == ["firefox"]
+
+    # No match produces empty list
+    assert filter_choices(names, "zzz") == []
+    assert [names[i] for i in filter_choices(names, "zzz")] == []
+
+    # Case insensitive
+    assert [names[i] for i in filter_choices(names, "chrome")] == ["Chrome"]
+
+
+def test_line_buffer():
+    from expand.line_buffer import LineBuffer
+
+    # Basic append and total_lines
+    buf = LineBuffer()
+    assert buf.total_lines() == 0
+    buf.append("line 0")
+    buf.append("line 1")
+    buf.append("line 2")
+    assert buf.total_lines() == 3
+
+    # get_visible with varying heights and offsets
+    assert buf.get_visible(3, 0) == ["line 0", "line 1", "line 2"]
+    assert buf.get_visible(2, 0) == ["line 0", "line 1"]
+    assert buf.get_visible(2, 1) == ["line 1", "line 2"]
+    assert buf.get_visible(5, 0) == ["line 0", "line 1", "line 2"]  # height > total returns what's available
+    assert buf.get_visible(2, 2) == ["line 2"]  # offset near end
+    assert buf.get_visible(2, 3) == []  # offset past end
+    assert buf.get_visible(0, 0) == []  # zero height
+
+    # is_at_bottom boundary conditions
+    assert buf.is_at_bottom(3, 0) is True   # exactly fits
+    assert buf.is_at_bottom(2, 1) is True   # offset + height == total
+    assert buf.is_at_bottom(2, 0) is False  # can scroll more
+    assert buf.is_at_bottom(5, 0) is True   # height exceeds total
+    assert buf.is_at_bottom(1, 2) is True   # last line visible
+
+    # Capacity overflow drops oldest lines
+    small = LineBuffer(max_lines=3)
+    for i in range(5):
+        small.append(f"line {i}")
+    assert small.total_lines() == 3
+    assert small.get_visible(3, 0) == ["line 2", "line 3", "line 4"]
+
+    # auto_scroll default
+    assert LineBuffer().auto_scroll is True
+
+
+def test_line_buffer_scroll():
+    from expand.line_buffer import LineBuffer
+
+    # Populate a buffer with 20 lines
+    buf = LineBuffer()
+    for i in range(20):
+        buf.append(f"line {i}")
+
+    height = 5
+
+    # Initial view from top (scroll_offset=0)
+    assert buf.get_visible(height, 0) == ["line 0", "line 1", "line 2", "line 3", "line 4"]
+
+    # Scroll down by 1
+    assert buf.get_visible(height, 1) == ["line 1", "line 2", "line 3", "line 4", "line 5"]
+
+    # Scroll down by several
+    assert buf.get_visible(height, 10) == ["line 10", "line 11", "line 12", "line 13", "line 14"]
+
+    # Scroll up by 1 from offset 10
+    assert buf.get_visible(height, 9) == ["line 9", "line 10", "line 11", "line 12", "line 13"]
+
+    # Page down (rows - 3 = height): from offset 0, jump by 5
+    offset = 0
+    offset += height
+    assert buf.get_visible(height, offset) == ["line 5", "line 6", "line 7", "line 8", "line 9"]
+
+    # Page up: from offset 10, jump back by 5
+    offset = 10
+    offset = max(0, offset - height)
+    assert buf.get_visible(height, offset) == ["line 5", "line 6", "line 7", "line 8", "line 9"]
+
+    # Page up from near top doesn't go negative
+    offset = 2
+    offset = max(0, offset - height)
+    assert offset == 0
+    assert buf.get_visible(height, offset) == ["line 0", "line 1", "line 2", "line 3", "line 4"]
+
+    # Home: scroll to top
+    offset = 15
+    offset = 0
+    assert buf.get_visible(height, offset) == ["line 0", "line 1", "line 2", "line 3", "line 4"]
+
+    # End: scroll to bottom
+    offset = max(0, buf.total_lines() - height)
+    assert offset == 15
+    assert buf.get_visible(height, offset) == ["line 15", "line 16", "line 17", "line 18", "line 19"]
+    assert buf.is_at_bottom(height, offset) is True
+
+    # Verify is_at_bottom is False when not at bottom
+    assert buf.is_at_bottom(height, 0) is False
+    assert buf.is_at_bottom(height, 14) is False
+
+    # Verify is_at_bottom is True at/past bottom
+    assert buf.is_at_bottom(height, 15) is True
+    assert buf.is_at_bottom(height, 16) is True
+
+    # Scroll past end returns partial results
+    assert buf.get_visible(height, 18) == ["line 18", "line 19"]
+    assert buf.get_visible(height, 20) == []
+
+
+def test_strip_ansi():
+    from expand import strip_ansi
+
+    # Plain text unchanged
+    assert strip_ansi("hello world") == "hello world"
+
+    # Strips color codes
+    assert strip_ansi("\x1b[31mred text\x1b[0m") == "red text"
+
+    # Strips multiple codes in one string
+    assert strip_ansi("\x1b[1m\x1b[32mBold Green\x1b[0m normal") == "Bold Green normal"
+
+    # Handles empty string
+    assert strip_ansi("") == ""
+
+    # Strips codes with multiple parameters (e.g., 38;5;196 for 256-color)
+    assert strip_ansi("\x1b[38;5;196mcolored\x1b[0m") == "colored"
+
+
 def test_ansible_description():
     from expand import util
 

@@ -195,6 +195,24 @@ def get_ansible_description(content: str, max_length: int) -> list[str]:
     return result
 
 
+def strip_ansi(text: str) -> str:
+    """
+    Remove ANSI escape sequences from text.
+    """
+    return re.sub(r'\x1b\[[0-9;]*[a-zA-Z]', '', text)
+
+
+def filter_choices(names: list[str], query: str) -> list[int]:
+    """
+    Return indices of `names` where `query` is a case-insensitive substring.
+    Empty query returns all indices.
+    """
+    if not query:
+        return list(range(len(names)))
+    lower_query = query.lower()
+    return [i for i, name in enumerate(names) if lower_query in name.lower()]
+
+
 def change_user(username, euid=0):
     """
     Effectively change the user running this program by changing the UID, GUID,
