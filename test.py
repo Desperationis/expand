@@ -250,6 +250,50 @@ def test_strip_ansi():
     assert strip_ansi("\x1b[38;5;196mcolored\x1b[0m") == "colored"
 
 
+def test_select_all_visible():
+    from expand.curses_cli import curses_cli, package_select
+
+    # We only need the method, not a real curses instance.
+    # select_all_visible doesn't use self, so pass None.
+    cli = object.__new__(curses_cli)
+
+    # Helper: create a fake visible_choices list [(orig_idx, stub), ...]
+    def make_visible(orig_indices):
+        return [(i, None) for i in orig_indices]
+
+    # Empty visible list → selections unchanged
+    sel = {package_select(0, 5)}
+    result = cli.select_all_visible([], 0, sel)
+    assert result == {package_select(0, 5)}
+
+    # None selected → all get added
+    visible = make_visible([0, 1, 2])
+    result = cli.select_all_visible(visible, 0, set())
+    assert result == {package_select(0, 0), package_select(0, 1), package_select(0, 2)}
+
+    # Some selected → all get added (fills gaps)
+    sel = {package_select(0, 0)}
+    result = cli.select_all_visible(visible, 0, sel)
+    assert result == {package_select(0, 0), package_select(0, 1), package_select(0, 2)}
+
+    # All selected → all get removed (full toggle-off)
+    sel = {package_select(0, 0), package_select(0, 1), package_select(0, 2)}
+    result = cli.select_all_visible(visible, 0, sel)
+    assert result == set()
+
+    # Selections from a different category are not touched
+    other_cat = {package_select(1, 0), package_select(1, 3)}
+    sel = other_cat.copy()
+    result = cli.select_all_visible(visible, 0, sel)
+    # Should add category 0 items but keep category 1 items
+    assert result == {package_select(0, 0), package_select(0, 1), package_select(0, 2),
+                      package_select(1, 0), package_select(1, 3)}
+
+    # Now toggle off category 0 — category 1 items should remain
+    result2 = cli.select_all_visible(visible, 0, result)
+    assert result2 == other_cat
+
+
 def test_ansible_description():
     from expand import util
 

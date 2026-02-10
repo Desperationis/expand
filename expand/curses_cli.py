@@ -28,6 +28,9 @@ class package_select:
     def __eq__(self, other):
         return isinstance(other, package_select) and self.category == other.category and self.selection == other.selection
 
+def format_install_title(index, total, name):
+    return f"Installing [{index}/{total}]: {name}"
+
 class curses_cli:
     def __init__(self, workers: int = 4) -> None:
         self.stdscr = curses.initscr()
@@ -67,6 +70,22 @@ class curses_cli:
             result = [pair for idx, pair in enumerate(result) if idx in matching_indices]
 
         return result
+
+    def select_all_visible(self, visible_choices, current_category, selections):
+        """Toggle-select all visible items in the current category.
+
+        If all visible items are already selected, deselect them all.
+        Otherwise, select them all. Selections from other categories are untouched.
+        Returns an updated selections set.
+        """
+        visible_pselects = {package_select(current_category, orig_idx)
+                           for orig_idx, _ in visible_choices}
+        if not visible_pselects:
+            return set(selections)
+        if visible_pselects <= selections:
+            return selections - visible_pselects
+        else:
+            return selections | visible_pselects
 
     def setup(self):
         curses.noecho()
@@ -252,9 +271,9 @@ class curses_cli:
                     self.stdscr.addstr(rows - 1, 0, filter_text, curses.A_DIM)
                 else:
                     hidden_count = len(current_display) - len(visible_choices)
-                    legend = "TAB: select  /: search  h: show all  q: quit" if hidden_count > 0 or self.show_hidden else "TAB: select  /: search  q: quit"
+                    legend = "TAB: select  a: select all  /: search  h: show all  q: quit" if hidden_count > 0 or self.show_hidden else "TAB: select  a: select all  /: search  q: quit"
                     if self.show_hidden and hidden_count > 0:
-                        legend = "TAB: select  /: search  h: hide installed/incompatible  q: quit"
+                        legend = "TAB: select  a: select all  /: search  h: hide installed/incompatible  q: quit"
                     self.stdscr.addstr(rows - 1, 0, legend, curses.A_DIM)
             except curses.error:
                 pass
@@ -322,6 +341,9 @@ class curses_cli:
             elif c == ord("h"):
                 self.show_hidden = not self.show_hidden
                 hover = 0
+            elif c == ord("a"):
+                selections = self.select_all_visible(visible_choices, current_category, selections)
+                hover = 0
             elif c == 9:  # Tab
                 if len(visible_choices) > 0:
                     orig_idx = visible_choices[hover][0]
@@ -343,7 +365,7 @@ class curses_cli:
                 succeeded = 0
                 total = len(selections)
 
-                for i in selections:
+                for counter, i in enumerate(selections, 1):
                     current_display = categories[i.category][1]
                     file_path = os.path.abspath(current_display[i.selection].file_path)
                     package_name = current_display[i.selection].name
@@ -369,7 +391,7 @@ class curses_cli:
                     if isinstance(priviledge, AnyUserNoEscalation):
                         tmp = pwd.getpwuid(os.getuid()).pw_name
 
-                    panel = OutputPanel(f"Installing: {package_name}")
+                    panel = OutputPanel(format_install_title(counter, total, package_name))
                     rc = self.run_playbook_live(file_path, package_name, tmp, panel)
 
                     # For some reason the Ansible tmp files are owned by root
@@ -399,7 +421,7 @@ class curses_cli:
 
                 # Show summary panel
                 if total > 0:
-                    summary = OutputPanel("Install Summary")
+                    summary = OutputPanel(f"Install Summary — {total} package(s)")
                     summary.append(f"{succeeded}/{total} playbooks succeeded.")
                     if succeeded == total:
                         summary.set_status("All installations succeeded — press any key to continue", "GREEN")

@@ -22,12 +22,15 @@ class FailureCache:
         if not os.path.exists(FailureCache.CACHE_FILE):
             return {"failures": []}
 
-        with open(FailureCache.CACHE_FILE, "r", encoding="UTF-8") as file:
-            data = json.load(file)
-            # Ensure failures key exists
-            if "failures" not in data:
-                data["failures"] = []
-            return data
+        try:
+            with open(FailureCache.CACHE_FILE, "r", encoding="UTF-8") as file:
+                data = json.load(file)
+        except (json.JSONDecodeError, ValueError):
+            return {"failures": []}
+        # Ensure failures key exists
+        if "failures" not in data:
+            data["failures"] = []
+        return data
 
     @staticmethod
     def _write_json(data: dict):
