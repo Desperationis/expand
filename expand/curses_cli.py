@@ -145,9 +145,9 @@ class curses_cli:
 
             # Draw legend at bottom
             hidden_count = len(current_display) - len(visible_choices)
-            legend = "TAB: select  h: show all" if hidden_count > 0 or self.show_hidden else "TAB: select"
+            legend = "TAB: select  h: show all  q: quit" if hidden_count > 0 or self.show_hidden else "TAB: select  q: quit"
             if self.show_hidden and hidden_count > 0:
-                legend = "TAB: select  h: hide installed/incompatible"
+                legend = "TAB: select  h: hide installed/incompatible  q: quit"
             try:
                 self.stdscr.addstr(rows - 1, 0, legend, curses.A_DIM)
             except curses.error:
@@ -161,7 +161,9 @@ class curses_cli:
                 preview.draw(self.stdscr, 0, x, cols - x, rows)
 
             c = self.stdscr.getch()
-            if c == curses.KEY_UP or c == ord("k"):
+            if c == ord("q") or c == 27:  # q or Escape
+                break
+            elif c == curses.KEY_UP or c == ord("k"):
                 hover -= 1
             elif c == curses.KEY_DOWN or c == ord("j"):
                 hover += 1
