@@ -3,6 +3,9 @@
     "EDITOR": "nvim",
     "VISUAL": "nvim"
   },
+  "permissions": {
+    "defaultMode": "default"
+  },
   "enabledPlugins": {
     "rust-analyzer-lsp@claude-plugins-official": false,
     "code-simplifier@claude-plugins-official": true,
