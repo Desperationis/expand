@@ -351,4 +351,13 @@ if status is-interactive
     export CUDA_HOME=/usr/local/cuda
     fish_add_path {$CUDA_HOME}/bin
     export LD_LIBRARY_PATH={$CUDA_HOME}/lib64:$LD_LIBRARY_PATH
+    fish_add_path $(npm prefix -g)/bin
 end
+
+
+# pnpm
+set -gx PNPM_HOME "/home/adhoc/.local/share/pnpm"
+if not string match -q -- $PNPM_HOME $PATH
+  set -gx PATH "$PNPM_HOME" $PATH
+end
+# pnpm end
