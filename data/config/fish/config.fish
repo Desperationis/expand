@@ -350,7 +350,7 @@ if status is-interactive
 
     export CUDA_HOME=/usr/local/cuda
     fish_add_path {$CUDA_HOME}/bin
-    export LD_LIBRARY_PATH={$CUDA_HOME}/lib64:$LD_LIBRARY_PATH
+    set -gx LD_LIBRARY_PATH {$CUDA_HOME}/lib64 $LD_LIBRARY_PATH
     fish_add_path $(npm prefix -g)/bin
 end
 
