@@ -54,12 +54,36 @@ end
 
 
 function fish_greeting -d "Greeting message on shell session start up"
-    set ascii_art (cat ~/.config/fish/ascii_art.txt | string split0)
+    set -l art (cat ~/.config/fish/ascii_art.txt)
+    set -l pad 44
 
-    # This assumes 'welcome_message', 'show_os_info', etc., are functions
-    # or commands that output the desired values.
+    set -l info
+    set -a info (welcome_message)
+    set -a info (show_os_info)
+    set -a info (show_cpu_name)
+    set -a info (show_cpu_cores)
+    set -a info (show_wifi_ssid)
+    set -a info (show_ip)
+    set -a info (show_bluetooth)
+    set -a info (show_timezone)
 
-    echo $ascii_art
+    set -l total (count $art)
+    if test (count $info) -gt $total
+        set total (count $info)
+    end
+
+    for i in (seq $total)
+        set -l line ""
+        if test $i -le (count $art)
+            set line $art[$i]
+        end
+        echo -n (string pad -r -w $pad -- $line)
+        if test $i -le (count $info)
+            echo $info[$i]
+        else
+            echo
+        end
+    end
 end
 
 
