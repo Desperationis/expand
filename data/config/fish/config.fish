@@ -62,7 +62,9 @@ function fish_greeting -d "Greeting message on shell session start up"
     set -a info (show_os_info)
     set -a info (show_cpu_name)
     set -a info (show_cpu_cores)
-    set -a info (show_wifi_ssid)
+    if test (uname -s) != "Darwin"
+        set -a info (show_wifi_ssid)
+    end
     set -a info (show_ip)
     set -a info (show_bluetooth)
     set -a info (show_timezone)
@@ -246,7 +248,10 @@ function show_ip -d "Print out IP of network card"
 			end
 		end
 	else if test "$os_type" = "Darwin"
-        set ip (ifconfig | grep -v "127.0.0.1" | grep "inet " | head -1 | cut -d " " -f2)
+        set -l iface (route -n get default 2>/dev/null | awk '/interface:/{print $2}')
+        if test -n "$iface"
+            set ip (ifconfig $iface 2>/dev/null | awk '/inet /{print $2; exit}')
+        end
     end
 
     set_color brblack
@@ -288,9 +293,9 @@ function show_wifi_ssid -d "Print out Wifi SSID"
 			end
 		end
     else if test "$os_type" = "Darwin"
-        set -l wifi_out (networksetup -getairportnetwork en0 2>/dev/null)
-        if string match -q "Current Wi-Fi Network:*" $wifi_out
-            set w_status (string replace "Current Wi-Fi Network: " "" $wifi_out)
+        set -l wifi_out (ipconfig getsummary en0 2>/dev/null | awk -F' : ' '/^ *SSID /{print $2; exit}')
+        if test -n "$wifi_out"
+            set w_status $wifi_out
         else
             set w_status "Not connected"
         end
