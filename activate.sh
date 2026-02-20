@@ -38,6 +38,12 @@ expand_bootstrap() {
         fi
     fi
 
+    # Install community.general Ansible collection (for homebrew modules)
+    if ! ansible-galaxy collection list 2>/dev/null | grep -q "community.general"
+    then
+        ansible-galaxy collection install community.general
+    fi
+
     # Install uv
 	if ! which uv > /dev/null 2>&1
 	then
@@ -60,7 +66,7 @@ if [ "$(id -u)" -eq 0 ]
 then
 	expand_bootstrap
 	ACTIVATED_EXPAND=""
-	export ACTIVATED_EXPAND 
+	export ACTIVATED_EXPAND
 else
     echo -e "\e[31mYou must be root to run this script. Authenticate below to open a new shell and try again.\e[0m"
     sudo "$(command -v bash)"

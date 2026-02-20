@@ -29,6 +29,11 @@ function expand_bootstrap
         end
     end
 
+    # Install community.general Ansible collection (for homebrew modules)
+    if not ansible-galaxy collection list 2>/dev/null | grep -q "community.general"
+        ansible-galaxy collection install community.general
+    end
+
     # Install uv
     if not command -q uv
         curl -LsSf https://astral.sh/uv/install.sh | sh

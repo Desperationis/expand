@@ -44,6 +44,30 @@ class AptProbe(CompatibilityProbe):
         return which("apt") is not None
 
 
+class BrewProbe(CompatibilityProbe):
+    def get_error_message(self) -> str:
+        return "brew doesn't exist"
+
+    def is_compatible(self) -> bool:
+        return which("brew") is not None
+
+
+class DarwinProbe(CompatibilityProbe):
+    def get_error_message(self) -> str:
+        return "Not on macOS."
+
+    def is_compatible(self) -> bool:
+        return platform.system() == "Darwin"
+
+
+class LinuxProbe(CompatibilityProbe):
+    def get_error_message(self) -> str:
+        return "Not on Linux."
+
+    def is_compatible(self) -> bool:
+        return platform.system() == "Linux"
+
+
 class WhichProbe(CompatibilityProbe):
     def __init__(self, command) -> None:
         self.command = command
@@ -74,6 +98,10 @@ class DisplayProbe(CompatibilityProbe):
         return "No display/GUI detected."
 
     def is_compatible(self) -> bool:
+        # macOS always has a display
+        if platform.system() == "Darwin":
+            return True
+
         # Check if currently in a graphical session
         if os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY"):
             return True
@@ -129,6 +157,28 @@ class AptPackageProbe(InstalledProbe):
     def is_installed(self) -> bool:
         result = subprocess.run(
             ["dpkg", "-s", self.package],
+            capture_output=True,
+            check=False
+        )
+        return result.returncode == 0
+
+
+class BrewPackageProbe(InstalledProbe):
+    """Check if a Homebrew package is installed (formula or cask)."""
+
+    def __init__(self, package: str) -> None:
+        self.package = package
+
+    def is_installed(self) -> bool:
+        result = subprocess.run(
+            ["brew", "list", "--formula", self.package],
+            capture_output=True,
+            check=False
+        )
+        if result.returncode == 0:
+            return True
+        result = subprocess.run(
+            ["brew", "list", "--cask", self.package],
             capture_output=True,
             check=False
         )
