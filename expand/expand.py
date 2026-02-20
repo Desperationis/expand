@@ -15,7 +15,6 @@ import sys
 import traceback
 import logging
 import pwd
-import grp
 
 
 def main():
@@ -64,8 +63,9 @@ def main():
             folder = os.path.expanduser(folder)
             os.makedirs(folder, exist_ok=True)
 
-            uid = pwd.getpwnam(args["--user"]).pw_uid
-            gid = grp.getgrnam(args["--user"]).gr_gid
+            pw_entry = pwd.getpwnam(args["--user"])
+            uid = pw_entry.pw_uid
+            gid = pw_entry.pw_gid
 
             os.chown(folder, uid, gid)
 

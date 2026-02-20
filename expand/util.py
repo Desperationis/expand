@@ -8,6 +8,7 @@ import pwd
 import requests
 import humanize
 from datetime import datetime, timedelta
+from typing import Optional
 from expand.probes import *
 
 
@@ -98,7 +99,7 @@ def get_files(directory: str):
 
 
 def get_formatted_columns(
-    data: list[str], width, sizes: list[int] | None = None
+    data: list[str], width, sizes: Optional[list[int]] = None
 ) -> list[tuple[str, int]]:
     """
     Given a list `data` and `width`, return a list of (str, int) such that
