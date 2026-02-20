@@ -2,6 +2,102 @@ import expand
 import datetime
 
 
+def test_brew_probe():
+    from unittest.mock import patch
+    from expand.probes import BrewProbe
+
+    probe = BrewProbe()
+
+    # brew exists → compatible
+    with patch("expand.probes.which", return_value="/opt/homebrew/bin/brew"):
+        assert probe.is_compatible() is True
+
+    # brew doesn't exist → not compatible
+    with patch("expand.probes.which", return_value=None):
+        assert probe.is_compatible() is False
+
+
+def test_darwin_probe():
+    from unittest.mock import patch
+    from expand.probes import DarwinProbe
+
+    probe = DarwinProbe()
+
+    with patch("expand.probes.platform") as mock_platform:
+        mock_platform.system.return_value = "Darwin"
+        assert probe.is_compatible() is True
+
+    with patch("expand.probes.platform") as mock_platform:
+        mock_platform.system.return_value = "Linux"
+        assert probe.is_compatible() is False
+
+
+def test_linux_probe():
+    from unittest.mock import patch
+    from expand.probes import LinuxProbe
+
+    probe = LinuxProbe()
+
+    with patch("expand.probes.platform") as mock_platform:
+        mock_platform.system.return_value = "Linux"
+        assert probe.is_compatible() is True
+
+    with patch("expand.probes.platform") as mock_platform:
+        mock_platform.system.return_value = "Darwin"
+        assert probe.is_compatible() is False
+
+
+def test_brew_package_probe():
+    from unittest.mock import patch, MagicMock
+    from expand.probes import BrewPackageProbe
+
+    probe = BrewPackageProbe("wget")
+
+    # Formula found → True (cask not checked)
+    with patch("expand.probes.subprocess.run") as mock_run:
+        mock_run.return_value = MagicMock(returncode=0)
+        assert probe.is_installed() is True
+        mock_run.assert_called_once_with(
+            ["brew", "list", "--formula", "wget"],
+            capture_output=True, check=False
+        )
+
+    # Formula not found, cask found → True
+    with patch("expand.probes.subprocess.run") as mock_run:
+        mock_run.side_effect = [
+            MagicMock(returncode=1),  # formula fails
+            MagicMock(returncode=0),  # cask succeeds
+        ]
+        assert probe.is_installed() is True
+        assert mock_run.call_count == 2
+
+    # Neither formula nor cask found → False
+    with patch("expand.probes.subprocess.run") as mock_run:
+        mock_run.return_value = MagicMock(returncode=1)
+        assert probe.is_installed() is False
+        assert mock_run.call_count == 2
+
+
+def test_display_probe_darwin():
+    from unittest.mock import patch
+    from expand.probes import DisplayProbe
+
+    probe = DisplayProbe()
+
+    # On macOS, always return True even with no DISPLAY env var
+    with patch("expand.probes.platform") as mock_platform, \
+         patch.dict("os.environ", {}, clear=True):
+        mock_platform.system.return_value = "Darwin"
+        assert probe.is_compatible() is True
+
+    # On Linux with no display env vars and no session dirs, return False
+    with patch("expand.probes.platform") as mock_platform, \
+         patch.dict("os.environ", {}, clear=True), \
+         patch("expand.probes.os.path.isdir", return_value=False):
+        mock_platform.system.return_value = "Linux"
+        assert probe.is_compatible() is False
+
+
 def test_ansible():
 
     class TestProbe(expand.CompatibilityProbe):
@@ -528,3 +624,1158 @@ def test_expansion_card_description(tmp_path):
     result = card.get_ansible_description(11)
     assert result == ["Install git", "from source"]
 
+
+def test_expansion_card_with_new_probes(tmp_path):
+    """Verify ExpansionCard parsing works with BrewProbe, DarwinProbe, LinuxProbe,
+    and BrewPackageProbe — the new probe classes added for macOS support."""
+    from expand.expansion_card import ExpansionCard
+    from expand.probes import BrewProbe, DarwinProbe, LinuxProbe, BrewPackageProbe
+
+    # BrewProbe + DarwinProbe as compatibility probes
+    path = _write_expansion_yaml(
+        tmp_path, "brew_darwin.yaml",
+        privilege="OnlyRoot()", probes="[BrewProbe(), DarwinProbe()]",
+        installed_probes="[]",
+        description_lines=["macOS-only playbook"],
+    )
+    card = ExpansionCard(path)
+    result = card.get_probes()
+    assert len(result) == 2
+    assert isinstance(result[0], BrewProbe)
+    assert isinstance(result[1], DarwinProbe)
+
+    # LinuxProbe as compatibility probe
+    path = _write_expansion_yaml(
+        tmp_path, "linux_only.yaml",
+        privilege="OnlyRoot()", probes="[LinuxProbe()]",
+        installed_probes="[]",
+        description_lines=["Linux-only playbook"],
+    )
+    card = ExpansionCard(path)
+    result = card.get_probes()
+    assert len(result) == 1
+    assert isinstance(result[0], LinuxProbe)
+
+    # BrewPackageProbe as installed probe
+    path = _write_expansion_yaml(
+        tmp_path, "brew_installed.yaml",
+        privilege="OnlyRoot()", probes="[BrewProbe()]",
+        installed_probes='[BrewPackageProbe("wget")]',
+        description_lines=["Brew package check"],
+    )
+    card = ExpansionCard(path)
+    probes = card.get_probes()
+    assert len(probes) == 1
+    assert isinstance(probes[0], BrewProbe)
+    installed = card.get_installed_probes()
+    assert len(installed) == 1
+    assert isinstance(installed[0], BrewPackageProbe)
+    assert installed[0].package == "wget"
+
+
+def test_rust_yaml_probe_parsing():
+    """Task 4.1: Verify rust.yaml parses correctly after removing AptProbe."""
+    import os
+    from expand.expansion_card import ExpansionCard
+
+    repo_root = os.path.dirname(os.path.abspath(__file__))
+    path = os.path.join(repo_root, "ansible", "heavy", "rust.yaml")
+    card = ExpansionCard(path)
+
+    # Probes should be empty (AptProbe removed)
+    assert card.get_probes() == []
+
+    # Installed probes should still have FileProbe
+    installed = card.get_installed_probes()
+    assert len(installed) == 1
+    from expand.probes import FileProbe
+    assert isinstance(installed[0], FileProbe)
+
+    # Description should parse correctly
+    desc = card.get_ansible_description(120)
+    assert len(desc) > 0
+    assert "rust" in desc[0].lower()
+
+
+def test_fish_yaml_probe_parsing():
+    """Task 4.2: Verify fish.yaml parses correctly after removing AmdProbe/AptProbe."""
+    import os
+    import yaml
+    from expand.expansion_card import ExpansionCard
+
+    repo_root = os.path.dirname(os.path.abspath(__file__))
+    path = os.path.join(repo_root, "ansible", "heavy", "fish.yaml")
+
+    # YAML syntax validation
+    with open(path) as f:
+        data = yaml.safe_load(f)
+    assert data is not None
+
+    # Probe parsing
+    card = ExpansionCard(path)
+
+    # Probes should be empty (AmdProbe and AptProbe removed)
+    assert card.get_probes() == []
+
+    # Installed probes should still have CommandProbe("fish")
+    installed = card.get_installed_probes()
+    assert len(installed) == 1
+    from expand.probes import CommandProbe
+    assert isinstance(installed[0], CommandProbe)
+    assert installed[0].command == "fish"
+
+    # Description should parse correctly
+    desc = card.get_ansible_description(120)
+    assert len(desc) > 0
+    assert "fish" in desc[0].lower()
+
+
+def test_docker_yaml_syntax_and_probes():
+    """Task 4.3: Verify docker.yaml parses correctly with macOS support."""
+    import os
+    import yaml
+    from expand.expansion_card import ExpansionCard
+
+    repo_root = os.path.dirname(os.path.abspath(__file__))
+    path = os.path.join(repo_root, "ansible", "heavy", "docker.yaml")
+
+    # YAML syntax validation
+    with open(path) as f:
+        data = yaml.safe_load(f)
+    assert data is not None
+
+    # Probe parsing
+    card = ExpansionCard(path)
+
+    # Probes should be empty
+    assert card.get_probes() == []
+
+    # Installed probes should have CommandProbe("docker")
+    installed = card.get_installed_probes()
+    assert len(installed) == 1
+    from expand.probes import CommandProbe
+    assert isinstance(installed[0], CommandProbe)
+    assert installed[0].command == "docker"
+
+    # Description should parse correctly
+    desc = card.get_ansible_description(120)
+    assert len(desc) > 0
+    assert "docker" in desc[0].lower()
+
+
+def test_alacritty_yaml_probe_parsing_and_syntax():
+    """Task 4.4: Verify alacritty.yaml parses correctly with macOS support."""
+    import os
+    import yaml
+    from expand.expansion_card import ExpansionCard
+
+    repo_root = os.path.dirname(os.path.abspath(__file__))
+    path = os.path.join(repo_root, "ansible", "heavy", "alacritty.yaml")
+
+    # YAML syntax validation
+    with open(path) as f:
+        data = yaml.safe_load(f)
+    assert data is not None
+
+    # Probe parsing
+    card = ExpansionCard(path)
+
+    # Probes should only have DisplayProbe (AptProbe removed)
+    probes = card.get_probes()
+    assert len(probes) == 1
+    from expand.probes import DisplayProbe
+    assert isinstance(probes[0], DisplayProbe)
+
+    # Installed probes should have CommandProbe("alacritty")
+    installed = card.get_installed_probes()
+    assert len(installed) == 1
+    from expand.probes import CommandProbe
+    assert isinstance(installed[0], CommandProbe)
+    assert installed[0].command == "alacritty"
+
+    # Description should parse correctly
+    desc = card.get_ansible_description(120)
+    assert len(desc) > 0
+    assert "alacritty" in desc[0].lower()
+
+
+def test_anaconda_yaml_syntax_and_probes():
+    """Task 4.5: Verify anaconda.yaml parses correctly with macOS support."""
+    import os
+    import yaml
+    from expand.expansion_card import ExpansionCard
+
+    repo_root = os.path.dirname(os.path.abspath(__file__))
+    path = os.path.join(repo_root, "ansible", "heavy", "anaconda.yaml")
+
+    # YAML syntax validation
+    with open(path) as f:
+        data = yaml.safe_load(f)
+    assert data is not None
+
+    # Probe parsing
+    card = ExpansionCard(path)
+
+    # Probes should be empty (AmdProbe removed)
+    assert card.get_probes() == []
+
+    # Installed probes should have FileProbe
+    installed = card.get_installed_probes()
+    assert len(installed) == 1
+    from expand.probes import FileProbe
+    assert isinstance(installed[0], FileProbe)
+
+    # Description should parse correctly
+    desc = card.get_ansible_description(120)
+    assert len(desc) > 0
+    assert "anaconda" in desc[0].lower()
+
+
+def test_discord_yaml_probe_parsing():
+    """Task 4.6: Verify discord.yaml parses correctly with macOS support."""
+    import os
+    import yaml
+    from expand.expansion_card import ExpansionCard
+
+    repo_root = os.path.dirname(os.path.abspath(__file__))
+    path = os.path.join(repo_root, "ansible", "heavy", "discord.yaml")
+
+    # YAML syntax validation
+    with open(path) as f:
+        data = yaml.safe_load(f)
+    assert data is not None
+
+    # Probe parsing
+    card = ExpansionCard(path)
+
+    # Probes should only have DisplayProbe (AptProbe and AmdProbe removed)
+    probes = card.get_probes()
+    assert len(probes) == 1
+    from expand.probes import DisplayProbe
+    assert isinstance(probes[0], DisplayProbe)
+
+    # Installed probes should have CommandProbe("discord")
+    installed = card.get_installed_probes()
+    assert len(installed) == 1
+    from expand.probes import CommandProbe
+    assert isinstance(installed[0], CommandProbe)
+    assert installed[0].command == "discord"
+
+    # Description should parse correctly
+    desc = card.get_ansible_description(120)
+    assert len(desc) > 0
+    assert "discord" in desc[0].lower()
+
+
+def test_keepassxc_yaml_probe_parsing():
+    """Task 4.7: Verify keepassxc.yaml parses correctly with macOS support."""
+    import os
+    import yaml
+    from expand.expansion_card import ExpansionCard
+
+    repo_root = os.path.dirname(os.path.abspath(__file__))
+    path = os.path.join(repo_root, "ansible", "heavy", "keepassxc.yaml")
+
+    # YAML syntax validation
+    with open(path) as f:
+        data = yaml.safe_load(f)
+    assert data is not None
+
+    # Probe parsing
+    card = ExpansionCard(path)
+
+    # Probes should only have DisplayProbe (AptProbe removed)
+    probes = card.get_probes()
+    assert len(probes) == 1
+    from expand.probes import DisplayProbe
+    assert isinstance(probes[0], DisplayProbe)
+
+    # Installed probes should have CommandProbe("keepassxc")
+    installed = card.get_installed_probes()
+    assert len(installed) == 1
+    from expand.probes import CommandProbe
+    assert isinstance(installed[0], CommandProbe)
+    assert installed[0].command == "keepassxc"
+
+    # Description should parse correctly
+    desc = card.get_ansible_description(120)
+    assert len(desc) > 0
+    assert "keepassxc" in desc[0].lower()
+
+
+def test_localsend_yaml_probe_parsing():
+    """Task 4.8: Verify localsend.yaml parses correctly with macOS support."""
+    import os
+    import yaml
+    from expand.expansion_card import ExpansionCard
+
+    repo_root = os.path.dirname(os.path.abspath(__file__))
+    path = os.path.join(repo_root, "ansible", "heavy", "localsend.yaml")
+
+    # YAML syntax validation
+    with open(path) as f:
+        data = yaml.safe_load(f)
+    assert data is not None
+
+    # Probe parsing
+    card = ExpansionCard(path)
+
+    # Probes should only have DisplayProbe (AptProbe and AmdProbe removed)
+    probes = card.get_probes()
+    assert len(probes) == 1
+    from expand.probes import DisplayProbe
+    assert isinstance(probes[0], DisplayProbe)
+
+    # Installed probes should have CommandProbe("localsend_app")
+    installed = card.get_installed_probes()
+    assert len(installed) == 1
+    from expand.probes import CommandProbe
+    assert isinstance(installed[0], CommandProbe)
+    assert installed[0].command == "localsend_app"
+
+    # Description should parse correctly
+    desc = card.get_ansible_description(120)
+    assert len(desc) > 0
+    assert "localsend" in desc[0].lower()
+
+
+def test_mullvad_yaml_probe_parsing():
+    """Task 4.9: Verify mullvad.yaml parses correctly with macOS support."""
+    import os
+    import yaml
+    from expand.expansion_card import ExpansionCard
+
+    repo_root = os.path.dirname(os.path.abspath(__file__))
+    path = os.path.join(repo_root, "ansible", "heavy", "mullvad.yaml")
+
+    # YAML syntax validation
+    with open(path) as f:
+        data = yaml.safe_load(f)
+    assert data is not None
+
+    # Probe parsing
+    card = ExpansionCard(path)
+
+    # Probes should only have DisplayProbe (AptProbe and AmdProbe removed)
+    probes = card.get_probes()
+    assert len(probes) == 1
+    from expand.probes import DisplayProbe
+    assert isinstance(probes[0], DisplayProbe)
+
+    # Installed probes should have CommandProbe("mullvad")
+    installed = card.get_installed_probes()
+    assert len(installed) == 1
+    from expand.probes import CommandProbe
+    assert isinstance(installed[0], CommandProbe)
+    assert installed[0].command == "mullvad"
+
+    # Description should parse correctly
+    desc = card.get_ansible_description(120)
+    assert len(desc) > 0
+    assert "mullvad" in desc[0].lower()
+
+
+def test_anki_yaml_probe_parsing():
+    """Task 4.10: Verify anki.yaml parses correctly with macOS support."""
+    import os
+    import yaml
+    from expand.expansion_card import ExpansionCard
+
+    repo_root = os.path.dirname(os.path.abspath(__file__))
+    path = os.path.join(repo_root, "ansible", "heavy", "anki.yaml")
+
+    # YAML syntax validation
+    with open(path) as f:
+        data = yaml.safe_load(f)
+    assert data is not None
+
+    # Probe parsing
+    card = ExpansionCard(path)
+
+    # Probes should only have DisplayProbe (AmdProbe removed)
+    probes = card.get_probes()
+    assert len(probes) == 1
+    from expand.probes import DisplayProbe
+    assert isinstance(probes[0], DisplayProbe)
+
+    # Installed probes should have CommandProbe("anki")
+    installed = card.get_installed_probes()
+    assert len(installed) == 1
+    from expand.probes import CommandProbe
+    assert isinstance(installed[0], CommandProbe)
+    assert installed[0].command == "anki"
+
+    # Description should parse correctly
+    desc = card.get_ansible_description(120)
+    assert len(desc) > 0
+    assert "anki" in desc[0].lower()
+
+
+def test_gdm3_yaml_probe_excludes_macos():
+    """Task 4.11: Verify gdm3.yaml has LinuxProbe so it's hidden on macOS."""
+    import os
+    from expand.expansion_card import ExpansionCard
+    from expand.probes import LinuxProbe, AptProbe
+
+    repo_root = os.path.dirname(os.path.abspath(__file__))
+    path = os.path.join(repo_root, "ansible", "heavy", "gdm3.yaml")
+
+    card = ExpansionCard(path)
+
+    # Probes should include both AptProbe and LinuxProbe
+    probes = card.get_probes()
+    assert len(probes) == 2
+    probe_types = [type(p) for p in probes]
+    assert AptProbe in probe_types
+    assert LinuxProbe in probe_types
+
+
+def test_i3_yaml_probe_excludes_macos():
+    """Task 4.12: Verify i3.yaml has LinuxProbe so it's hidden on macOS."""
+    import os
+    from expand.expansion_card import ExpansionCard
+    from expand.probes import LinuxProbe, AptProbe
+
+    repo_root = os.path.dirname(os.path.abspath(__file__))
+    path = os.path.join(repo_root, "ansible", "heavy", "i3.yaml")
+
+    card = ExpansionCard(path)
+
+    # Probes should include both AptProbe and LinuxProbe
+    probes = card.get_probes()
+    assert len(probes) == 2
+    probe_types = [type(p) for p in probes]
+    assert AptProbe in probe_types
+    assert LinuxProbe in probe_types
+
+
+def test_tools_yaml_probe_parsing_and_syntax():
+    """Task 5.1: Verify tools.yaml parses correctly with macOS support."""
+    import os
+    import yaml
+    from expand.expansion_card import ExpansionCard
+
+    repo_root = os.path.dirname(os.path.abspath(__file__))
+    path = os.path.join(repo_root, "ansible", "trinkets", "tools.yaml")
+
+    # YAML syntax validation
+    with open(path) as f:
+        data = yaml.safe_load(f)
+    assert data is not None
+
+    # Probe parsing
+    card = ExpansionCard(path)
+
+    # Probes should be empty (AptProbe removed)
+    assert card.get_probes() == []
+
+    # Installed probes should have CommandProbe("curl")
+    installed = card.get_installed_probes()
+    assert len(installed) == 1
+    from expand.probes import CommandProbe
+    assert isinstance(installed[0], CommandProbe)
+    assert installed[0].command == "curl"
+
+    # Description should parse correctly
+    desc = card.get_ansible_description(120)
+    assert len(desc) > 0
+    assert "tools" in desc[0].lower() or "install" in desc[0].lower()
+
+
+def test_bat_yaml_probe_parsing_and_syntax():
+    """Task 5.2: Verify bat.yaml parses correctly with macOS support."""
+    import os
+    import yaml
+    from expand.expansion_card import ExpansionCard
+
+    repo_root = os.path.dirname(os.path.abspath(__file__))
+    path = os.path.join(repo_root, "ansible", "trinkets", "bat.yaml")
+
+    # YAML syntax validation
+    with open(path) as f:
+        data = yaml.safe_load(f)
+    assert data is not None
+
+    # Probe parsing
+    card = ExpansionCard(path)
+
+    # Probes should be empty (AmdProbe and AptProbe removed)
+    assert card.get_probes() == []
+
+    # Installed probes should have CommandProbe("bat")
+    installed = card.get_installed_probes()
+    assert len(installed) == 1
+    from expand.probes import CommandProbe
+    assert isinstance(installed[0], CommandProbe)
+    assert installed[0].command == "bat"
+
+    # Description should parse correctly
+    desc = card.get_ansible_description(120)
+    assert len(desc) > 0
+    assert "bat" in desc[0].lower()
+
+
+def test_btop_yaml_probe_parsing_and_syntax():
+    """Task 5.3: Verify btop.yaml parses correctly with macOS support."""
+    import os
+    import yaml
+    from expand.expansion_card import ExpansionCard
+
+    repo_root = os.path.dirname(os.path.abspath(__file__))
+    path = os.path.join(repo_root, "ansible", "trinkets", "btop.yaml")
+
+    # YAML syntax validation
+    with open(path) as f:
+        data = yaml.safe_load(f)
+    assert data is not None
+
+    # Probe parsing
+    card = ExpansionCard(path)
+
+    # Probes should be empty (AmdProbe removed)
+    assert card.get_probes() == []
+
+    # Installed probes should have CommandProbe("btop")
+    installed = card.get_installed_probes()
+    assert len(installed) == 1
+    from expand.probes import CommandProbe
+    assert isinstance(installed[0], CommandProbe)
+    assert installed[0].command == "btop"
+
+    # Description should parse correctly
+    desc = card.get_ansible_description(120)
+    assert len(desc) > 0
+    assert "btop" in desc[0].lower()
+
+
+def test_nvim_yaml_probe_parsing_and_syntax():
+    """Task 5.4: Verify nvim.yaml parses correctly with macOS support."""
+    import os
+    import yaml
+    from expand.expansion_card import ExpansionCard
+
+    repo_root = os.path.dirname(os.path.abspath(__file__))
+    path = os.path.join(repo_root, "ansible", "trinkets", "nvim.yaml")
+
+    # YAML syntax validation
+    with open(path) as f:
+        data = yaml.safe_load(f)
+    assert data is not None
+
+    # Probe parsing
+    card = ExpansionCard(path)
+
+    # Probes should be empty (AmdProbe removed)
+    assert card.get_probes() == []
+
+    # Installed probes should have CommandProbe("nvim")
+    installed = card.get_installed_probes()
+    assert len(installed) == 1
+    from expand.probes import CommandProbe
+    assert isinstance(installed[0], CommandProbe)
+    assert installed[0].command == "nvim"
+
+    # Description should parse correctly
+    desc = card.get_ansible_description(120)
+    assert len(desc) > 0
+    assert "nvim" in desc[0].lower()
+
+
+def test_lazygit_yaml_probe_parsing_and_syntax():
+    """Task 5.5: Verify lazygit.yaml parses correctly with macOS support."""
+    import os
+    import yaml
+    from expand.expansion_card import ExpansionCard
+
+    repo_root = os.path.dirname(os.path.abspath(__file__))
+    path = os.path.join(repo_root, "ansible", "trinkets", "lazygit.yaml")
+
+    # YAML syntax validation
+    with open(path) as f:
+        data = yaml.safe_load(f)
+    assert data is not None
+
+    # Probe parsing
+    card = ExpansionCard(path)
+
+    # Probes should be empty (AptProbe removed)
+    assert card.get_probes() == []
+
+    # Installed probes should have CommandProbe("lazygit")
+    installed = card.get_installed_probes()
+    assert len(installed) == 1
+    from expand.probes import CommandProbe
+    assert isinstance(installed[0], CommandProbe)
+    assert installed[0].command == "lazygit"
+
+    # Description should parse correctly
+    desc = card.get_ansible_description(120)
+    assert len(desc) > 0
+    assert "lazygit" in desc[0].lower()
+
+
+def test_chafa_yaml_probe_parsing_and_syntax():
+    """Task 5.6: Verify chafa.yaml parses correctly with macOS support."""
+    import os
+    import yaml
+    from expand.expansion_card import ExpansionCard
+
+    repo_root = os.path.dirname(os.path.abspath(__file__))
+    path = os.path.join(repo_root, "ansible", "trinkets", "chafa.yaml")
+
+    # YAML syntax validation
+    with open(path) as f:
+        data = yaml.safe_load(f)
+    assert data is not None
+
+    # Probe parsing
+    card = ExpansionCard(path)
+
+    # Probes should be empty (AptProbe removed)
+    assert card.get_probes() == []
+
+    # Installed probes should have CommandProbe("chafa")
+    installed = card.get_installed_probes()
+    assert len(installed) == 1
+    from expand.probes import CommandProbe
+    assert isinstance(installed[0], CommandProbe)
+    assert installed[0].command == "chafa"
+
+    # Description should parse correctly
+    desc = card.get_ansible_description(120)
+    assert len(desc) > 0
+    assert "chafa" in desc[0].lower()
+
+
+def test_gdu_yaml_probe_parsing_and_syntax():
+    """Task 5.7: Verify gdu.yaml parses correctly with macOS support."""
+    import os
+    import yaml
+    from expand.expansion_card import ExpansionCard
+
+    repo_root = os.path.dirname(os.path.abspath(__file__))
+    path = os.path.join(repo_root, "ansible", "trinkets", "gdu.yaml")
+
+    # YAML syntax validation
+    with open(path) as f:
+        data = yaml.safe_load(f)
+    assert data is not None
+
+    # Probe parsing
+    card = ExpansionCard(path)
+
+    # Probes should be empty (AptProbe removed)
+    assert card.get_probes() == []
+
+    # Installed probes should have CommandProbe("gdu")
+    installed = card.get_installed_probes()
+    assert len(installed) == 1
+    from expand.probes import CommandProbe
+    assert isinstance(installed[0], CommandProbe)
+    assert installed[0].command == "gdu"
+
+    # Description should parse correctly
+    desc = card.get_ansible_description(120)
+    assert len(desc) > 0
+    assert "disk" in desc[0].lower() or "gdu" in desc[0].lower()
+
+
+def test_tldr_yaml_probe_parsing_and_syntax():
+    """Task 5.8: Verify tldr.yaml parses correctly with macOS support."""
+    import os
+    import yaml
+    from expand.expansion_card import ExpansionCard
+
+    repo_root = os.path.dirname(os.path.abspath(__file__))
+    path = os.path.join(repo_root, "ansible", "trinkets", "tldr.yaml")
+
+    # YAML syntax validation
+    with open(path) as f:
+        data = yaml.safe_load(f)
+    assert data is not None
+
+    # Probe parsing
+    card = ExpansionCard(path)
+
+    # Probes should be empty (AptProbe removed)
+    assert card.get_probes() == []
+
+    # Installed probes should have CommandProbe("tldr")
+    installed = card.get_installed_probes()
+    assert len(installed) == 1
+    from expand.probes import CommandProbe
+    assert isinstance(installed[0], CommandProbe)
+    assert installed[0].command == "tldr"
+
+    # Description should parse correctly
+    desc = card.get_ansible_description(120)
+    assert len(desc) > 0
+    assert "tldr" in desc[0].lower()
+
+
+def test_meld_yaml_probe_parsing_and_syntax():
+    """Task 5.9: Verify meld.yaml parses correctly with macOS support."""
+    import os
+    import yaml
+    from expand.expansion_card import ExpansionCard
+
+    repo_root = os.path.dirname(os.path.abspath(__file__))
+    path = os.path.join(repo_root, "ansible", "trinkets", "meld.yaml")
+
+    # YAML syntax validation
+    with open(path) as f:
+        data = yaml.safe_load(f)
+    assert data is not None
+
+    # Probe parsing
+    card = ExpansionCard(path)
+
+    # Probes should only have DisplayProbe (AptProbe removed)
+    probes = card.get_probes()
+    assert len(probes) == 1
+    from expand.probes import DisplayProbe
+    assert isinstance(probes[0], DisplayProbe)
+
+    # Installed probes should have CommandProbe("meld")
+    installed = card.get_installed_probes()
+    assert len(installed) == 1
+    from expand.probes import CommandProbe
+    assert isinstance(installed[0], CommandProbe)
+    assert installed[0].command == "meld"
+
+    # Description should parse correctly
+    desc = card.get_ansible_description(120)
+    assert len(desc) > 0
+    assert "gui" in desc[0].lower() or "meld" in desc[0].lower() or "diff" in desc[0].lower()
+
+
+def test_imhex_yaml_probe_parsing_and_syntax():
+    """Task 5.10: Verify imhex.yaml parses correctly with macOS support."""
+    import os
+    import yaml
+    from expand.expansion_card import ExpansionCard
+
+    repo_root = os.path.dirname(os.path.abspath(__file__))
+    path = os.path.join(repo_root, "ansible", "trinkets", "imhex.yaml")
+
+    # YAML syntax validation
+    with open(path) as f:
+        data = yaml.safe_load(f)
+    assert data is not None
+
+    # Probe parsing
+    card = ExpansionCard(path)
+
+    # Probes should only have DisplayProbe (AmdProbe removed)
+    probes = card.get_probes()
+    assert len(probes) == 1
+    from expand.probes import DisplayProbe
+    assert isinstance(probes[0], DisplayProbe)
+
+    # Installed probes should have CommandProbe("imhex")
+    installed = card.get_installed_probes()
+    assert len(installed) == 1
+    from expand.probes import CommandProbe
+    assert isinstance(installed[0], CommandProbe)
+    assert installed[0].command == "imhex"
+
+    # Description should parse correctly
+    desc = card.get_ansible_description(120)
+    assert len(desc) > 0
+    assert "imhex" in desc[0].lower()
+
+
+def test_nvtop_yaml_probe_parsing_and_syntax():
+    """Task 5.11: Verify nvtop.yaml parses correctly with macOS support."""
+    import os
+    import yaml
+    from expand.expansion_card import ExpansionCard
+
+    repo_root = os.path.dirname(os.path.abspath(__file__))
+    path = os.path.join(repo_root, "ansible", "trinkets", "nvtop.yaml")
+
+    # YAML syntax validation
+    with open(path) as f:
+        data = yaml.safe_load(f)
+    assert data is not None
+
+    # Probe parsing
+    card = ExpansionCard(path)
+
+    # Probes should be empty (AmdProbe removed)
+    assert card.get_probes() == []
+
+    # Installed probes should have CommandProbe("nvtop")
+    installed = card.get_installed_probes()
+    assert len(installed) == 1
+    from expand.probes import CommandProbe
+    assert isinstance(installed[0], CommandProbe)
+    assert installed[0].command == "nvtop"
+
+    # Description should parse correctly
+    desc = card.get_ansible_description(120)
+    assert len(desc) > 0
+    assert "nvtop" in desc[0].lower()
+
+
+def test_envycontrol_yaml_probe_excludes_macos():
+    """Task 5.12: Verify envycontrol.yaml has LinuxProbe so it's hidden on macOS."""
+    import os
+    from expand.expansion_card import ExpansionCard
+    from expand.probes import LinuxProbe, AptProbe, AmdProbe
+
+    repo_root = os.path.dirname(os.path.abspath(__file__))
+    path = os.path.join(repo_root, "ansible", "trinkets", "envycontrol.yaml")
+
+    card = ExpansionCard(path)
+
+    # Probes should include AptProbe, AmdProbe, and LinuxProbe
+    probes = card.get_probes()
+    assert len(probes) == 3
+    probe_types = [type(p) for p in probes]
+    assert AptProbe in probe_types
+    assert AmdProbe in probe_types
+    assert LinuxProbe in probe_types
+
+
+def test_uxplay_yaml_probe_excludes_macos():
+    """Task 5.13: Verify uxplay.yaml has LinuxProbe so it's hidden on macOS."""
+    import os
+    from expand.expansion_card import ExpansionCard
+    from expand.probes import LinuxProbe, AptProbe, DisplayProbe
+
+    repo_root = os.path.dirname(os.path.abspath(__file__))
+    path = os.path.join(repo_root, "ansible", "trinkets", "uxplay.yaml")
+
+    card = ExpansionCard(path)
+
+    # Probes should include AptProbe, DisplayProbe, and LinuxProbe
+    probes = card.get_probes()
+    assert len(probes) == 3
+    probe_types = [type(p) for p in probes]
+    assert AptProbe in probe_types
+    assert DisplayProbe in probe_types
+    assert LinuxProbe in probe_types
+
+
+def test_pipx_playbooks_probe_parsing():
+    """Task 5.14: Verify pipx-based playbooks no longer have AptProbe blocking macOS."""
+    import os
+    import yaml
+    from expand.expansion_card import ExpansionCard
+    from expand.probes import AptProbe
+
+    repo_root = os.path.dirname(os.path.abspath(__file__))
+
+    playbooks = [
+        "ansible/trinkets/asciinema.yaml",
+        "ansible/trinkets/copyparty.yaml",
+        "ansible/trinkets/posting.yaml",
+        "ansible/trinkets/wormhole.yaml",
+        "ansible/trinkets/witr.yaml",
+        "ansible/trinkets/gping.yaml",
+    ]
+
+    for playbook in playbooks:
+        path = os.path.join(repo_root, playbook)
+
+        # YAML syntax validation
+        with open(path) as f:
+            data = yaml.safe_load(f)
+        assert data is not None, f"{playbook} has invalid YAML syntax"
+
+        # Probe parsing — AptProbe should be removed
+        card = ExpansionCard(path)
+        probes = card.get_probes()
+        probe_types = [type(p) for p in probes]
+        assert AptProbe not in probe_types, f"{playbook} still has AptProbe in probes"
+
+
+def test_julia_yaml_no_apt_probe():
+    """Task 5.15: Verify julia.yaml has no AptProbe blocking macOS."""
+    import os
+    import yaml
+    from expand.expansion_card import ExpansionCard
+    from expand.probes import AptProbe
+
+    repo_root = os.path.dirname(os.path.abspath(__file__))
+    path = os.path.join(repo_root, "ansible", "trinkets", "julia.yaml")
+
+    # YAML syntax validation
+    with open(path) as f:
+        data = yaml.safe_load(f)
+    assert data is not None
+
+    # Probe parsing — no AptProbe should be present
+    card = ExpansionCard(path)
+    probes = card.get_probes()
+    probe_types = [type(p) for p in probes]
+    assert AptProbe not in probe_types, "julia.yaml should not have AptProbe"
+
+    # Probes should be empty (currently [])
+    assert probes == []
+
+    # Description should parse correctly
+    desc = card.get_ansible_description(120)
+    assert len(desc) > 0
+    assert "julia" in desc[0].lower()
+
+
+def test_activate_scripts_install_community_general():
+    """Verify both activate scripts include ansible-galaxy collection install community.general."""
+    import os
+
+    repo_root = os.path.dirname(os.path.abspath(__file__))
+
+    for script in ("activate.sh", "activate.fish"):
+        path = os.path.join(repo_root, script)
+        with open(path) as f:
+            content = f.read()
+        assert "ansible-galaxy collection install community.general" in content, (
+            f"{script} is missing 'ansible-galaxy collection install community.general'"
+        )
+
+
+def test_i3_config_yaml_probe_excludes_macos():
+    """Task 6.2: Verify i3_config.yaml has LinuxProbe so it's hidden on macOS."""
+    import os
+    from expand.expansion_card import ExpansionCard
+    from expand.probes import LinuxProbe, AptProbe
+
+    repo_root = os.path.dirname(os.path.abspath(__file__))
+    path = os.path.join(repo_root, "ansible", "config", "i3_config.yaml")
+
+    card = ExpansionCard(path)
+
+    # Probes should include both AptProbe and LinuxProbe
+    probes = card.get_probes()
+    assert len(probes) == 2
+    probe_types = [type(p) for p in probes]
+    assert AptProbe in probe_types
+    assert LinuxProbe in probe_types
+
+
+def test_tlp_config_yaml_probe_excludes_macos():
+    """Task 6.3: Verify tlp_config.yaml has LinuxProbe so it's hidden on macOS."""
+    import os
+    from expand.expansion_card import ExpansionCard
+    from expand.probes import LinuxProbe
+
+    repo_root = os.path.dirname(os.path.abspath(__file__))
+    path = os.path.join(repo_root, "ansible", "config", "tlp_config.yaml")
+
+    card = ExpansionCard(path)
+
+    # Probes should include LinuxProbe
+    probes = card.get_probes()
+    assert len(probes) == 1
+    probe_types = [type(p) for p in probes]
+    assert LinuxProbe in probe_types
+
+
+def test_nvim_config_yaml_probe_parsing_and_syntax():
+    """Task 6.1: Verify nvim_config.yaml parses correctly with macOS support."""
+    import os
+    import yaml
+    from expand.expansion_card import ExpansionCard
+    from expand.probes import WhichProbe, AptProbe
+
+    repo_root = os.path.dirname(os.path.abspath(__file__))
+    path = os.path.join(repo_root, "ansible", "config", "nvim_config.yaml")
+
+    # YAML syntax validation
+    with open(path) as f:
+        data = yaml.safe_load(f)
+    assert data is not None
+
+    # Probe parsing
+    card = ExpansionCard(path)
+
+    # Probes should only have WhichProbe("nvim") — AptProbe removed
+    probes = card.get_probes()
+    assert len(probes) == 1
+    assert isinstance(probes[0], WhichProbe)
+    assert probes[0].command == "nvim"
+    probe_types = [type(p) for p in probes]
+    assert AptProbe not in probe_types
+
+    # Installed probes should have FileProbe
+    installed = card.get_installed_probes()
+    assert len(installed) == 1
+    from expand.probes import FileProbe
+    assert isinstance(installed[0], FileProbe)
+
+    # Description should parse correctly
+    desc = card.get_ansible_description(120)
+    assert len(desc) > 0
+    assert "nvim" in desc[0].lower()
+
+
+def test_local_bin_path_yaml_syntax_and_structure():
+    """Task 7.1: Verify local_bin_path.yaml has macOS support."""
+    import os
+    import yaml
+    from expand.expansion_card import ExpansionCard
+
+    repo_root = os.path.dirname(os.path.abspath(__file__))
+    path = os.path.join(repo_root, "ansible", "system-tweaks", "local_bin_path.yaml")
+
+    # YAML syntax validation
+    with open(path) as f:
+        data = yaml.safe_load(f)
+    assert data is not None
+
+    # Probe parsing
+    card = ExpansionCard(path)
+    assert card.get_probes() == []
+
+    # Description should parse correctly
+    desc = card.get_ansible_description(120)
+    assert len(desc) > 0
+
+
+def test_docker_no_sudo_yaml_probe_excludes_macos():
+    """Task 7.2: Verify docker_no_sudo.yaml has LinuxProbe so it's hidden on macOS."""
+    import os
+    from expand.expansion_card import ExpansionCard
+    from expand.probes import LinuxProbe, WhichProbe
+
+    repo_root = os.path.dirname(os.path.abspath(__file__))
+    path = os.path.join(repo_root, "ansible", "system-tweaks", "docker_no_sudo.yaml")
+
+    card = ExpansionCard(path)
+
+    # Probes should include WhichProbe("docker") and LinuxProbe
+    probes = card.get_probes()
+    assert len(probes) == 2
+    probe_types = [type(p) for p in probes]
+    assert WhichProbe in probe_types
+    assert LinuxProbe in probe_types
+
+
+def test_user_dirs_yaml_probe_excludes_macos():
+    """Task 7.3: Verify user_dirs.yaml has LinuxProbe so it's hidden on macOS."""
+    import os
+    from expand.expansion_card import ExpansionCard
+    from expand.probes import LinuxProbe
+
+    repo_root = os.path.dirname(os.path.abspath(__file__))
+    path = os.path.join(repo_root, "ansible", "system-tweaks", "user_dirs.yaml")
+
+    card = ExpansionCard(path)
+
+    # Probes should include LinuxProbe
+    probes = card.get_probes()
+    assert len(probes) == 1
+    probe_types = [type(p) for p in probes]
+    assert LinuxProbe in probe_types
+
+
+def test_all_playbooks_probe_parsing():
+    """Task 8.1: Integration test — parse every playbook in ansible/ to catch eval errors."""
+    import os
+    import glob
+    from expand.expansion_card import ExpansionCard
+
+    repo_root = os.path.dirname(os.path.abspath(__file__))
+    ansible_dir = os.path.join(repo_root, "ansible")
+
+    yaml_files = glob.glob(os.path.join(ansible_dir, "**", "*.yaml"), recursive=True)
+    assert len(yaml_files) > 0, "No YAML files found in ansible/"
+
+    for path in yaml_files:
+        rel = os.path.relpath(path, repo_root)
+
+        # Skip example.yaml — it has intentional pipe syntax for documentation
+        if os.path.basename(path) == "example.yaml":
+            continue
+
+        card = ExpansionCard(path)
+
+        # These should not raise — if they do, there's an eval error in a probe header
+        probes = card.get_probes()
+        assert isinstance(probes, list), f"{rel}: get_probes() did not return a list"
+
+        installed = card.get_installed_probes()
+        assert isinstance(installed, list), f"{rel}: get_installed_probes() did not return a list"
+
+        priv = card.get_priviledge_level()
+        assert priv is not None, f"{rel}: get_priviledge_level() returned None"
+
+
+def test_all_playbooks_yaml_syntax():
+    """Task 8.2: YAML syntax validation — parse all .yaml files with yaml.safe_load()."""
+    import os
+    import glob
+    import yaml
+
+    repo_root = os.path.dirname(os.path.abspath(__file__))
+    ansible_dir = os.path.join(repo_root, "ansible")
+
+    yaml_files = glob.glob(os.path.join(ansible_dir, "**", "*.yaml"), recursive=True)
+    assert len(yaml_files) > 0, "No YAML files found in ansible/"
+
+    for path in yaml_files:
+        rel = os.path.relpath(path, repo_root)
+        with open(path) as f:
+            try:
+                data = yaml.safe_load(f)
+            except yaml.YAMLError as e:
+                assert False, f"{rel}: YAML syntax error: {e}"
+        assert data is not None, f"{rel}: YAML file parsed as empty/null"
+
+
+def test_tui_visibility_on_macos():
+    """Task 8.3: Verify Linux-only playbooks have platform-failing probes on macOS,
+    and cross-platform playbooks don't fail due to platform probes."""
+    import os
+    import glob
+    from unittest.mock import patch
+    from expand.expansion_card import ExpansionCard
+    from expand.probes import LinuxProbe, AptProbe, AmdProbe
+
+    repo_root = os.path.dirname(os.path.abspath(__file__))
+    ansible_dir = os.path.join(repo_root, "ansible")
+
+    # Playbooks that should be HIDDEN on macOS due to platform probes
+    linux_only = {
+        "gdm3.yaml", "i3.yaml", "envycontrol.yaml", "uxplay.yaml",
+        "i3_config.yaml", "tlp_config.yaml", "docker_no_sudo.yaml", "user_dirs.yaml",
+    }
+
+    # Platform-gating probe types (these gate by OS, not by installed software)
+    platform_probe_types = (LinuxProbe, AptProbe, AmdProbe)
+
+    yaml_files = glob.glob(os.path.join(ansible_dir, "**", "*.yaml"), recursive=True)
+
+    # Mock platform to Darwin/arm64
+    with patch("expand.probes.platform") as mock_platform, \
+         patch("expand.probes.which") as mock_which:
+
+        mock_platform.system.return_value = "Darwin"
+        mock_platform.machine.return_value = "arm64"
+        mock_which.side_effect = lambda cmd: "/opt/homebrew/bin/brew" if cmd == "brew" else None
+
+        for path in yaml_files:
+            basename = os.path.basename(path)
+            if basename == "example.yaml":
+                continue
+
+            card = ExpansionCard(path)
+            probes = card.get_probes()
+
+            # Check only platform-gating probes
+            platform_failing = [
+                p for p in probes
+                if isinstance(p, platform_probe_types) and not p.is_compatible()
+            ]
+
+            if basename in linux_only:
+                assert len(platform_failing) > 0, (
+                    f"{basename} should be hidden on macOS but has no failing platform probes"
+                )
+            else:
+                failing_names = [type(p).__name__ for p in platform_failing]
+                assert len(platform_failing) == 0, (
+                    f"{basename} should be visible on macOS but has failing platform probes: {failing_names}"
+                )
