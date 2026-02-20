@@ -58,25 +58,7 @@ function fish_greeting -d "Greeting message on shell session start up"
 
     # This assumes 'welcome_message', 'show_os_info', etc., are functions
     # or commands that output the desired values.
-    set -l values \
-        (welcome_message) \
-        (show_os_info) \
-        (show_cpu_cores) \
-        (show_cpu_processors) \
-        (show_wifi_ssid) \
-        (show_ip) \
-        (show_gateway) \
-        (show_nc_count) \
-        (show_hostname) \
-        (show_bluetooth) \
-        (show_timezone)
 
-    # Corrected loop: uses (count) instead of (math (count)) and $values[$i] for indexing.
-    for i in (seq 1 (count $values))
-        set ascii_art (string replace -r "\{$i\}" -- $values[$i] $ascii_art | string split0 | head -n -2 | string split0)
-    end
-
-    echo
     echo $ascii_art
 end
 
@@ -158,7 +140,7 @@ function show_cpu_cores -d "Prints # of cores"
 	if test "$os_type" = "Linux"
 		set cores (grep "cpu cores" /proc/cpuinfo | head -1 | cut -d ":"  -f2 | tr -d " ")
 	else if test "$os_type" = "Darwin"
-		set cores (system_profiler SPHardwareDataType | grep "Cores" | cut -d ":" -f2 | tr -d " ")
+		set cores (sysctl -n hw.ncpu)
 	end
 
 	set_color brmagenta
@@ -174,7 +156,7 @@ function show_cpu_processors -d "Prints # of processors"
 	if test "$os_type" = "Linux"
         set procs (nproc)
 	else if test "$os_type" = "Darwin"
-        set procs (system_profiler SPHardwareDataType | grep "Number of Processors" | cut -d ":" -f2 | tr -d " ")
+        set procs (sysctl -n hw.packages 2>/dev/null; or echo 1)
 	end
 
 	set_color brmagenta
@@ -190,7 +172,7 @@ function show_cpu_name -d "Prints out CPU name"
 	if test "$os_type" = "Linux"
         set cpu_name (grep "model name" /proc/cpuinfo | head -1 | cut -d ":" -f2)
 	else if test "$os_type" = "Darwin"
-        set cpu_name (system_profiler SPHardwareDataType | grep "Processor Name" | cut -d ":" -f2 | tr -d " ")
+        set cpu_name (sysctl -n machdep.cpu.brand_string 2>/dev/null; or echo "Apple "(sysctl -n machdep.cpu.brand 2>/dev/null; or echo "Silicon"))
 	end
 
 	set_color brmagenta
@@ -203,8 +185,8 @@ function show_hostname -d "Prints out hostname"
     set --local os_type (uname -s)
     set --local hname "N/A"
 
-	if test "$os_type" = "Linux"
-        set hname (hostname|cut -d . -f 1)
+	if test "$os_type" = "Linux"; or test "$os_type" = "Darwin"
+        set hname (hostname | cut -d . -f 1)
     end
 
     set_color brblack
@@ -219,6 +201,8 @@ function show_nc_count -d "Prints out # of network devices"
 
 	if test "$os_type" = "Linux"
         set nc_count (ip -o link show | wc -l)
+    else if test "$os_type" = "Darwin"
+        set nc_count (networksetup -listallhardwareports | grep -c "Hardware Port")
     end
 
     set_color brblack
@@ -258,7 +242,7 @@ function show_gateway -d "Print out default gateway of network card"
 			end
 		end
 	else if test "$os_type" = "Darwin"
-        set gw (netstat -nr | grep -E "default.*UGSc" | cut -d " " -f13)
+        set gw (route -n get default 2>/dev/null | grep gateway | awk '{print $2}')
     end
 
     set_color brblack
@@ -274,11 +258,18 @@ function show_wifi_ssid -d "Print out Wifi SSID"
 	if test "$os_type" = "Linux"
 		if which iwgetid > /dev/null 2>&1
 			if iwgetid -r > /dev/null 2>&1
-				set w_status (iwgetid -r )
+				set w_status (iwgetid -r)
 			else
 				set w_status "Not connected"
 			end
 		end
+    else if test "$os_type" = "Darwin"
+        set -l wifi_out (networksetup -getairportnetwork en0 2>/dev/null)
+        if string match -q "Current Wi-Fi Network:*" $wifi_out
+            set w_status (string replace "Current Wi-Fi Network: " "" $wifi_out)
+        else
+            set w_status "Not connected"
+        end
     end
 
     set_color brblack
@@ -293,12 +284,19 @@ function show_bluetooth -d "Print out bluetooth status"
 
 	if test "$os_type" = "Linux"
 		if which hcitool > /dev/null 2>&1
-			if test $(hcitool dev | wc -l) -gt 1
+			if test (hcitool dev | wc -l) -gt 1
 				set b_status "ON"
 			end
 		else
 			set b_status "OFF"
 		end
+    else if test "$os_type" = "Darwin"
+        set -l bt_state (defaults read /Library/Preferences/com.apple.Bluetooth ControllerPowerState 2>/dev/null)
+        if test "$bt_state" = 1
+            set b_status "ON"
+        else
+            set b_status "OFF"
+        end
     end
 
     set_color brblack
@@ -311,7 +309,7 @@ function show_timezone -d "Show local timezone"
     set --local os_type (uname -s)
     set --local timezone "N/A"
 
-	if test "$os_type" = "Linux"
+	if test "$os_type" = "Linux"; or test "$os_type" = "Darwin"
 		set timezone (date +"%Z")
     end
 
@@ -326,7 +324,9 @@ if status is-interactive
 	fish_add_path ~/box/bin
 	fish_add_path ~/.local/bin
 	fish_add_path ~/.cargo/bin
-    fish_add_path ~/.julia/juliaup/julia-1.11.3+0.x64.linux.gnu/bin
+    # Julia path added by juliaup (use ~/.juliaup/bin instead for cross-platform support)
+    fish_add_path /usr/local/opt/riscv-gnu-toolchain/bin
+	fish_add_path ~/.juliaup/bin
 
 
 	if which zoxide > /dev/null 2>&1
@@ -347,17 +347,5 @@ if status is-interactive
     if which tmux >/dev/null && [ -z "$TMUX" ]
         tmux attach-session -t default >/dev/null || tmux new-session -s default >/dev/null
     end
-
-    export CUDA_HOME=/usr/local/cuda
-    fish_add_path {$CUDA_HOME}/bin
-    set -gx LD_LIBRARY_PATH {$CUDA_HOME}/lib64 $LD_LIBRARY_PATH
-    fish_add_path $(npm prefix -g)/bin
 end
 
-
-# pnpm
-set -gx PNPM_HOME "/home/adhoc/.local/share/pnpm"
-if not string match -q -- $PNPM_HOME $PATH
-  set -gx PATH "$PNPM_HOME" $PATH
-end
-# pnpm end
