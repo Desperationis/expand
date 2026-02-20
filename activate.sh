@@ -11,6 +11,27 @@ expand_bootstrap() {
         then
             sudo apt-get update
             sudo apt-get install -y ansible
+        elif which brew > /dev/null 2>&1
+        then
+            sudo -u "$SUDO_USER" brew install ansible
+        elif which dnf > /dev/null 2>&1
+        then
+            sudo dnf install -y ansible
+        elif which yum > /dev/null 2>&1
+        then
+            sudo yum install -y ansible
+        elif which pacman > /dev/null 2>&1
+        then
+            sudo pacman -S --noconfirm ansible
+        elif which pipx > /dev/null 2>&1
+        then
+            pipx install --include-deps ansible
+        elif which pip3 > /dev/null 2>&1
+        then
+            pip3 install ansible 2>/dev/null || pip3 install --break-system-packages ansible
+        elif which pip > /dev/null 2>&1
+        then
+            pip install ansible 2>/dev/null || pip install --break-system-packages ansible
         else
             echo -e "\033[31mError: No supported package manager found. Please install ansible manually.\033[0m"
             exit 1
@@ -42,5 +63,5 @@ then
 	export ACTIVATED_EXPAND 
 else
     echo -e "\e[31mYou must be root to run this script. Authenticate below to open a new shell and try again.\e[0m"
-    sudo su
+    sudo "$(command -v bash)"
 fi

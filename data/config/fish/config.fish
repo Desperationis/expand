@@ -373,7 +373,7 @@ if status is-interactive
 		conda activate custom
 	end
 
-    if which tmux >/dev/null && [ -z "$TMUX" ]
+    if not fish_is_root_user; and which tmux >/dev/null; and [ -z "$TMUX" ]
         tmux attach-session -t default >/dev/null || tmux new-session -s default >/dev/null
     end
 end

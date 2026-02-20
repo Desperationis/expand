@@ -9,6 +9,20 @@ function expand_bootstrap
         if command -q apt-get
             sudo apt-get update
             sudo apt-get install -y ansible
+        else if command -q brew
+            sudo -u $SUDO_USER brew install ansible
+        else if command -q dnf
+            sudo dnf install -y ansible
+        else if command -q yum
+            sudo yum install -y ansible
+        else if command -q pacman
+            sudo pacman -S --noconfirm ansible
+        else if command -q pipx
+            pipx install --include-deps ansible
+        else if command -q pip3
+            pip3 install ansible 2>/dev/null; or pip3 install --break-system-packages ansible
+        else if command -q pip
+            pip install ansible 2>/dev/null; or pip install --break-system-packages ansible
         else
             echo (set_color red)"Error: No supported package manager found. Please install ansible manually."(set_color normal)
             exit 1
@@ -34,6 +48,6 @@ if test (id -u) -eq 0
     set -gx ACTIVATED_EXPAND ""
 else
     echo (set_color red)"You must be root to run this script. Authenticate below to open a new shell and try again."(set_color normal)
-    sudo su
+    sudo (command -s fish)
 end
 
