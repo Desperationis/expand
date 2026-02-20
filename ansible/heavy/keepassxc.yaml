@@ -1,24 +1,30 @@
 # OnlyRoot()
-# [AptProbe(), DisplayProbe()]
+# [DisplayProbe()]
 # [CommandProbe("keepassxc")]
 # Installs keepassxc
 
 - name: "Install keepass"
   hosts: localhost
   connection: local
-  become: true # Remove this if AnyUserNoEscalation
-  gather_facts: false
-  vars:
-    user_home: "{{ lookup('env', 'HOME') | default(lookup('env', 'USERPROFILE')) }}"
+  become: true
+  gather_facts: true
   tasks:
-    - name: "Install keepassxc"
+    - name: "Install keepassxc (Linux)"
       register: aptout
       apt:
         state: latest
         update_cache: true
         name:
           - keepassxc
+      when: ansible_os_family == "Debian"
     - debug: var=aptout
+      when: ansible_os_family == "Debian"
+
+    - name: "Install keepassxc (macOS)"
+      community.general.homebrew_cask:
+        name: keepassxc
+        state: present
+      when: ansible_os_family == "Darwin"
 
 
 

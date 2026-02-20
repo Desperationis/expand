@@ -1,5 +1,5 @@
 # AnyUserNoEscalation()
-# [AptProbe()]
+# []
 # [FileProbe("~/.cargo/bin/gping")]
 # Ping, but with a graph.
 

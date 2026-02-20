@@ -1,5 +1,5 @@
 # OnlyRoot()
-# [AptProbe()]
+# [AptProbe(), LinuxProbe()]
 # [CommandProbe("i3")]
 # This installs i3 only
 

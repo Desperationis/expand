@@ -1,5 +1,5 @@
 # AnyUserEscalation()
-# [AptProbe(), WhichProbe("nvim")]
+# [WhichProbe("nvim")]
 # [FileProbe("~/.config/nvim/init.lua")]
 # Installs my nvim config as well as any other packages it needs.
 
@@ -7,28 +7,44 @@
   hosts: localhost
   connection: local
   become: True
-  gather_facts: false
+  gather_facts: true
   vars:
     user_home: "{{ lookup('env', 'HOME') | default(lookup('env', 'USERPROFILE')) }}"
     config_folder: "{{ playbook_dir }}/../../data/config/"
   tasks:
-    - name: "Install plugin requirements"
+    - name: "Install plugin requirements (Linux)"
       register: aptout
       apt:
         update_cache: true
         state: latest
-        name: 
+        name:
         - ripgrep
         - xclip
+      when: ansible_os_family == "Debian"
     - debug: var=aptout
+      when: ansible_os_family == "Debian"
 
-    - name: "Install npm"
+    - name: "Install npm (Linux)"
       register: aptout
       apt:
         update_cache: true
         state: latest
         name: npm
+      when: ansible_os_family == "Debian"
     - debug: var=aptout
+      when: ansible_os_family == "Debian"
+
+    - name: "Install plugin requirements (macOS)"
+      community.general.homebrew:
+        name: ripgrep
+        state: present
+      when: ansible_os_family == "Darwin"
+
+    - name: "Install npm (macOS)"
+      community.general.homebrew:
+        name: node
+        state: present
+      when: ansible_os_family == "Darwin"
 
     - name: "Install n"
       register: aptout

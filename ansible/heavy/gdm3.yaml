@@ -1,5 +1,5 @@
 # OnlyRoot()
-# [AptProbe()]
+# [AptProbe(), LinuxProbe()]
 # [AptPackageProbe("gdm3")]
 # This installs the gdm login manager, and sets it as the default.
 

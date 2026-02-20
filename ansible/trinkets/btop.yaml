@@ -1,5 +1,5 @@
 # OnlyRoot()
-# [AmdProbe()]
+# []
 # [CommandProbe("btop")]
 # Install btop++ directly from the Github.
 
@@ -7,30 +7,41 @@
   hosts: localhost
   connection: local
   become: true
-  gather_facts: false
+  gather_facts: true
   tasks:
-    - name: "Create temporary dir"
+    - name: "Create temporary dir (Linux)"
       file:
         path: /tmp/btop/
         state: directory
+      when: ansible_os_family == "Debian"
 
-    - name: "Download btop++"
+    - name: "Download btop++ (Linux)"
       get_url:
         url: "https://github.com/aristocratos/btop/releases/download/v1.2.13/btop-x86_64-linux-musl.tbz"
         dest: "/tmp/btop/btop.tbz"
+      when: ansible_os_family == "Debian"
 
-    - name: "Uncompress btop++"
+    - name: "Uncompress btop++ (Linux)"
       unarchive:
         src: "/tmp/btop/btop.tbz"
         dest: "/tmp/btop/"
+      when: ansible_os_family == "Debian"
 
-    - name: "Install btop++"
+    - name: "Install btop++ (Linux)"
       command:
         chdir: "/tmp/btop/btop"
         cmd: "./install.sh"
+      when: ansible_os_family == "Debian"
 
-    - name: "Delete temporary dir"
+    - name: "Delete temporary dir (Linux)"
       file:
         path: /tmp/btop/
         state: absent
+      when: ansible_os_family == "Debian"
+
+    - name: "Install btop++ (macOS)"
+      community.general.homebrew:
+        name: btop
+        state: present
+      when: ansible_os_family == "Darwin"
 

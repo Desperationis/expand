@@ -1,19 +1,27 @@
 # OnlyRoot()
-# [AmdProbe(), DisplayProbe()]
+# [DisplayProbe()]
 # [CommandProbe("imhex")]
-# Installs the `imhex` AppImage. This may not work out of the box on systems without FUSE.
+# Installs the `imhex` hex editor.
 
 - name: "Install imhex"
   hosts: localhost
   connection: local
   become: true
-  gather_facts: false
+  gather_facts: true
   tasks:
-    - name: "Download imhex AppImage"
+    - name: "Download imhex AppImage (Linux)"
       register: aptout
       get_url:
         url: https://github.com/WerWolv/ImHex/releases/download/v1.35.4/imhex-1.35.4-x86_64.AppImage
         dest: /usr/bin/imhex
         mode: '0775'
+      when: ansible_os_family == "Debian"
     - debug: var=aptout
+      when: ansible_os_family == "Debian"
+
+    - name: "Install imhex (macOS)"
+      community.general.homebrew_cask:
+        name: imhex
+        state: present
+      when: ansible_os_family == "Darwin"
 

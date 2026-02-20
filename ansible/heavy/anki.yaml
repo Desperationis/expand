@@ -1,5 +1,5 @@
 # OnlyRoot()
-# [AmdProbe(), DisplayProbe()]
+# [DisplayProbe()]
 # [CommandProbe("anki")]
 # Installs Anki directly from the website.
 
@@ -7,24 +7,34 @@
   hosts: localhost
   connection: local
   become: true
-  gather_facts: false
+  gather_facts: true
   tasks:
-    - name: "Create temporary dir"
+    - name: "Create temporary dir (Linux)"
       file:
         path: /tmp/anki/
         state: directory
+      when: ansible_os_family == "Debian"
 
-    - name: "Download Anki"
+    - name: "Download Anki (Linux)"
       get_url:
         url: "https://github.com/ankitects/anki/releases/download/24.04.1/anki-24.04.1-linux-qt6.tar.zst"
         dest: "/tmp/anki/anki.tar.zst"
+      when: ansible_os_family == "Debian"
 
-    - name: "Uncompress Anki"
+    - name: "Uncompress Anki (Linux)"
       unarchive:
         src: "/tmp/anki/anki.tar.zst"
         dest: "/tmp/anki/"
+      when: ansible_os_family == "Debian"
 
-    - name: "Install Anki"
+    - name: "Install Anki (Linux)"
       command:
         chdir: "/tmp/anki/anki-24.04.1-linux-qt6/"
         cmd: "./install.sh"
+      when: ansible_os_family == "Debian"
+
+    - name: "Install Anki (macOS)"
+      community.general.homebrew_cask:
+        name: anki
+        state: present
+      when: ansible_os_family == "Darwin"

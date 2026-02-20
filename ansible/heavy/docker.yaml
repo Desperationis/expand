@@ -7,29 +7,42 @@
   hosts: localhost
   connection: local
   become: true
-  gather_facts: false
+  gather_facts: true
   tasks:
-    - name: "Download Docker Engine Installation Script"
+    - name: "Download Docker Engine Installation Script (Linux)"
       register: aptout
       get_url:
         url: https://get.docker.com
         dest: /tmp/getdocker.sh
+      when: ansible_os_family == "Debian"
     - debug: var=aptout
+      when: ansible_os_family == "Debian"
 
-    - name: "Install Docker"
+    - name: "Install Docker (Linux)"
       register: aptout
       command:
         cmd: sh /tmp/getdocker.sh
+      when: ansible_os_family == "Debian"
     - debug: var=aptout
+      when: ansible_os_family == "Debian"
 
-    - name: Add Docker Group
+    - name: Add Docker Group (Linux)
       group:
         name: docker
         state: present
+      when: ansible_os_family == "Debian"
 
-    - name: "Remove Docker Installation Script"
+    - name: "Remove Docker Installation Script (Linux)"
       register: aptout
       file:
         path: /tmp/getdocker.sh
         state: absent
+      when: ansible_os_family == "Debian"
     - debug: var=aptout
+      when: ansible_os_family == "Debian"
+
+    - name: "Install Docker Desktop (macOS)"
+      community.general.homebrew_cask:
+        name: docker
+        state: present
+      when: ansible_os_family == "Darwin"

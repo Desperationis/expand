@@ -1,5 +1,5 @@
 # OnlyRoot()
-# [AptProbe(), DisplayProbe()]
+# [DisplayProbe()]
 # [CommandProbe("alacritty")]
 # Install Alacritty by building it from scratch with Rust. This also creates a .desktop file in /usr/share/applications
 
@@ -10,12 +10,12 @@
   hosts: localhost
   connection: local
   become: true
-  gather_facts: false
+  gather_facts: true
   vars:
     user_home: "{{ lookup('env', 'HOME') | default(lookup('env', 'USERPROFILE')) }}"
     cargo: "PATH={{ user_home }}/.cargo/bin/:$PATH && cargo"
   tasks:
-    - name: Install build packages
+    - name: Install build packages (Linux)
       register: aptout
       apt:
         state: latest
@@ -27,29 +27,45 @@
           - libfontconfig1-dev
           - libxcb-xfixes0-dev
           - libxkbcommon-dev
+      when: ansible_os_family == "Debian"
     - debug: var=aptout
+      when: ansible_os_family == "Debian"
 
-    - name: Install Alacritty to /usr/local/cargo/
+    - name: Install Alacritty to /usr/local/cargo/ (Linux)
       register: aptout
       become_user: "{{ lookup('env', 'USER') }}"
       shell:
         cmd: "{{ cargo }} install --root /usr/local/cargo/ alacritty"
+      when: ansible_os_family == "Debian"
     - debug: var=aptout
+      when: ansible_os_family == "Debian"
 
-    - name: Download Alacritty Logo
+    - name: Download Alacritty Logo (Linux)
       register: aptout
       command:
         cmd: wget -P /usr/share/pixmaps "https://raw.githubusercontent.com/alacritty/alacritty/master/extra/logo/alacritty-simple.svg"
+      when: ansible_os_family == "Debian"
     - debug: var=aptout
+      when: ansible_os_family == "Debian"
 
-    - name: Create .desktop file
+    - name: Create .desktop file (Linux)
       register: aptout
       command:
         cmd: bash -c "echo -e \"[Desktop Entry]\nName=Terminal\nExec=/usr/local/cargo/bin/alacritty\nIcon=/usr/share/pixmaps/alacritty-simple.svg\nType=Application\" > /usr/share/applications/alacritty.desktop"
+      when: ansible_os_family == "Debian"
     - debug: var=aptout
+      when: ansible_os_family == "Debian"
 
-    - name: Make alacritty symbolic link
+    - name: Make alacritty symbolic link (Linux)
       register: aptout
       shell:
         cmd: ln -s /usr/local/cargo/bin/alacritty /usr/local/bin/alacritty
+      when: ansible_os_family == "Debian"
     - debug: var=aptout
+      when: ansible_os_family == "Debian"
+
+    - name: "Install Alacritty (macOS)"
+      community.general.homebrew_cask:
+        name: alacritty
+        state: present
+      when: ansible_os_family == "Darwin"

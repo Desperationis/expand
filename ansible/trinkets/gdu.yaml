@@ -1,5 +1,5 @@
 # OnlyRoot()
-# [AptProbe()]
+# []
 # [CommandProbe("gdu")]
 # Pretty fast disk usage analyzer written in Go.
 
@@ -7,13 +7,20 @@
   hosts: localhost
   connection: local
   become: true # Remove this if AnyUserNoEscalation
-  gather_facts: false
+  gather_facts: true
   tasks:
-    - name: "Install gdu package"
+    - name: "Install gdu package (Linux)"
       register: aptout
       apt:
         state: latest
         update_cache: true
         name:
           - gdu
+      when: ansible_os_family == "Debian"
     - debug: var=aptout
+      when: ansible_os_family == "Debian"
+
+    - name: "Install gdu (macOS)"
+      community.general.homebrew:
+        name: gdu
+      when: ansible_os_family == "Darwin"

@@ -1,5 +1,5 @@
 # OnlyRoot()
-# [AptProbe(), AmdProbe(), DisplayProbe()]
+# [DisplayProbe()]
 # [CommandProbe("discord")]
 # Downloads latest .deb package for Discord from the website.
 
@@ -7,10 +7,18 @@
   hosts: localhost
   connection: local
   become: true
-  gather_facts: false
+  gather_facts: true
   tasks:
-    - name: "Install Discord from Website"
+    - name: "Install Discord from Website (Linux)"
       register: aptout
       apt:
         deb: https://discord.com/api/download?platform=linux&format=deb
+      when: ansible_os_family == "Debian"
     - debug: var=aptout
+      when: ansible_os_family == "Debian"
+
+    - name: "Install Discord (macOS)"
+      community.general.homebrew_cask:
+        name: discord
+        state: present
+      when: ansible_os_family == "Darwin"

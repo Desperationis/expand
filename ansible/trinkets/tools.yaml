@@ -1,5 +1,5 @@
 # OnlyRoot()
-# [AptProbe()]
+# []
 # [CommandProbe("curl")]
 # Installs a bunch of the basic tools I expect to find on a linux system, such as rsync, sudo, rclone, curl, zip, etc.
 
@@ -7,9 +7,9 @@
   hosts: localhost
   connection: local
   become: true
-  gather_facts: false
+  gather_facts: true
   tasks:
-    - name: "Install Packages"
+    - name: "Install Packages (Linux)"
       register: aptout
       apt:
         update_cache: true
@@ -46,4 +46,27 @@
           - python3
           - python3-pip
           - eog
+      when: ansible_os_family == "Debian"
     - debug: var=aptout
+      when: ansible_os_family == "Debian"
+
+    - name: "Install Packages (macOS)"
+      community.general.homebrew:
+        name:
+          - wget
+          - cmake
+          - tmux
+          - htop
+          - jq
+          - tree
+          - pipx
+          - rsync
+          - rclone
+          - pv
+          - zstd
+          - gnupg
+          - dos2unix
+          - pkg-config
+          - python3
+        state: present
+      when: ansible_os_family == "Darwin"

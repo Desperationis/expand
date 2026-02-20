@@ -1,5 +1,5 @@
 # OnlyRoot()
-# [AmdProbe()]
+# []
 # [CommandProbe("nvtop")]
 # NVTOP stands for Neat Videocard TOP, a (h)top like task monitor for GPUs and accelerators. It can handle multiple GPUs and print information about them in a htop-familiar way.
 
@@ -7,13 +7,20 @@
   hosts: localhost
   connection: local
   become: true
-  gather_facts: false
+  gather_facts: true
   tasks:
-    - name: "Download nvtop AppImage"
+    - name: "Download nvtop AppImage (Linux)"
       register: aptout
       get_url:
         url: https://github.com/Syllo/nvtop/releases/download/3.1.0/nvtop-x86_64.AppImage
         dest: /usr/bin/nvtop
         mode: '0775'
+      when: ansible_os_family == "Debian"
     - debug: var=aptout
+      when: ansible_os_family == "Debian"
 
+    - name: "Install nvtop (macOS)"
+      community.general.homebrew:
+        name: nvtop
+        state: present
+      when: ansible_os_family == "Darwin"

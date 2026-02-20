@@ -1,17 +1,28 @@
 # AnyUserNoEscalation()
-# [AmdProbe()]
+# []
 # [FileProbe("~/anaconda3/bin/conda")]
 # Installs a FRESH copy of Anaconda to the home directory with my custom environment, `custom`
 
 - name: "Install Anaconda Locally"
   hosts: localhost
   connection: local
-  gather_facts: false
+  gather_facts: true
   vars:
     user_home: "{{ lookup('env', 'HOME') | default(lookup('env', 'USERPROFILE')) }}"
     req_file: "{{ playbook_dir }}/../../data/conda_requirements.txt"
     conda: "{{ lookup('env', 'HOME') }}/anaconda3/bin/conda"
   tasks:
+    - name: "Set Anaconda installer URL"
+      set_fact:
+        anaconda_url: >-
+          {% if ansible_os_family == 'Darwin' and ansible_architecture == 'arm64' %}
+          https://repo.anaconda.com/archive/Anaconda3-2024.02-1-MacOSX-arm64.sh
+          {% elif ansible_os_family == 'Darwin' %}
+          https://repo.anaconda.com/archive/Anaconda3-2024.02-1-MacOSX-x86_64.sh
+          {% else %}
+          https://repo.anaconda.com/archive/Anaconda3-2024.02-1-Linux-x86_64.sh
+          {% endif %}
+
     - name: "Create Downloads Folder"
       file:
         path: "{{ user_home }}/Downloads/"
@@ -19,7 +30,7 @@
 
     - name: "Download Anaconda"
       get_url:
-        url: "https://repo.anaconda.com/archive/Anaconda3-2024.02-1-Linux-x86_64.sh"
+        url: "{{ anaconda_url | trim }}"
         dest: "{{ user_home }}/Downloads/anaconda.sh"
 
     - name: "Remove Anaconda if it exists"

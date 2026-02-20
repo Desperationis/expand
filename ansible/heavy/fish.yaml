@@ -1,5 +1,5 @@
 # OnlyRoot()
-# [AmdProbe(), AptProbe()]
+# []
 # [CommandProbe("fish")]
 # Builds `fish` from source on Arm-based systems as well as zoxide and fzf. The last two are due to plugins from my configuration.
 
@@ -7,9 +7,9 @@
   hosts: localhost
   connection: local
   become: true
-  gather_facts: false
+  gather_facts: true
   tasks:
-    - name: "Install build packages"
+    - name: "Install build packages (Linux)"
       register: aptout
       apt:
         state: latest
@@ -19,65 +19,90 @@
           - libncurses5-dev
           - libncursesw5-dev
           - make
+      when: ansible_os_family == "Debian"
 
-    - name: Download Fish Source
+    - name: Download Fish Source (Linux)
       get_url:
         url: https://github.com/fish-shell/fish-shell/releases/download/3.7.1/fish-3.7.1.tar.xz
         dest: /tmp/fish.tar.xz
+      when: ansible_os_family == "Debian"
 
-    - name: "Uncompress Tarball"
+    - name: "Uncompress Tarball (Linux)"
       unarchive:
         src: /tmp/fish.tar.xz
         dest: /tmp/
+      when: ansible_os_family == "Debian"
 
-    - name: Remove Build Folder
+    - name: Remove Build Folder (Linux)
       file:
         path: /tmp/fish-3.7.1/build
         state: absent
+      when: ansible_os_family == "Debian"
 
-    - name: Remove Build Folder
+    - name: Create Build Folder (Linux)
       file:
         path: /tmp/fish-3.7.1/build
         state: directory
         mode: '0755'
+      when: ansible_os_family == "Debian"
 
-    - name: Install Fish
+    - name: Install Fish (Linux)
       shell:
         cmd: cmake .. && make && make install
         chdir: /tmp/fish-3.7.1/build/
+      when: ansible_os_family == "Debian"
 
-    - name: Remove Fish Tarball
+    - name: Remove Fish Tarball (Linux)
       file:
         path: /tmp/fish.tar.xz
         state: absent
+      when: ansible_os_family == "Debian"
 
-    - name: Remove Fish Build Files
+    - name: Remove Fish Build Files (Linux)
       file:
         path: /tmp/fish-3.7.1/
         state: absent
+      when: ansible_os_family == "Debian"
 
-    - name: "Download fzf"
+    - name: "Download fzf (Linux)"
       register: aptout
       get_url:
         url: https://github.com/junegunn/fzf/releases/download/0.45.0/fzf-0.45.0-linux_amd64.tar.gz
         dest: /tmp/fzf.tar.gz
+      when: ansible_os_family == "Debian"
     - debug: var=aptout
+      when: ansible_os_family == "Debian"
 
-    - name: "Unpack fzf to /usr/local/bin/"
+    - name: "Unpack fzf to /usr/local/bin/ (Linux)"
       register: aptout
       unarchive:
         src: /tmp/fzf.tar.gz
         dest: /usr/local/bin
+      when: ansible_os_family == "Debian"
     - debug: var=aptout
+      when: ansible_os_family == "Debian"
 
-    - name: "Remove fzf"
+    - name: "Remove fzf tarball (Linux)"
       register: aptout
       file:
         path: /tmp/fzf.tar.gz
         state: absent
+      when: ansible_os_family == "Debian"
     - debug: var=aptout
+      when: ansible_os_family == "Debian"
+
+    - name: "Install fish (macOS)"
+      community.general.homebrew:
+        name: fish
+        state: present
+      when: ansible_os_family == "Darwin"
+
+    - name: "Install fzf (macOS)"
+      community.general.homebrew:
+        name: fzf
+        state: present
+      when: ansible_os_family == "Darwin"
 
     - name: Add fish as valid shell
       shell:
         cmd: echo /usr/local/bin/fish >> /etc/shells
-

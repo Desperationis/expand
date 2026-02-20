@@ -1,5 +1,5 @@
 # OnlyRoot()
-# [AmdProbe(), AptProbe()]
+# []
 # [CommandProbe("bat")]
 # Installs the `bat` executable directly from the Github page.
 
@@ -7,10 +7,17 @@
   hosts: localhost
   connection: local
   become: true
-  gather_facts: false
+  gather_facts: true
   tasks:
-    - name: "Install Bat"
+    - name: "Install Bat (Linux)"
       register: aptout
       apt:
         deb: https://github.com/sharkdp/bat/releases/download/v0.24.0/bat-musl_0.24.0_amd64.deb
+      when: ansible_os_family == "Debian"
     - debug: var=aptout
+      when: ansible_os_family == "Debian"
+
+    - name: "Install Bat (macOS)"
+      community.general.homebrew:
+        name: bat
+      when: ansible_os_family == "Darwin"

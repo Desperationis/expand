@@ -1,5 +1,5 @@
 # OnlyRoot()
-# [AptProbe(), AmdProbe()]
+# [AptProbe(), AmdProbe(), LinuxProbe()]
 # [CommandProbe("envycontrol")]
 # Easy GPU switching for Nvidia Optimus laptops under Linux
 

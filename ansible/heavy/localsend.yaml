@@ -1,5 +1,5 @@
 # OnlyRoot()
-# [AptProbe(), AmdProbe(), DisplayProbe()]
+# [DisplayProbe()]
 # [CommandProbe("localsend_app")]
 # Installs the localsend client directly from github.
 
@@ -7,10 +7,18 @@
   hosts: localhost
   connection: local
   become: true
-  gather_facts: false
+  gather_facts: true
   tasks:
-    - name: "Install LocalSend"
+    - name: "Install LocalSend (Linux)"
       register: aptout
       apt:
         deb: https://github.com/localsend/localsend/releases/download/v1.13.1/LocalSend-1.13.1-linux-x86-64.deb
+      when: ansible_os_family == "Debian"
     - debug: var=aptout
+      when: ansible_os_family == "Debian"
+
+    - name: "Install LocalSend (macOS)"
+      community.general.homebrew_cask:
+        name: localsend
+        state: present
+      when: ansible_os_family == "Darwin"

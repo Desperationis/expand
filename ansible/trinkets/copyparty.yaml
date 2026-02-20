@@ -1,5 +1,5 @@
 # AnyUserEscalation()
-# [AptProbe()]
+# []
 # [PipxProbe("copyparty")]
 # Best program for copying files
 
@@ -7,16 +7,24 @@
   hosts: localhost
   connection: local
   become: true
-  gather_facts: false
+  gather_facts: true
   tasks:
-    - name: "Install pipx"
+    - name: "Install pipx (Linux)"
       register: aptout
       apt:
         state: latest
         update_cache: true
         name:
           - pipx
+      when: ansible_os_family == "Debian"
     - debug: var=aptout
+      when: ansible_os_family == "Debian"
+
+    - name: "Install pipx (macOS)"
+      community.general.homebrew:
+        name: pipx
+        state: present
+      when: ansible_os_family == "Darwin"
 
     - name: "Install copyparty"
       register: aptout

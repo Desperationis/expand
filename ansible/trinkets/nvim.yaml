@@ -1,5 +1,5 @@
 # OnlyRoot()
-# [AmdProbe()]
+# []
 # [CommandProbe("nvim")]
 # Installs the `nvim` AppImage. This may not work out of the box on systems without FUSE.
 
@@ -7,28 +7,38 @@
   hosts: localhost
   connection: local
   become: true
-  gather_facts: false
+  gather_facts: true
   tasks:
-    - name: "Install FUSE to run AppImage"
+    - name: "Install FUSE to run AppImage (Linux)"
       register: aptout
       apt:
         update-cache: true
         state: latest
-        name: 
+        name:
         - fuse
+      when: ansible_os_family == "Debian"
     - debug: var=aptout
+      when: ansible_os_family == "Debian"
 
-    - name: "Delete nvim AppImage"
+    - name: "Delete nvim AppImage (Linux)"
       file:
         state: absent
         path: /usr/bin/nvim
-    - debug: var=aptout
-    
-    - name: "Download nvim AppImage"
+      when: ansible_os_family == "Debian"
+
+    - name: "Download nvim AppImage (Linux)"
       register: aptout
       get_url:
         url: https://github.com/neovim/neovim/releases/download/v0.11.4/nvim-linux-x86_64.appimage
         dest: /usr/bin/nvim
         mode: '0775'
+      when: ansible_os_family == "Debian"
     - debug: var=aptout
+      when: ansible_os_family == "Debian"
+
+    - name: "Install neovim (macOS)"
+      community.general.homebrew:
+        name: neovim
+        state: present
+      when: ansible_os_family == "Darwin"
 

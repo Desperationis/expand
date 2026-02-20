@@ -1,5 +1,5 @@
 # OnlyRoot()
-# [AptProbe(), AmdProbe(), DisplayProbe()]
+# [DisplayProbe()]
 # [CommandProbe("mullvad")]
 # Installs the GUI client for Mullvad via .deb
 
@@ -7,10 +7,18 @@
   hosts: localhost
   connection: local
   become: true
-  gather_facts: false
+  gather_facts: true
   tasks:
-    - name: "Install Mullvad"
+    - name: "Install Mullvad (Linux)"
       register: aptout
       apt:
         deb: https://mullvad.net/download/app/deb/latest/
+      when: ansible_os_family == "Debian"
     - debug: var=aptout
+      when: ansible_os_family == "Debian"
+
+    - name: "Install Mullvad (macOS)"
+      community.general.homebrew_cask:
+        name: mullvad-vpn
+        state: present
+      when: ansible_os_family == "Darwin"

@@ -1,5 +1,5 @@
 # AnyUserNoEscalation()
-# [AptProbe()]
+# []
 # [PipxProbe("asciinema")]
 # Terminal session recorder (asciinema) and GIF generator (agg). Record your terminal sessions and convert them to animated GIFs.
 
@@ -10,19 +10,27 @@
 - name: "Install asciinema and agg"
   hosts: localhost
   connection: local
-  gather_facts: false
+  gather_facts: true
   vars:
     user_home: "{{ lookup('env', 'HOME') | default(lookup('env', 'USERPROFILE')) }}"
     cargo: "PATH={{ user_home }}/.cargo/bin/:$PATH && cargo"
   tasks:
-    - name: "Install pipx"
+    - name: "Install pipx (Linux)"
       register: aptout
       apt:
         state: latest
         update_cache: true
         name:
           - pipx
+      when: ansible_os_family == "Debian"
     - debug: var=aptout
+      when: ansible_os_family == "Debian"
+
+    - name: "Install pipx (macOS)"
+      community.general.homebrew:
+        name: pipx
+        state: present
+      when: ansible_os_family == "Darwin"
 
     - name: "Install asciinema via pipx"
       register: aptout

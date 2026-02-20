@@ -1,5 +1,5 @@
 # AnyUserEscalation()
-# [AptProbe()]
+# []
 # [CommandProbe("witr")]
 # Why is this running?
 
@@ -7,16 +7,18 @@
   hosts: localhost
   connection: local
   become: true
-  gather_facts: false
+  gather_facts: true
   tasks:
-    - name: "Install curl"
+    - name: "Install curl (Linux)"
       register: aptout
       apt:
         state: latest
         update_cache: true
         name:
           - curl
+      when: ansible_os_family == "Debian"
     - debug: var=aptout
+      when: ansible_os_family == "Debian"
 
     - name: "Install witr"
       register: aptout

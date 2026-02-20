@@ -1,5 +1,5 @@
 # OnlyRoot()
-# [AptProbe()]
+# []
 # [CommandProbe("lazygit")]
 # Installs lazygit via apt-get.
 
@@ -7,10 +7,17 @@
   hosts: localhost
   connection: local
   become: true
-  gather_facts: false
+  gather_facts: true
   tasks:
-    - name: "Install lazygit"
+    - name: "Install lazygit (Linux)"
       register: aptout
       shell:
         cmd: apt-get install -y lazygit
+      when: ansible_os_family == "Debian"
     - debug: var=aptout
+      when: ansible_os_family == "Debian"
+
+    - name: "Install lazygit (macOS)"
+      community.general.homebrew:
+        name: lazygit
+      when: ansible_os_family == "Darwin"

@@ -1,5 +1,5 @@
 # OnlyRoot()
-# [AptProbe()]
+# []
 # [CommandProbe("tldr")]
 # Installs tldr, a collection of simplified man pages.
 
@@ -7,13 +7,20 @@
   hosts: localhost
   connection: local
   become: true
-  gather_facts: false
+  gather_facts: true
   tasks:
-    - name: "Install tldr"
+    - name: "Install tldr (Linux)"
       register: aptout
       apt:
         state: latest
         update_cache: true
         name:
           - tldr
+      when: ansible_os_family == "Debian"
     - debug: var=aptout
+      when: ansible_os_family == "Debian"
+
+    - name: "Install tldr (macOS)"
+      community.general.homebrew:
+        name: tldr
+      when: ansible_os_family == "Darwin"

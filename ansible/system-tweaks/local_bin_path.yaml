@@ -8,20 +8,34 @@
   hosts: localhost
   connection: local
   become: true
-  gather_facts: false
+  gather_facts: true
   tasks:
-    - name: "Add .local"
+    - name: "Add .local (Linux)"
       shell:
         cmd: sh -c "echo 'export PATH=\"\$PATH:\$HOME/.local/bin\"' >> /etc/profile.d/local_bin.sh"
+      when: ansible_os_family == "Debian"
 
-    - name: "Add box"
+    - name: "Add box (Linux)"
       shell:
         cmd: sh -c "echo 'export PATH=\"\$PATH:\$HOME/box/bin\"' >> /etc/profile.d/local_bin.sh"
+      when: ansible_os_family == "Debian"
 
-    - name: "Add cargo"
+    - name: "Add cargo (Linux)"
       shell:
         cmd: sh -c "echo 'export PATH=\"\$PATH:\$HOME/.cargo/bin\"' >> /etc/profile.d/local_bin.sh"
+      when: ansible_os_family == "Debian"
 
-    - name: "Add julia"
+    - name: "Add julia (Linux)"
       shell:
         cmd: sh -c "echo 'export PATH=\"\$PATH:\$HOME/.julia/juliaup/julia-1.11.3+0.x64.linux.gnu/bin\"' >> /etc/profile.d/local_bin.sh"
+      when: ansible_os_family == "Debian"
+
+    - name: "Add paths (macOS)"
+      copy:
+        dest: /etc/paths.d/expand
+        content: |
+          /Users/{{ ansible_user_id }}/.local/bin
+          /Users/{{ ansible_user_id }}/box/bin
+          /Users/{{ ansible_user_id }}/.cargo/bin
+        mode: '0644'
+      when: ansible_os_family == "Darwin"
