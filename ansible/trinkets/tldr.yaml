@@ -1,4 +1,4 @@
-# OnlyRoot()
+# AnyUserNoEscalationOnDarwin()
 # []
 # [CommandProbe("tldr")]
 # Installs tldr, a collection of simplified man pages.

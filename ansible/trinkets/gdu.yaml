@@ -1,4 +1,4 @@
-# OnlyRoot()
+# AnyUserNoEscalationOnDarwin()
 # []
 # [CommandProbe("gdu")]
 # Pretty fast disk usage analyzer written in Go.

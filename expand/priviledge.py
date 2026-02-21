@@ -28,3 +28,12 @@ class AnyUserEscalation(PriviledgeLevel):
     are installed.
     """
     pass
+
+class AnyUserNoEscalationOnDarwin(PriviledgeLevel):
+    """
+    On Linux: behaves like OnlyRoot — only root can run or see this playbook.
+    On macOS (Darwin): behaves like AnyUserNoEscalation — any user can see and
+    run this playbook without privilege escalation. This is necessary because
+    Homebrew refuses to run as root.
+    """
+    pass

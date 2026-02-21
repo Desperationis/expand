@@ -1,4 +1,4 @@
-# OnlyRoot()
+# AnyUserNoEscalationOnDarwin()
 # []
 # [CommandProbe("lazygit")]
 # Installs lazygit via apt-get.

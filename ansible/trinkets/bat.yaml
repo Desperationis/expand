@@ -1,4 +1,4 @@
-# OnlyRoot()
+# AnyUserNoEscalationOnDarwin()
 # []
 # [CommandProbe("bat")]
 # Installs the `bat` executable directly from the Github page.

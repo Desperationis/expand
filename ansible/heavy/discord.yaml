@@ -1,6 +1,6 @@
-# OnlyRoot()
+# AnyUserNoEscalationOnDarwin()
 # [DisplayProbe()]
-# [CommandProbe("discord")]
+# [AnyProbes([CommandProbe("discord"), FileProbe("/Applications/Discord.app")])]
 # Downloads latest .deb package for Discord from the website.
 
 - name: "Install Discord"

@@ -750,12 +750,11 @@ def test_docker_yaml_syntax_and_probes():
     # Probes should be empty
     assert card.get_probes() == []
 
-    # Installed probes should have CommandProbe("docker")
+    # Installed probes should have AnyProbes wrapping CommandProbe and FileProbe
     installed = card.get_installed_probes()
     assert len(installed) == 1
-    from expand.probes import CommandProbe
-    assert isinstance(installed[0], CommandProbe)
-    assert installed[0].command == "docker"
+    from expand.probes import AnyProbes
+    assert isinstance(installed[0], AnyProbes)
 
     # Description should parse correctly
     desc = card.get_ansible_description(120)
@@ -786,12 +785,11 @@ def test_alacritty_yaml_probe_parsing_and_syntax():
     from expand.probes import DisplayProbe
     assert isinstance(probes[0], DisplayProbe)
 
-    # Installed probes should have CommandProbe("alacritty")
+    # Installed probes should have AnyProbes wrapping CommandProbe and FileProbe
     installed = card.get_installed_probes()
     assert len(installed) == 1
-    from expand.probes import CommandProbe
-    assert isinstance(installed[0], CommandProbe)
-    assert installed[0].command == "alacritty"
+    from expand.probes import AnyProbes
+    assert isinstance(installed[0], AnyProbes)
 
     # Description should parse correctly
     desc = card.get_ansible_description(120)
@@ -854,12 +852,11 @@ def test_discord_yaml_probe_parsing():
     from expand.probes import DisplayProbe
     assert isinstance(probes[0], DisplayProbe)
 
-    # Installed probes should have CommandProbe("discord")
+    # Installed probes should have AnyProbes wrapping CommandProbe and FileProbe
     installed = card.get_installed_probes()
     assert len(installed) == 1
-    from expand.probes import CommandProbe
-    assert isinstance(installed[0], CommandProbe)
-    assert installed[0].command == "discord"
+    from expand.probes import AnyProbes
+    assert isinstance(installed[0], AnyProbes)
 
     # Description should parse correctly
     desc = card.get_ansible_description(120)
@@ -890,12 +887,11 @@ def test_keepassxc_yaml_probe_parsing():
     from expand.probes import DisplayProbe
     assert isinstance(probes[0], DisplayProbe)
 
-    # Installed probes should have CommandProbe("keepassxc")
+    # Installed probes should have AnyProbes wrapping CommandProbe and FileProbe
     installed = card.get_installed_probes()
     assert len(installed) == 1
-    from expand.probes import CommandProbe
-    assert isinstance(installed[0], CommandProbe)
-    assert installed[0].command == "keepassxc"
+    from expand.probes import AnyProbes
+    assert isinstance(installed[0], AnyProbes)
 
     # Description should parse correctly
     desc = card.get_ansible_description(120)
@@ -926,12 +922,11 @@ def test_localsend_yaml_probe_parsing():
     from expand.probes import DisplayProbe
     assert isinstance(probes[0], DisplayProbe)
 
-    # Installed probes should have CommandProbe("localsend_app")
+    # Installed probes should have AnyProbes wrapping CommandProbe and FileProbe
     installed = card.get_installed_probes()
     assert len(installed) == 1
-    from expand.probes import CommandProbe
-    assert isinstance(installed[0], CommandProbe)
-    assert installed[0].command == "localsend_app"
+    from expand.probes import AnyProbes
+    assert isinstance(installed[0], AnyProbes)
 
     # Description should parse correctly
     desc = card.get_ansible_description(120)
@@ -962,12 +957,11 @@ def test_mullvad_yaml_probe_parsing():
     from expand.probes import DisplayProbe
     assert isinstance(probes[0], DisplayProbe)
 
-    # Installed probes should have CommandProbe("mullvad")
+    # Installed probes should have AnyProbes wrapping CommandProbe and FileProbe
     installed = card.get_installed_probes()
     assert len(installed) == 1
-    from expand.probes import CommandProbe
-    assert isinstance(installed[0], CommandProbe)
-    assert installed[0].command == "mullvad"
+    from expand.probes import AnyProbes
+    assert isinstance(installed[0], AnyProbes)
 
     # Description should parse correctly
     desc = card.get_ansible_description(120)
@@ -998,12 +992,11 @@ def test_anki_yaml_probe_parsing():
     from expand.probes import DisplayProbe
     assert isinstance(probes[0], DisplayProbe)
 
-    # Installed probes should have CommandProbe("anki")
+    # Installed probes should have AnyProbes wrapping CommandProbe and FileProbe
     installed = card.get_installed_probes()
     assert len(installed) == 1
-    from expand.probes import CommandProbe
-    assert isinstance(installed[0], CommandProbe)
-    assert installed[0].command == "anki"
+    from expand.probes import AnyProbes
+    assert isinstance(installed[0], AnyProbes)
 
     # Description should parse correctly
     desc = card.get_ansible_description(120)
@@ -1336,12 +1329,11 @@ def test_meld_yaml_probe_parsing_and_syntax():
     from expand.probes import DisplayProbe
     assert isinstance(probes[0], DisplayProbe)
 
-    # Installed probes should have CommandProbe("meld")
+    # Installed probes should have AnyProbes wrapping CommandProbe and FileProbe
     installed = card.get_installed_probes()
     assert len(installed) == 1
-    from expand.probes import CommandProbe
-    assert isinstance(installed[0], CommandProbe)
-    assert installed[0].command == "meld"
+    from expand.probes import AnyProbes
+    assert isinstance(installed[0], AnyProbes)
 
     # Description should parse correctly
     desc = card.get_ansible_description(120)
@@ -1372,12 +1364,11 @@ def test_imhex_yaml_probe_parsing_and_syntax():
     from expand.probes import DisplayProbe
     assert isinstance(probes[0], DisplayProbe)
 
-    # Installed probes should have CommandProbe("imhex")
+    # Installed probes should have AnyProbes wrapping CommandProbe and FileProbe
     installed = card.get_installed_probes()
     assert len(installed) == 1
-    from expand.probes import CommandProbe
-    assert isinstance(installed[0], CommandProbe)
-    assert installed[0].command == "imhex"
+    from expand.probes import AnyProbes
+    assert isinstance(installed[0], AnyProbes)
 
     # Description should parse correctly
     desc = card.get_ansible_description(120)
@@ -1779,3 +1770,79 @@ def test_tui_visibility_on_macos():
                 assert len(platform_failing) == 0, (
                     f"{basename} should be visible on macOS but has failing platform probes: {failing_names}"
                 )
+
+
+def test_any_user_no_escalation_on_darwin_is_priviledge_level():
+    """Verify AnyUserNoEscalationOnDarwin is a PriviledgeLevel subclass."""
+    from expand.priviledge import AnyUserNoEscalationOnDarwin, PriviledgeLevel
+
+    obj = AnyUserNoEscalationOnDarwin()
+    assert isinstance(obj, PriviledgeLevel)
+
+
+def test_should_hide_any_user_no_escalation_on_darwin_linux():
+    """On Linux, AnyUserNoEscalationOnDarwin behaves like OnlyRoot — hidden when not root."""
+    from unittest.mock import patch, MagicMock
+    from expand.curses_cli import curses_cli
+    from expand.priviledge import AnyUserNoEscalationOnDarwin
+
+    cli = object.__new__(curses_cli)
+
+    mock_choice = MagicMock()
+    mock_choice.expansion_card.get_priviledge_level.return_value = AnyUserNoEscalationOnDarwin()
+    mock_choice.failing_probes.return_value = []
+    mock_choice.installed_status.return_value = "Not Installed"
+
+    # On Linux, non-root → hidden
+    with patch("expand.curses_cli.platform") as mock_platform, \
+         patch("expand.curses_cli.os.getuid", return_value=1000):
+        mock_platform.system.return_value = "Linux"
+        assert cli.should_hide(mock_choice) is True
+
+    # On Linux, root → not hidden
+    with patch("expand.curses_cli.platform") as mock_platform, \
+         patch("expand.curses_cli.os.getuid", return_value=0):
+        mock_platform.system.return_value = "Linux"
+        assert cli.should_hide(mock_choice) is False
+
+
+def test_should_hide_any_user_no_escalation_on_darwin_macos():
+    """On macOS, AnyUserNoEscalationOnDarwin: visible for regular users, hidden from root (brew refuses root)."""
+    from unittest.mock import patch, MagicMock
+    from expand.curses_cli import curses_cli
+    from expand.priviledge import AnyUserNoEscalationOnDarwin
+
+    cli = object.__new__(curses_cli)
+
+    mock_choice = MagicMock()
+    mock_choice.expansion_card.get_priviledge_level.return_value = AnyUserNoEscalationOnDarwin()
+    mock_choice.failing_probes.return_value = []
+    mock_choice.installed_status.return_value = "Not Installed"
+
+    # On macOS, non-root → not hidden
+    with patch("expand.curses_cli.platform") as mock_platform, \
+         patch("expand.curses_cli.os.getuid", return_value=501):
+        mock_platform.system.return_value = "Darwin"
+        assert cli.should_hide(mock_choice) is False
+
+    # On macOS, root → hidden (brew can't run as root)
+    with patch("expand.curses_cli.platform") as mock_platform, \
+         patch("expand.curses_cli.os.getuid", return_value=0):
+        mock_platform.system.return_value = "Darwin"
+        assert cli.should_hide(mock_choice) is True
+
+
+def test_playbook_parsing_with_new_privilege(tmp_path):
+    """Verify ExpansionCard can parse AnyUserNoEscalationOnDarwin() from a playbook header."""
+    from expand.expansion_card import ExpansionCard
+    from expand.priviledge import AnyUserNoEscalationOnDarwin
+
+    path = _write_expansion_yaml(
+        tmp_path, "brew_priv.yaml",
+        privilege="AnyUserNoEscalationOnDarwin()", probes="[]",
+        installed_probes="[]",
+        description_lines=["Cross-platform playbook"],
+    )
+    card = ExpansionCard(path)
+    result = card.get_priviledge_level()
+    assert isinstance(result, AnyUserNoEscalationOnDarwin)

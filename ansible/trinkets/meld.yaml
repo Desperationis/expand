@@ -1,6 +1,6 @@
-# OnlyRoot()
+# AnyUserNoEscalationOnDarwin()
 # [DisplayProbe()]
-# [CommandProbe("meld")]
+# [AnyProbes([CommandProbe("meld"), FileProbe("/Applications/Meld.app")])]
 # EXTREMELY GOOD GUI for directory and file diffs.
 
 - name: "Install meld"

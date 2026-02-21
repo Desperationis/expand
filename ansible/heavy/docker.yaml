@@ -1,6 +1,6 @@
-# OnlyRoot()
+# AnyUserNoEscalationOnDarwin()
 # []
-# [CommandProbe("docker")]
+# [AnyProbes([CommandProbe("docker"), FileProbe("/Applications/Docker.app")])]
 # This installs docker to most linux systems, as it only calls https://get.docker.com. It also removes any remant of the script when it is done.
 
 - name: "Install Docker"

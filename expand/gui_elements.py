@@ -8,7 +8,8 @@ from expand.failure_cache import FailureCache
 from expand.colors import expand_color_palette
 from expand.expansion_card import ExpansionCard
 from expand.line_buffer import LineBuffer
-from expand.priviledge import OnlyRoot, AnyUserEscalation, AnyUserNoEscalation
+from expand.priviledge import OnlyRoot, AnyUserEscalation, AnyUserNoEscalation, AnyUserNoEscalationOnDarwin
+import platform
 
 class ChoicePreview:
     """
@@ -189,6 +190,17 @@ class Choice:
                 data["priviledge"] = "AnyUserEscalation", "RED"
             else:
                 data["priviledge"] = "AnyUserEscalation", "YELLOW"
+        elif isinstance(level, AnyUserNoEscalationOnDarwin):
+            if platform.system() == "Darwin":
+                if os.getuid() == 0:
+                    data["priviledge"] = "AnyUserNoEscalation", "RED"
+                else:
+                    data["priviledge"] = "AnyUserNoEscalation", "GREEN"
+            else:
+                if os.getuid() != 0:
+                    data["priviledge"] = "OnlyRoot", "RED"
+                else:
+                    data["priviledge"] = "OnlyRoot", "GREEN"
         else:
             raise Exception(f"Unknown Priviledge: {level}")
 

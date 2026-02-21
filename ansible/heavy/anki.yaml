@@ -1,6 +1,6 @@
-# OnlyRoot()
+# AnyUserNoEscalationOnDarwin()
 # [DisplayProbe()]
-# [CommandProbe("anki")]
+# [AnyProbes([CommandProbe("anki"), FileProbe("/Applications/Anki.app")])]
 # Installs Anki directly from the website.
 
 - name: "Install Anki"

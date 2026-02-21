@@ -1,6 +1,6 @@
-# OnlyRoot()
+# AnyUserNoEscalationOnDarwin()
 # [DisplayProbe()]
-# [CommandProbe("keepassxc")]
+# [AnyProbes([CommandProbe("keepassxc"), FileProbe("/Applications/KeePassXC.app")])]
 # Installs keepassxc
 
 - name: "Install keepass"

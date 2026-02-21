@@ -6,6 +6,7 @@ This file is in charge of drawing the UI to the screen.
 import curses
 import subprocess
 import os
+import platform
 import pwd
 import shutil
 import threading
@@ -14,7 +15,7 @@ from expand import util
 from expand.failure_cache import FailureCache
 from expand.gui_elements import ChoicePreview, Choice, OutputPanel
 from expand.colors import init_colors
-from expand.priviledge import AnyUserNoEscalation, OnlyRoot
+from expand.priviledge import AnyUserNoEscalation, OnlyRoot, AnyUserNoEscalationOnDarwin
 from expand.expansion_card import ExpansionCard
 
 class package_select:
@@ -42,10 +43,19 @@ class curses_cli:
 
     def should_hide(self, choice: 'Choice') -> bool:
         """Check if a choice should be hidden based on privilege, probes, and install status."""
-        # Hide OnlyRoot items if user is not root
         privilege = choice.expansion_card.get_priviledge_level()
+
+        # Hide OnlyRoot items if user is not root
         if isinstance(privilege, OnlyRoot) and os.getuid() != 0:
             return True
+
+        # AnyUserNoEscalationOnDarwin: on Linux acts like OnlyRoot;
+        # on macOS, hide from root (brew refuses to run as root)
+        if isinstance(privilege, AnyUserNoEscalationOnDarwin):
+            if platform.system() == "Darwin" and os.getuid() == 0:
+                return True
+            if platform.system() != "Darwin" and os.getuid() != 0:
+                return True
 
         # Hide items with failing probes
         if len(choice.failing_probes()) > 0:
@@ -97,6 +107,51 @@ class curses_cli:
         self.stdscr.keypad(True)
 
         init_colors()
+
+    def show_error_review(self, failed_panels, succeeded, total):
+        """Show a scrollable review of all failed playbook outputs."""
+        failed = len(failed_panels)
+        review = OutputPanel(f"Install Summary — {succeeded}/{total} succeeded, {failed} failed")
+
+        for name, panel in failed_panels:
+            review.append("")
+            review.append("=" * 60)
+            review.append(f"FAILED: {name}")
+            review.append("=" * 60)
+            for line in panel.buffer.lines:
+                review.append(line)
+
+        review.set_status(f"{failed} failure(s) — scroll with j/k/PgUp/PgDn, press q to return", "RED")
+
+        scroll_offset = 0
+        self.stdscr.timeout(-1)
+
+        while True:
+            rows, cols = self.stdscr.getmaxyx()
+            content_height = max(0, rows - 3)
+
+            self.stdscr.erase()
+            review.draw(self.stdscr, rows, cols, scroll_offset)
+            self.stdscr.refresh()
+
+            c = self.stdscr.getch()
+            if c == ord("q") or c == 27 or c == curses.KEY_ENTER or c == 10:
+                break
+            elif c == curses.KEY_UP or c == ord("k"):
+                scroll_offset = max(0, scroll_offset - 1)
+            elif c == curses.KEY_DOWN or c == ord("j"):
+                scroll_offset += 1
+            elif c == curses.KEY_PPAGE:
+                scroll_offset = max(0, scroll_offset - content_height)
+            elif c == curses.KEY_NPAGE:
+                scroll_offset += content_height
+            elif c == curses.KEY_HOME:
+                scroll_offset = 0
+            elif c == curses.KEY_END:
+                scroll_offset = max(0, review.buffer.total_lines() - content_height)
+
+            max_offset = max(0, review.buffer.total_lines() - content_height)
+            scroll_offset = max(0, min(scroll_offset, max_offset))
 
     def run_playbook_live(self, file_path, package_name, user, panel):
         """Run an ansible-playbook in a subprocess, streaming output to an OutputPanel.
@@ -166,23 +221,7 @@ class curses_cli:
                 t.join()
                 break
 
-        # Set final status
-        if proc.returncode == 0:
-            panel.set_status("SUCCESS — press any key to continue", "GREEN")
-        else:
-            panel.set_status(f"FAILED rc={proc.returncode} — press any key to continue", "RED")
-
-        # Final draw with status
-        self.stdscr.timeout(-1)  # blocking getch
-        rows, cols = self.stdscr.getmaxyx()
-        content_height = max(0, rows - 3)
-        if panel.buffer.auto_scroll:
-            scroll_offset = max(0, panel.buffer.total_lines() - content_height)
-        self.stdscr.erase()
-        panel.draw(self.stdscr, rows, cols, scroll_offset)
-        self.stdscr.refresh()
-        self.stdscr.getch()  # wait for any key
-
+        self.stdscr.timeout(-1)
         return proc.returncode
 
     def create_ansible_data_structure(self):
@@ -364,6 +403,7 @@ class curses_cli:
                 # Run Playbooks with live output
                 succeeded = 0
                 total = len(selections)
+                failed_panels = []
 
                 for counter, i in enumerate(selections, 1):
                     current_display = categories[i.category][1]
@@ -390,6 +430,8 @@ class curses_cli:
                     tmp = "root"
                     if isinstance(priviledge, AnyUserNoEscalation):
                         tmp = pwd.getpwuid(os.getuid()).pw_name
+                    elif isinstance(priviledge, AnyUserNoEscalationOnDarwin) and platform.system() == "Darwin":
+                        tmp = pwd.getpwuid(os.getuid()).pw_name
 
                     panel = OutputPanel(format_install_title(counter, total, package_name))
                     rc = self.run_playbook_live(file_path, package_name, tmp, panel)
@@ -406,6 +448,7 @@ class curses_cli:
                         succeeded += 1
                     else:
                         FailureCache.set_failed(package_name)
+                        failed_panels.append((package_name, panel))
 
                     # Clear cached status so it gets re-evaluated
                     current_display[i.selection].clear_installed_status()
@@ -419,20 +462,9 @@ class curses_cli:
                     p = subprocess.Popen(f"chown -R {own_user}:{own_user} {os.path.expanduser('~')}".split(" "), user="root")
                     p.wait()
 
-                # Show summary panel
-                if total > 0:
-                    summary = OutputPanel(f"Install Summary — {total} package(s)")
-                    summary.append(f"{succeeded}/{total} playbooks succeeded.")
-                    if succeeded == total:
-                        summary.set_status("All installations succeeded — press any key to continue", "GREEN")
-                    else:
-                        summary.set_status(f"{total - succeeded} installation(s) failed — press any key to continue", "RED")
-                    self.stdscr.timeout(-1)
-                    rows, cols = self.stdscr.getmaxyx()
-                    self.stdscr.erase()
-                    summary.draw(self.stdscr, rows, cols, 0)
-                    self.stdscr.refresh()
-                    self.stdscr.getch()
+                # Only show error review if there were failures
+                if failed_panels:
+                    self.show_error_review(failed_panels, succeeded, total)
 
                 # Rebuild data structure and resume
                 categories = self.create_ansible_data_structure()

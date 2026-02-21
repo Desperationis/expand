@@ -1,6 +1,6 @@
-# OnlyRoot()
+# AnyUserNoEscalationOnDarwin()
 # [DisplayProbe()]
-# [CommandProbe("localsend_app")]
+# [AnyProbes([CommandProbe("localsend_app"), FileProbe("/Applications/LocalSend.app")])]
 # Installs the localsend client directly from github.
 
 - name: "Install LocalSend"

@@ -1,6 +1,6 @@
-# OnlyRoot()
+# AnyUserNoEscalationOnDarwin()
 # [DisplayProbe()]
-# [CommandProbe("mullvad")]
+# [AnyProbes([CommandProbe("mullvad"), FileProbe("/Applications/Mullvad VPN.app")])]
 # Installs the GUI client for Mullvad via .deb
 
 - name: "Install Mullvad"

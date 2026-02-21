@@ -1,6 +1,6 @@
-# OnlyRoot()
+# AnyUserNoEscalationOnDarwin()
 # [DisplayProbe()]
-# [CommandProbe("imhex")]
+# [AnyProbes([CommandProbe("imhex"), FileProbe("/Applications/ImHex.app")])]
 # Installs the `imhex` hex editor.
 
 - name: "Install imhex"
