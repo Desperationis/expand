@@ -1,3 +1,5 @@
+import os
+import pytest
 import expand
 import datetime
 
@@ -2172,3 +2174,337 @@ def test_should_hide_any_user_escalation_visible():
          patch("expand.curses_cli.os.getuid", return_value=0):
         mock_platform.system.return_value = "Linux"
         assert cli.should_hide(mock_choice) is False
+
+
+def test_list_presets(tmp_path):
+    from expand.presets import list_presets
+
+    # Nonexistent directory returns empty list
+    assert list_presets(tmp_path / "nonexistent") == []
+
+    # Empty directory returns empty list
+    d = tmp_path / "presets"
+    d.mkdir()
+    assert list_presets(str(d)) == []
+
+    # Only .json files are returned, sorted
+    (d / "basic.json").write_text('{}')
+    (d / "all.json").write_text('{}')
+    (d / "notes.txt").write_text('')
+    (d / "readme.md").write_text('')
+    assert list_presets(str(d)) == ["all", "basic"]
+
+    # Adding another json file keeps order
+    (d / "mac.json").write_text('{}')
+    assert list_presets(str(d)) == ["all", "basic", "mac"]
+
+
+def test_load_preset_file(tmp_path):
+    from expand.presets import load_preset_file
+
+    d = tmp_path / "presets"
+    d.mkdir()
+
+    # Valid file returns correct dict
+    (d / "basic.json").write_text('{"name": "Basic", "packages": ["fish.yaml", "bat.yaml"]}')
+    result = load_preset_file("basic", str(d))
+    assert result == {"name": "Basic", "packages": ["fish.yaml", "bat.yaml"]}
+
+    # Missing file raises FileNotFoundError
+    with pytest.raises(FileNotFoundError):
+        load_preset_file("nonexistent", str(d))
+
+    # Invalid JSON raises ValueError
+    (d / "bad.json").write_text("{not valid json")
+    with pytest.raises(ValueError):
+        load_preset_file("bad", str(d))
+
+    # Missing "packages" key raises ValueError
+    (d / "nopackages.json").write_text('{"name": "Oops"}')
+    with pytest.raises(ValueError):
+        load_preset_file("nopackages", str(d))
+
+
+def test_resolve_preset_selections():
+    from expand.presets import resolve_preset_selections
+    from expand.curses_cli import package_select
+
+    # Build a fake categories structure with mock Choice objects
+    class FakeChoice:
+        def __init__(self, name):
+            self.name = name
+
+    choices_a = [FakeChoice("fish.yaml"), FakeChoice("bat.yaml"), FakeChoice("git.yaml")]
+    choices_b = [FakeChoice("nvim.yaml"), FakeChoice("rust.yaml")]
+    categories = [("trinkets", choices_a), ("heavy", choices_b)]
+
+    # should_hide hides "git.yaml" (installed/incompatible) and nothing else
+    def should_hide(choice):
+        return choice.name == "git.yaml"
+
+    # Matching packages are selected; hidden packages are skipped
+    result = resolve_preset_selections(
+        ["fish.yaml", "git.yaml", "rust.yaml"], categories, should_hide
+    )
+    assert result == {package_select(0, 0), package_select(1, 1)}
+
+    # Missing packages are skipped silently
+    result = resolve_preset_selections(
+        ["nonexistent.yaml"], categories, should_hide
+    )
+    assert result == set()
+
+    # Empty preset returns empty set
+    result = resolve_preset_selections([], categories, should_hide)
+    assert result == set()
+
+
+def test_load_and_resolve_preset(tmp_path):
+    from expand.presets import load_and_resolve_preset
+    from expand.curses_cli import package_select
+    import json
+
+    # Build a fake categories structure
+    class FakeChoice:
+        def __init__(self, name):
+            self.name = name
+
+    choices_a = [FakeChoice("fish.yaml"), FakeChoice("bat.yaml")]
+    choices_b = [FakeChoice("nvim.yaml"), FakeChoice("rust.yaml")]
+    categories = [("trinkets", choices_a), ("heavy", choices_b)]
+
+    def should_hide(choice):
+        return choice.name == "bat.yaml"
+
+    # Write a real preset JSON file
+    preset_data = {"name": "Test Preset", "packages": ["fish.yaml", "bat.yaml", "nvim.yaml"]}
+    (tmp_path / "test.json").write_text(json.dumps(preset_data))
+
+    # End-to-end: loads file and resolves selections
+    result = load_and_resolve_preset("test", str(tmp_path), categories, should_hide)
+    # fish.yaml -> (0,0), bat.yaml hidden, nvim.yaml -> (1,0)
+    assert result == {package_select(0, 0), package_select(1, 0)}
+
+    # Propagates FileNotFoundError for missing preset
+    with pytest.raises(FileNotFoundError):
+        load_and_resolve_preset("nonexistent", str(tmp_path), categories, should_hide)
+
+    # Propagates ValueError for invalid JSON
+    (tmp_path / "bad.json").write_text("not json")
+    with pytest.raises(ValueError):
+        load_and_resolve_preset("bad", str(tmp_path), categories, should_hide)
+
+
+def test_preset_all_json():
+    import json
+    preset_path = os.path.join(os.path.dirname(__file__), "presets", "all.json")
+    with open(preset_path) as f:
+        data = json.load(f)
+
+    assert "name" in data
+    assert data["name"] == "All Packages"
+    assert "packages" in data
+    assert isinstance(data["packages"], list)
+    assert len(data["packages"]) > 0
+
+    # Collect all real YAML files from ansible subdirectories (excluding example.yaml)
+    ansible_dir = os.path.join(os.path.dirname(__file__), "ansible")
+    real_files = set()
+    for subdir in os.listdir(ansible_dir):
+        subdir_path = os.path.join(ansible_dir, subdir)
+        if os.path.isdir(subdir_path):
+            for f in os.listdir(subdir_path):
+                if f.endswith(".yaml") and f != "example.yaml":
+                    real_files.add(f)
+
+    preset_files = set(data["packages"])
+
+    # Every entry in the preset must correspond to an actual ansible file
+    assert preset_files <= real_files, f"Preset has unknown files: {preset_files - real_files}"
+
+    # No real ansible YAML files should be missing from the preset
+    assert real_files <= preset_files, f"Preset is missing files: {real_files - preset_files}"
+
+
+def test_preset_basic_json():
+    import json
+    preset_path = os.path.join(os.path.dirname(__file__), "presets", "basic.json")
+    with open(preset_path) as f:
+        data = json.load(f)
+
+    assert "name" in data
+    assert data["name"] == "Basic Setup"
+    assert "packages" in data
+    assert isinstance(data["packages"], list)
+    assert len(data["packages"]) > 0
+
+    # Collect all real YAML files from ansible subdirectories
+    ansible_dir = os.path.join(os.path.dirname(__file__), "ansible")
+    real_files = set()
+    for subdir in os.listdir(ansible_dir):
+        subdir_path = os.path.join(ansible_dir, subdir)
+        if os.path.isdir(subdir_path):
+            for f in os.listdir(subdir_path):
+                if f.endswith(".yaml") and f != "example.yaml":
+                    real_files.add(f)
+
+    # Every entry in the preset must correspond to an actual ansible file
+    preset_files = set(data["packages"])
+    assert preset_files <= real_files, f"Preset has unknown files: {preset_files - real_files}"
+
+
+def test_preset_mac_json():
+    import json
+    preset_path = os.path.join(os.path.dirname(__file__), "presets", "mac.json")
+    with open(preset_path) as f:
+        data = json.load(f)
+
+    assert "name" in data
+    assert data["name"] == "macOS Compatible"
+    assert "packages" in data
+    assert isinstance(data["packages"], list)
+    assert len(data["packages"]) > 0
+
+    # Collect all real YAML files from ansible subdirectories
+    ansible_dir = os.path.join(os.path.dirname(__file__), "ansible")
+    real_files = set()
+    for subdir in os.listdir(ansible_dir):
+        subdir_path = os.path.join(ansible_dir, subdir)
+        if os.path.isdir(subdir_path):
+            for f in os.listdir(subdir_path):
+                if f.endswith(".yaml") and f != "example.yaml":
+                    real_files.add(f)
+
+    # Every entry in the preset must correspond to an actual ansible file
+    preset_files = set(data["packages"])
+    assert preset_files <= real_files, f"Preset has unknown files: {preset_files - real_files}"
+
+    # Linux-only filenames must NOT be in the mac preset
+    linux_only = {
+        "gdm3.yaml", "i3.yaml", "i3_config.yaml", "tlp_config.yaml",
+        "docker_no_sudo.yaml", "user_dirs.yaml", "envycontrol.yaml", "uxplay.yaml",
+    }
+    assert preset_files.isdisjoint(linux_only), \
+        f"Mac preset contains Linux-only files: {preset_files & linux_only}"
+
+
+def test_docopt_preset_option():
+    from docopt import docopt
+    import expand.expand
+
+    # --preset defaults to None when not provided
+    args = docopt(expand.expand.__doc__, argv=[])
+    assert args["--preset"] is None
+
+    # --preset is recognized and stores the value
+    args = docopt(expand.expand.__doc__, argv=["--preset=basic"])
+    assert args["--preset"] == "basic"
+
+
+def test_curses_cli_stores_preset_name():
+    from unittest.mock import patch
+    from expand.curses_cli import curses_cli
+
+    with patch("curses.initscr"):
+        # Without preset_name
+        cli = curses_cli(workers=2)
+        assert cli.preset_name is None
+
+        # With preset_name
+        cli = curses_cli(workers=2, preset_name="basic")
+        assert cli.preset_name == "basic"
+
+
+def test_preset_applied_in_loop(tmp_path):
+    import json
+    from unittest.mock import patch
+    from expand.curses_cli import curses_cli, package_select
+
+    class FakeChoice:
+        def __init__(self, name):
+            self.name = name
+
+    choices_a = [FakeChoice("fish.yaml"), FakeChoice("bat.yaml")]
+    choices_b = [FakeChoice("nvim.yaml"), FakeChoice("rust.yaml")]
+    categories = [("trinkets", choices_a), ("heavy", choices_b)]
+
+    # Write a preset file
+    preset_data = {"name": "Test", "packages": ["fish.yaml", "nvim.yaml", "missing.yaml"]}
+    (tmp_path / "test.json").write_text(json.dumps(preset_data))
+
+    with patch("curses.initscr"):
+        # With preset
+        cli = curses_cli(workers=1, preset_name="test")
+        cli.should_hide = lambda c: False
+        with patch("expand.presets.load_preset_file") as mock_load:
+            mock_load.return_value = preset_data
+            result = cli.apply_preset(categories)
+        assert result == {package_select(0, 0), package_select(1, 0)}
+
+        # Without preset
+        cli2 = curses_cli(workers=1)
+        result2 = cli2.apply_preset(categories)
+        assert result2 == set()
+
+        # Invalid preset (file not found) returns empty set
+        cli3 = curses_cli(workers=1, preset_name="nonexistent")
+        result3 = cli3.apply_preset(categories)
+        assert result3 == set()
+
+
+def test_show_preset_picker_no_presets():
+    from unittest.mock import patch
+    from expand.curses_cli import curses_cli
+
+    with patch("curses.initscr"):
+        cli = curses_cli(workers=1)
+
+    # With empty presets dir, show_preset_picker returns None
+    with patch("expand.presets.list_presets", return_value=[]):
+        result = cli.show_preset_picker([])
+    assert result is None
+
+
+def test_preset_end_to_end(tmp_path):
+    import json
+    from expand.presets import resolve_preset_selections
+    from expand.gui_elements import Choice
+    from expand.curses_cli import package_select
+
+    # Build real categories from actual ansible/ directory
+    ansible_dir = os.path.join(os.path.dirname(__file__), "ansible")
+    categories = []
+    for entry in sorted(os.scandir(ansible_dir), key=lambda e: e.name):
+        if entry.is_dir() and not entry.name.startswith('.'):
+            choices = []
+            dir_path = os.path.join(ansible_dir, entry.name)
+            for f in sorted(os.listdir(dir_path)):
+                if f.endswith(".yaml") and f != "example.yaml":
+                    choices.append(Choice(f, os.path.join(dir_path, f)))
+            if choices:
+                categories.append((entry.name, choices))
+
+    # Create a test preset with a mix of real package names
+    preset_data = {"name": "E2E Test", "packages": ["fish.yaml", "bat.yaml", "nvim.yaml"]}
+    (tmp_path / "e2e.json").write_text(json.dumps(preset_data))
+
+    # should_hide: hide items with failing compatibility probes
+    def should_hide(choice):
+        return len(choice.failing_probes()) > 0
+
+    from expand.presets import load_and_resolve_preset
+    result = load_and_resolve_preset("e2e", str(tmp_path), categories, should_hide)
+
+    # (a) selections are non-empty (at least some packages should be compatible)
+    assert len(result) > 0
+
+    # (b) every selected package_select maps to a valid category/choice index
+    for sel in result:
+        assert 0 <= sel.category < len(categories)
+        _, choices = categories[sel.category]
+        assert 0 <= sel.selection < len(choices)
+
+    # (c) no selected package has failing compatibility probes
+    for sel in result:
+        choice = categories[sel.category][1][sel.selection]
+        assert len(choice.failing_probes()) == 0

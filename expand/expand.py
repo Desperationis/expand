@@ -4,10 +4,12 @@ Usage:
   expand [options]
 
 Options:
-  -h --help          Show this screen.
-  -v --verbose       Write debug output to `expand.log`
-  --user=<name>      Install packages for specified user [default: root]
-  --workers=<n>      Number of parallel workers for status checks [default: 4]
+  -h --help                Show this screen.
+  -v --verbose             Write debug output to `expand.log`
+  --user=<name>            Install packages for specified user [default: root]
+  --workers=<n>            Number of parallel workers for status checks [default: 4]
+  --preset=<name>          Pre-select packages from a named preset (e.g. basic, all, mac)
+  --export-preset=<name>   Export installed packages as a preset file to presets/<name>.json
 """
 
 import os
@@ -44,10 +46,16 @@ def main():
     # Parse workers option
     workers = int(args["--workers"])
 
+    # Export preset mode: scan installed packages and write a preset file, then exit.
+    if args["--export-preset"]:
+        from expand.presets import export_installed_preset
+        export_installed_preset(args["--export-preset"], workers)
+        sys.exit(0)
+
     # Curses is initialized first because it doesn't like changing user in this
     # context. If it is initialized after changing user, the program won't work
     # on some computers.
-    cli = curses_cli.curses_cli(workers=workers)
+    cli = curses_cli.curses_cli(workers=workers, preset_name=args["--preset"])
 
     if args["--user"]:
         try:

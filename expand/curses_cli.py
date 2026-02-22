@@ -33,10 +33,11 @@ def format_install_title(index, total, name):
     return f"Installing [{index}/{total}]: {name}"
 
 class curses_cli:
-    def __init__(self, workers: int = 4) -> None:
+    def __init__(self, workers: int = 4, preset_name: str = None) -> None:
         self.stdscr = curses.initscr()
         self.show_hidden = False
         self.workers = workers
+        self.preset_name = preset_name
         self.filter_mode = False
         self.filter_query = ""
         self.filter_active = False
@@ -96,6 +97,68 @@ class curses_cli:
             return selections - visible_pselects
         else:
             return selections | visible_pselects
+
+    def show_preset_picker(self, categories):
+        """Show an interactive preset picker and return resolved selections, or None if cancelled."""
+        from expand.presets import list_presets, load_and_resolve_preset
+
+        presets = list_presets("presets")
+        if not presets:
+            return None
+
+        picker_hover = 0
+        while True:
+            rows, cols = self.stdscr.getmaxyx()
+            self.stdscr.erase()
+            self.stdscr.addstr(0, 0, "Select a preset:", curses.A_BOLD)
+
+            for i, name in enumerate(presets):
+                attrs = curses.A_REVERSE if i == picker_hover else 0
+                try:
+                    self.stdscr.addstr(2 + i, 3, name, attrs)
+                except curses.error:
+                    pass
+
+            try:
+                self.stdscr.addstr(rows - 1, 0, "j/k: navigate  Enter: select  q/Esc: cancel", curses.A_DIM)
+            except curses.error:
+                pass
+
+            self.stdscr.refresh()
+            c = self.stdscr.getch()
+
+            if c == ord("q") or c == 27:
+                return None
+            elif c == curses.KEY_UP or c == ord("k"):
+                picker_hover = max(0, picker_hover - 1)
+            elif c == curses.KEY_DOWN or c == ord("j"):
+                picker_hover = min(len(presets) - 1, picker_hover + 1)
+            elif c == curses.KEY_ENTER or c == 10:
+                try:
+                    return load_and_resolve_preset(
+                        presets[picker_hover], "presets", categories, self.should_hide
+                    )
+                except Exception as e:
+                    import logging
+                    logging.warning(f"Failed to load preset '{presets[picker_hover]}': {e}")
+                    return None
+
+    def apply_preset(self, categories):
+        """Apply the stored preset_name to the given categories, returning selections.
+
+        Returns an empty set if no preset is configured or if loading fails.
+        """
+        if not self.preset_name:
+            return set()
+        try:
+            from expand.presets import load_and_resolve_preset
+            return load_and_resolve_preset(
+                self.preset_name, "presets", categories, self.should_hide
+            )
+        except Exception as e:
+            import logging
+            logging.warning(f"Failed to load preset '{self.preset_name}': {e}")
+            return set()
 
     def setup(self):
         curses.noecho()
@@ -261,7 +324,7 @@ class curses_cli:
 
         # For selection
         hover = 0
-        selections = set()
+        selections = self.apply_preset(categories)
 
         while True:
             current_display = categories[current_category][1]
@@ -310,9 +373,9 @@ class curses_cli:
                     self.stdscr.addstr(rows - 1, 0, filter_text, curses.A_DIM)
                 else:
                     hidden_count = len(current_display) - len(visible_choices)
-                    legend = "TAB: select  a: select all  /: search  h: show all  q: quit" if hidden_count > 0 or self.show_hidden else "TAB: select  a: select all  /: search  q: quit"
+                    legend = "TAB: select  a: select all  /: search  p: preset  h: show all  q: quit" if hidden_count > 0 or self.show_hidden else "TAB: select  a: select all  /: search  p: preset  q: quit"
                     if self.show_hidden and hidden_count > 0:
-                        legend = "TAB: select  a: select all  /: search  h: hide installed/incompatible  q: quit"
+                        legend = "TAB: select  a: select all  /: search  p: preset  h: hide installed/incompatible  q: quit"
                     self.stdscr.addstr(rows - 1, 0, legend, curses.A_DIM)
             except curses.error:
                 pass
@@ -383,6 +446,11 @@ class curses_cli:
             elif c == ord("a"):
                 selections = self.select_all_visible(visible_choices, current_category, selections)
                 hover = 0
+            elif c == ord("p"):
+                result = self.show_preset_picker(categories)
+                if result is not None:
+                    selections = result
+                    hover = 0
             elif c == 9:  # Tab
                 if len(visible_choices) > 0:
                     orig_idx = visible_choices[hover][0]

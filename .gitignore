@@ -1,4 +1,5 @@
 installed.json
+failures.json
 
 # Fish shell auto-generated files (managed by fisher/plugins, not us)
 data/config/fish/completions/
