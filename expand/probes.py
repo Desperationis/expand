@@ -245,6 +245,25 @@ class AnyProbes(InstalledProbe):
         return any(probe.is_installed() for probe in self.probes)
 
 
+class FileMatchProbe(InstalledProbe):
+    """Check if a deployed file exactly matches its source in the repo."""
+
+    _project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+    def __init__(self, source: str, dest: str) -> None:
+        self.source = os.path.join(self._project_root, source)
+        self.dest = os.path.expanduser(dest)
+
+    def is_installed(self) -> bool:
+        if not os.path.isfile(self.dest):
+            return False
+        try:
+            with open(self.source, "rb") as sf, open(self.dest, "rb") as df:
+                return sf.read() == df.read()
+        except (IOError, OSError):
+            return False
+
+
 class GrepProbe(InstalledProbe):
     """Check if a pattern exists in a file."""
 

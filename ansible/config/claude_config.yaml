@@ -1,6 +1,6 @@
 # AnyUserNoEscalation()
 # [WhichProbe("claude")]
-# [FileProbe("~/.claude/settings.json")]
+# [FileMatchProbe("data/config/claude/settings.json", "~/.claude/settings.json")]
 # Installs Claude Code configuration files including settings and custom skills.
 
 - name: "Install Claude Code configuration files"

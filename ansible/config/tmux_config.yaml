@@ -1,6 +1,6 @@
 # AnyUserNoEscalation()
 # [WhichProbe("tmux")]
-# [FileProbe("~/.config/tmux/tmux.conf")]
+# [FileMatchProbe("data/config/tmux/tmux.conf", "~/.config/tmux/tmux.conf")]
 # Installs tmux configuration files.
 
 - name: "Install tmux configuration files"

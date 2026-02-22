@@ -1,6 +1,6 @@
 # AnyUserNoEscalation()
 # [LinuxProbe()]
-# [FileProbe("~/.config/user-dirs.conf")]
+# [FileMatchProbe("data/config/user-dirs.conf", "~/.config/user-dirs.conf")]
 # Removes default folders in ~/
 
 - name: "Removes default folders in ~/"

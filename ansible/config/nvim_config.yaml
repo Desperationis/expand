@@ -1,6 +1,6 @@
 # AnyUserEscalation()
 # [WhichProbe("nvim")]
-# [FileProbe("~/.config/nvim/init.lua")]
+# [FileMatchProbe("data/config/nvim/init.lua", "~/.config/nvim/init.lua")]
 # Installs my nvim config as well as any other packages it needs.
 
 - name: "Install nvim configuration files"

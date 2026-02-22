@@ -1,6 +1,6 @@
 # AnyUserEscalation()
 # [AptProbe(), LinuxProbe()]
-# [FileProbe("~/.config/i3/config")]
+# [FileMatchProbe("data/config/i3/config", "~/.config/i3/config")]
 # Installs my i3 config as well as any packages it uses.
 
 - name: "Install i3 configuration files"

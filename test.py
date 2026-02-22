@@ -1648,11 +1648,11 @@ def test_nvim_config_yaml_probe_parsing_and_syntax():
     probe_types = [type(p) for p in probes]
     assert AptProbe not in probe_types
 
-    # Installed probes should have FileProbe
+    # Installed probes should have FileMatchProbe
     installed = card.get_installed_probes()
     assert len(installed) == 1
-    from expand.probes import FileProbe
-    assert isinstance(installed[0], FileProbe)
+    from expand.probes import FileMatchProbe
+    assert isinstance(installed[0], FileMatchProbe)
 
     # Description should parse correctly
     desc = card.get_ansible_description(120)
@@ -2060,6 +2060,73 @@ def test_file_probe(tmp_path):
 
     probe = FileProbe(str(tmp_path / "nonexistent.txt"))
     assert probe.is_installed() is False
+
+
+def test_file_match_probe_exact_match(tmp_path):
+    from expand.probes import FileMatchProbe
+
+    source = tmp_path / "source.conf"
+    dest = tmp_path / "dest.conf"
+    source.write_text("exact content")
+    dest.write_text("exact content")
+
+    probe = FileMatchProbe.__new__(FileMatchProbe)
+    probe.source = str(source)
+    probe.dest = str(dest)
+    assert probe.is_installed() is True
+
+
+def test_file_match_probe_content_mismatch(tmp_path):
+    from expand.probes import FileMatchProbe
+
+    source = tmp_path / "source.conf"
+    dest = tmp_path / "dest.conf"
+    source.write_text("expected content")
+    dest.write_text("different content")
+
+    probe = FileMatchProbe.__new__(FileMatchProbe)
+    probe.source = str(source)
+    probe.dest = str(dest)
+    assert probe.is_installed() is False
+
+
+def test_file_match_probe_dest_missing(tmp_path):
+    from expand.probes import FileMatchProbe
+
+    source = tmp_path / "source.conf"
+    source.write_text("content")
+
+    probe = FileMatchProbe.__new__(FileMatchProbe)
+    probe.source = str(source)
+    probe.dest = str(tmp_path / "nonexistent.conf")
+    assert probe.is_installed() is False
+
+
+def test_file_match_probe_source_missing(tmp_path):
+    from expand.probes import FileMatchProbe
+
+    dest = tmp_path / "dest.conf"
+    dest.write_text("content")
+
+    probe = FileMatchProbe.__new__(FileMatchProbe)
+    probe.source = str(tmp_path / "nonexistent.conf")
+    probe.dest = str(dest)
+    assert probe.is_installed() is False
+
+
+def test_file_match_probe_binary_match(tmp_path):
+    from expand.probes import FileMatchProbe
+
+    source = tmp_path / "source.bin"
+    dest = tmp_path / "dest.bin"
+    data = b"\x00\x01\x02\xff\xfe"
+    source.write_bytes(data)
+    dest.write_bytes(data)
+
+    probe = FileMatchProbe.__new__(FileMatchProbe)
+    probe.source = str(source)
+    probe.dest = str(dest)
+    assert probe.is_installed() is True
 
 
 def test_apt_package_probe():

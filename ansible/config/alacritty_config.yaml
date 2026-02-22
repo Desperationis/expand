@@ -1,6 +1,6 @@
 # AnyUserNoEscalation()
 # [ WhichProbe("alacritty") ]
-# [FileProbe("~/.config/alacritty/alacritty.toml")]
+# [FileMatchProbe("data/config/alacritty/alacritty.toml", "~/.config/alacritty/alacritty.toml")]
 # Installs alacritty configuration files.
 
 - name: "Install alacritty configuration files"

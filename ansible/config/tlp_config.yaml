@@ -1,6 +1,6 @@
 # OnlyRoot()
 # [LinuxProbe()]
-# [GrepProbe("/etc/tlp.conf", "CPU_SCALING_MAX_FREQ_ON_BAT=800000")]
+# [FileMatchProbe("data/config/tlp.conf", "/etc/tlp.conf")]
 # Doesn't install TLP, it only adds my tlp.conf file that extends battery life by about 4-6 hours.
 
 - name: "Install tlp configuration files."
