@@ -1902,3 +1902,273 @@ def test_playbook_parsing_with_new_privilege(tmp_path):
     card = ExpansionCard(path)
     result = card.get_priviledge_level()
     assert isinstance(result, AnyUserNoEscalationOnDarwin)
+
+
+# =============================================================================
+# Probe unit tests — GrepProbe, GroupMemberProbe, AllProbes, AnyProbes,
+# CommandProbe, FileProbe, AptPackageProbe
+# =============================================================================
+
+
+def test_grep_probe_file_missing():
+    from expand.probes import GrepProbe
+
+    probe = GrepProbe("/nonexistent/path/file.txt", "pattern")
+    assert probe.is_installed() is False
+
+
+def test_grep_probe_pattern_found(tmp_path):
+    from expand.probes import GrepProbe
+
+    f = tmp_path / "test.conf"
+    f.write_text("line1\n127.0.0.1   lh\nline3\n")
+    probe = GrepProbe(str(f), "127.0.0.1   lh")
+    assert probe.is_installed() is True
+
+
+def test_grep_probe_pattern_not_found(tmp_path):
+    from expand.probes import GrepProbe
+
+    f = tmp_path / "test.conf"
+    f.write_text("line1\nline2\nline3\n")
+    probe = GrepProbe(str(f), "missing_pattern")
+    assert probe.is_installed() is False
+
+
+def test_grep_probe_binary_file(tmp_path):
+    from expand.probes import GrepProbe
+
+    f = tmp_path / "binary.bin"
+    f.write_bytes(b"\x80\x81\x82\xff\xfe")
+    probe = GrepProbe(str(f), "anything")
+    assert probe.is_installed() is False
+
+
+def test_group_member_probe_nonexistent_group():
+    from expand.probes import GroupMemberProbe
+
+    probe = GroupMemberProbe("nonexistent_group_zzzzz")
+    assert probe.is_installed() is False
+
+
+def test_group_member_probe_user_in_group():
+    from unittest.mock import patch, MagicMock
+    from expand.probes import GroupMemberProbe
+
+    probe = GroupMemberProbe("docker")
+
+    mock_group = MagicMock()
+    mock_group.gr_mem = ["testuser"]
+    mock_group.gr_gid = 999
+
+    with patch("pwd.getpwuid", return_value=MagicMock(pw_name="testuser")), \
+         patch("grp.getgrnam", return_value=mock_group), \
+         patch("os.getuid", return_value=1000), \
+         patch("os.getgid", return_value=1000):
+        assert probe.is_installed() is True
+
+
+def test_group_member_probe_user_not_in_group():
+    from unittest.mock import patch, MagicMock
+    from expand.probes import GroupMemberProbe
+
+    probe = GroupMemberProbe("docker")
+
+    mock_group = MagicMock()
+    mock_group.gr_mem = ["otheruser"]
+    mock_group.gr_gid = 999
+
+    with patch("pwd.getpwuid", return_value=MagicMock(pw_name="testuser")), \
+         patch("grp.getgrnam", return_value=mock_group), \
+         patch("os.getuid", return_value=1000), \
+         patch("os.getgid", return_value=1000):
+        assert probe.is_installed() is False
+
+
+def test_group_member_probe_primary_group():
+    """User's primary GID matches the group GID — should count as member."""
+    from unittest.mock import patch, MagicMock
+    from expand.probes import GroupMemberProbe
+
+    probe = GroupMemberProbe("docker")
+
+    mock_group = MagicMock()
+    mock_group.gr_mem = []  # not listed in gr_mem
+    mock_group.gr_gid = 999
+
+    with patch("pwd.getpwuid", return_value=MagicMock(pw_name="testuser")), \
+         patch("grp.getgrnam", return_value=mock_group), \
+         patch("os.getuid", return_value=1000), \
+         patch("os.getgid", return_value=999):  # same as group GID
+        assert probe.is_installed() is True
+
+
+def test_all_probes():
+    from unittest.mock import MagicMock
+    from expand.probes import AllProbes
+
+    true_probe = MagicMock()
+    true_probe.is_installed.return_value = True
+    false_probe = MagicMock()
+    false_probe.is_installed.return_value = False
+
+    assert AllProbes([true_probe, true_probe]).is_installed() is True
+    assert AllProbes([true_probe, false_probe]).is_installed() is False
+    assert AllProbes([false_probe, false_probe]).is_installed() is False
+    # Empty list: all([]) is True in Python — document this behavior
+    assert AllProbes([]).is_installed() is True
+
+
+def test_any_probes():
+    from unittest.mock import MagicMock
+    from expand.probes import AnyProbes
+
+    true_probe = MagicMock()
+    true_probe.is_installed.return_value = True
+    false_probe = MagicMock()
+    false_probe.is_installed.return_value = False
+
+    assert AnyProbes([true_probe, false_probe]).is_installed() is True
+    assert AnyProbes([false_probe, false_probe]).is_installed() is False
+    assert AnyProbes([true_probe, true_probe]).is_installed() is True
+    # Empty list: any([]) is False in Python
+    assert AnyProbes([]).is_installed() is False
+
+
+def test_command_probe():
+    from unittest.mock import patch
+    from expand.probes import CommandProbe
+
+    probe = CommandProbe("git")
+
+    with patch("expand.probes.which", return_value="/usr/bin/git"):
+        assert probe.is_installed() is True
+
+    with patch("expand.probes.which", return_value=None):
+        assert probe.is_installed() is False
+
+
+def test_file_probe(tmp_path):
+    from expand.probes import FileProbe
+
+    existing = tmp_path / "exists.txt"
+    existing.write_text("content")
+    probe = FileProbe(str(existing))
+    assert probe.is_installed() is True
+
+    probe = FileProbe(str(tmp_path / "nonexistent.txt"))
+    assert probe.is_installed() is False
+
+
+def test_apt_package_probe():
+    from unittest.mock import patch, MagicMock
+    from expand.probes import AptPackageProbe
+
+    probe = AptPackageProbe("bash")
+
+    with patch("expand.probes.subprocess.run") as mock_run:
+        mock_run.return_value = MagicMock(returncode=0)
+        assert probe.is_installed() is True
+        mock_run.assert_called_once_with(
+            ["dpkg", "-s", "bash"],
+            capture_output=True, check=False
+        )
+
+    with patch("expand.probes.subprocess.run") as mock_run:
+        mock_run.return_value = MagicMock(returncode=1)
+        assert probe.is_installed() is False
+
+
+# =============================================================================
+# should_hide — OnlyRoot and AnyUserEscalation paths
+# =============================================================================
+
+
+def test_should_hide_only_root():
+    """OnlyRoot items are hidden when not root, visible when root."""
+    from unittest.mock import patch, MagicMock
+    from expand.curses_cli import curses_cli
+    from expand.priviledge import OnlyRoot
+
+    cli = object.__new__(curses_cli)
+
+    mock_choice = MagicMock()
+    mock_choice.expansion_card.get_priviledge_level.return_value = OnlyRoot()
+    mock_choice.failing_probes.return_value = []
+    mock_choice.installed_status.return_value = "Not Installed"
+
+    # Non-root → hidden
+    with patch("expand.curses_cli.platform") as mock_platform, \
+         patch("expand.curses_cli.os.getuid", return_value=1000):
+        mock_platform.system.return_value = "Linux"
+        assert cli.should_hide(mock_choice) is True
+
+    # Root → not hidden
+    with patch("expand.curses_cli.platform") as mock_platform, \
+         patch("expand.curses_cli.os.getuid", return_value=0):
+        mock_platform.system.return_value = "Linux"
+        assert cli.should_hide(mock_choice) is False
+
+
+def test_should_hide_failing_probes():
+    """Items with failing probes are always hidden."""
+    from unittest.mock import patch, MagicMock
+    from expand.curses_cli import curses_cli
+    from expand.priviledge import AnyUserEscalation
+
+    cli = object.__new__(curses_cli)
+
+    mock_choice = MagicMock()
+    mock_choice.expansion_card.get_priviledge_level.return_value = AnyUserEscalation()
+    mock_choice.failing_probes.return_value = ["some failing probe"]
+    mock_choice.installed_status.return_value = "Not Installed"
+
+    with patch("expand.curses_cli.platform") as mock_platform, \
+         patch("expand.curses_cli.os.getuid", return_value=0):
+        mock_platform.system.return_value = "Linux"
+        assert cli.should_hide(mock_choice) is True
+
+
+def test_should_hide_installed():
+    """Installed items are hidden."""
+    from unittest.mock import patch, MagicMock
+    from expand.curses_cli import curses_cli
+    from expand.priviledge import AnyUserEscalation
+
+    cli = object.__new__(curses_cli)
+
+    mock_choice = MagicMock()
+    mock_choice.expansion_card.get_priviledge_level.return_value = AnyUserEscalation()
+    mock_choice.failing_probes.return_value = []
+    mock_choice.installed_status.return_value = "Installed"
+
+    with patch("expand.curses_cli.platform") as mock_platform, \
+         patch("expand.curses_cli.os.getuid", return_value=0):
+        mock_platform.system.return_value = "Linux"
+        assert cli.should_hide(mock_choice) is True
+
+
+def test_should_hide_any_user_escalation_visible():
+    """AnyUserEscalation items are visible to both root and non-root (no privilege hiding)."""
+    from unittest.mock import patch, MagicMock
+    from expand.curses_cli import curses_cli
+    from expand.priviledge import AnyUserEscalation
+
+    cli = object.__new__(curses_cli)
+
+    mock_choice = MagicMock()
+    mock_choice.expansion_card.get_priviledge_level.return_value = AnyUserEscalation()
+    mock_choice.failing_probes.return_value = []
+    mock_choice.installed_status.return_value = "Not Installed"
+
+    # Non-root → still visible
+    with patch("expand.curses_cli.platform") as mock_platform, \
+         patch("expand.curses_cli.os.getuid", return_value=1000):
+        mock_platform.system.return_value = "Linux"
+        assert cli.should_hide(mock_choice) is False
+
+    # Root → visible
+    with patch("expand.curses_cli.platform") as mock_platform, \
+         patch("expand.curses_cli.os.getuid", return_value=0):
+        mock_platform.system.return_value = "Linux"
+        assert cli.should_hide(mock_choice) is False
