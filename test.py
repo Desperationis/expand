@@ -78,6 +78,38 @@ def test_brew_package_probe():
         assert mock_run.call_count == 2
 
 
+def test_pipx_probe():
+    from unittest.mock import patch, MagicMock
+    from expand.probes import PipxProbe
+
+    probe = PipxProbe("cowsay")
+
+    # Package found in output
+    with patch("expand.probes.subprocess.run") as mock_run:
+        mock_run.return_value = MagicMock(returncode=0, stdout="cowsay 1.0\nother 2.0\n")
+        assert probe.is_installed() is True
+
+    # Package not found in output
+    with patch("expand.probes.subprocess.run") as mock_run:
+        mock_run.return_value = MagicMock(returncode=0, stdout="other 2.0\n")
+        assert probe.is_installed() is False
+
+    # pipx command fails
+    with patch("expand.probes.subprocess.run") as mock_run:
+        mock_run.return_value = MagicMock(returncode=1, stdout="")
+        assert probe.is_installed() is False
+
+    # Empty lines in output — previously crashed with IndexError
+    with patch("expand.probes.subprocess.run") as mock_run:
+        mock_run.return_value = MagicMock(returncode=0, stdout="cowsay 1.0\n\n")
+        assert probe.is_installed() is True
+
+    # Only empty lines
+    with patch("expand.probes.subprocess.run") as mock_run:
+        mock_run.return_value = MagicMock(returncode=0, stdout="\n\n")
+        assert probe.is_installed() is False
+
+
 def test_display_probe_darwin():
     from unittest.mock import patch
     from expand.probes import DisplayProbe

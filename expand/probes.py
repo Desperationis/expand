@@ -202,7 +202,8 @@ class PipxProbe(InstalledProbe):
             return False
         # pipx list --short outputs "package version" per line
         for line in result.stdout.splitlines():
-            if line.split()[0] == self.package:
+            parts = line.split()
+            if parts and parts[0] == self.package:
                 return True
         return False
 
