@@ -1,0 +1,14 @@
+# AnyUserNoEscalation()
+# [DarwinProbe()]
+# [BrewPackageProbe("mtmr")]
+# Installs MTMR (My TouchBar My Rules), a macOS Touch Bar customization app.
+
+- name: "Install MTMR"
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: "Install MTMR (macOS)"
+      community.general.homebrew_cask:
+        name: mtmr
+        state: present

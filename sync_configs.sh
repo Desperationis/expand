@@ -13,12 +13,16 @@ OS="$(uname -s)"
 
 COMMON_TARGETS="nvim, fish, alacritty, tmux, claude"
 LINUX_TARGETS="i3, i3blocks, user-dirs, tlp"
+DARWIN_TARGETS="mtmr"
 
 show_usage() {
     echo "Usage: $0 <target>"
     echo "Targets: all, $COMMON_TARGETS"
     if [ "$OS" = "Linux" ]; then
         echo "Linux:   $LINUX_TARGETS"
+    fi
+    if [ "$OS" = "Darwin" ]; then
+        echo "macOS:   $DARWIN_TARGETS"
     fi
 }
 
@@ -68,6 +72,10 @@ sync_claude() {
     sync_dir "$HOME/.claude/skills" "$DATA_CONFIG/claude/skills" "claude skills"
 }
 
+sync_mtmr() {
+    sync_file "$HOME/Library/Application Support/MTMR/items.json" "$DATA_CONFIG/mtmr/items.json" "mtmr items.json"
+}
+
 sync_tlp() {
     if [ -f "/etc/tlp.conf" ]; then
         if [ "$(id -u)" -eq 0 ]; then
@@ -89,6 +97,10 @@ sync_all_common() {
     sync_claude
 }
 
+sync_all_darwin() {
+    sync_mtmr
+}
+
 sync_all_linux() {
     sync_dir "$USER_CONFIG/i3" "$DATA_CONFIG/i3" "i3"
     sync_dir "$USER_CONFIG/i3blocks" "$DATA_CONFIG/i3blocks" "i3blocks"
@@ -104,6 +116,9 @@ case "$TARGET" in
         sync_all_common
         if [ "$OS" = "Linux" ]; then
             sync_all_linux
+        fi
+        if [ "$OS" = "Darwin" ]; then
+            sync_all_darwin
         fi
         ;;
     nvim)
@@ -132,6 +147,9 @@ case "$TARGET" in
         ;;
     tlp)
         sync_tlp
+        ;;
+    mtmr)
+        sync_mtmr
         ;;
     *)
         echo "Unknown target: $TARGET"

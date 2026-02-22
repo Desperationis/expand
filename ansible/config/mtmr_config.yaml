@@ -1,0 +1,23 @@
+# AnyUserNoEscalation()
+# [DarwinProbe()]
+# [FileMatchProbe("data/config/mtmr/items.json", "~/Library/Application Support/MTMR/items.json")]
+# Installs MTMR (My TouchBar My Rules) configuration files.
+
+- name: "Install MTMR configuration files"
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    user_home: "{{ lookup('env', 'HOME') | default(lookup('env', 'USERPROFILE')) }}"
+    config_folder: "{{ playbook_dir }}/../../data/config/"
+  tasks:
+
+    - name: "Ensure MTMR directory exists"
+      file:
+        path: "{{ user_home }}/Library/Application Support/MTMR"
+        state: directory
+
+    - name: "Copy items.json"
+      copy:
+        src: "{{ config_folder }}/mtmr/items.json"
+        dest: "{{ user_home }}/Library/Application Support/MTMR/items.json"
