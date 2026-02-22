@@ -624,6 +624,30 @@ def test_expansion_card_description(tmp_path):
     result = card.get_ansible_description(11)
     assert result == ["Install git", "from source"]
 
+    # Long word with no spaces — should hard-split without dropping characters
+    path = _write_expansion_yaml(
+        tmp_path, "long_word.yaml",
+        privilege="OnlyRoot()", probes="[]", installed_probes="[]",
+        description_lines=["abcdefghij"],
+    )
+    card = ExpansionCard(path)
+    result = card.get_ansible_description(5)
+    assert result == ["abcde", "fghij"]
+
+    # Negative max_length should not infinite-loop — returns empty or N/A
+    path = _write_expansion_yaml(
+        tmp_path, "neg_width.yaml",
+        privilege="OnlyRoot()", probes="[]", installed_probes="[]",
+        description_lines=["Some text"],
+    )
+    card = ExpansionCard(path)
+    result = card.get_ansible_description(-1)
+    assert result == []
+
+    # Zero max_length
+    result = card.get_ansible_description(0)
+    assert result == []
+
 
 def test_expansion_card_with_new_probes(tmp_path):
     """Verify ExpansionCard parsing works with BrewProbe, DarwinProbe, LinuxProbe,

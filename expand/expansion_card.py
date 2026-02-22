@@ -119,18 +119,21 @@ class ExpansionCard:
         # These lines are all descriptions without # or whitespace
         comments = list(map(lambda a: a.lstrip("# \t"), comments[3:]))
 
+        if max_length <= 0:
+            return []
+
         def split_sentence(sentence, index):
             # Find the closest space before the index to split the sentence
             split_index = index
             while split_index > 0 and sentence[split_index] != ' ':
                 split_index -= 1
-            
-            # If no space is found, split at the index directly
-            if split_index == 0:
-                split_index = index
-            
-            # Return the split sentence
-            return [sentence[:split_index], sentence[split_index+1:]]
+
+            # If a space was found, split there (dropping the space)
+            if split_index > 0:
+                return [sentence[:split_index], sentence[split_index+1:]]
+
+            # No space found — hard-split at the index without dropping a character
+            return [sentence[:index], sentence[index:]]
 
 
         result = []
