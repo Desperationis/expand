@@ -7,12 +7,21 @@ n="${1:-1}"
 # Run in a dedicated tmux session so kill_all_unused_terminals.bash
 # (which only targets the "default" session) won't close it.
 if [ "$(tmux display-message -p '#S' 2>/dev/null)" != "$SESSION" ]; then
-  tmux kill-session -t "$SESSION" 2>/dev/null || true
-  if [ -n "${TMUX:-}" ]; then
-    tmux new-session -d -s "$SESSION" -c "$(pwd)" "$0 $n"
-    exec tmux switch-client -t "$SESSION"
+  if tmux has-session -t "$SESSION" 2>/dev/null; then
+    # Session exists — add a new window instead of replacing it
+    tmux new-window -t "$SESSION" -c "$(pwd)" "$0 $n"
+    if [ -n "${TMUX:-}" ]; then
+      exec tmux switch-client -t "$SESSION"
+    else
+      exec tmux attach-session -t "$SESSION"
+    fi
   else
-    exec tmux new-session -s "$SESSION" -c "$(pwd)" "$0 $n"
+    if [ -n "${TMUX:-}" ]; then
+      tmux new-session -d -s "$SESSION" -c "$(pwd)" "$0 $n"
+      exec tmux switch-client -t "$SESSION"
+    else
+      exec tmux new-session -s "$SESSION" -c "$(pwd)" "$0 $n"
+    fi
   fi
 fi
 
