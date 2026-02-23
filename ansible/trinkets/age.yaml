@@ -1,0 +1,55 @@
+# AnyUserNoEscalationOnDarwin()
+# []
+# [CommandProbe("age")]
+# Installs age, a simple and modern file encryption tool. Used by ssh.yaml to decrypt encrypted SSH keys.
+
+- name: "Install age"
+  hosts: localhost
+  connection: local
+  become: true
+  gather_facts: true
+  tasks:
+    - name: "Create temp directory (Linux)"
+      tempfile:
+        state: directory
+      register: tmpdir
+      when: ansible_os_family == "Debian"
+
+    - name: "Download age (Linux)"
+      get_url:
+        url: https://github.com/FiloSottile/age/releases/download/v1.2.1/age-v1.2.1-linux-amd64.tar.gz
+        dest: "{{ tmpdir.path }}/age.tar.gz"
+      when: ansible_os_family == "Debian"
+
+    - name: "Extract age (Linux)"
+      unarchive:
+        src: "{{ tmpdir.path }}/age.tar.gz"
+        dest: "{{ tmpdir.path }}/"
+      when: ansible_os_family == "Debian"
+
+    - name: "Install age binary (Linux)"
+      copy:
+        src: "{{ tmpdir.path }}/age/age"
+        dest: /usr/local/bin/age
+        mode: '0755'
+        remote_src: true
+      when: ansible_os_family == "Debian"
+
+    - name: "Install age-keygen binary (Linux)"
+      copy:
+        src: "{{ tmpdir.path }}/age/age-keygen"
+        dest: /usr/local/bin/age-keygen
+        mode: '0755'
+        remote_src: true
+      when: ansible_os_family == "Debian"
+
+    - name: "Clean up (Linux)"
+      file:
+        path: "{{ tmpdir.path }}"
+        state: absent
+      when: ansible_os_family == "Debian"
+
+    - name: "Install age (macOS)"
+      community.general.homebrew:
+        name: age
+      when: ansible_os_family == "Darwin"

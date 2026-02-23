@@ -216,11 +216,57 @@ class curses_cli:
             max_offset = max(0, review.buffer.total_lines() - content_height)
             scroll_offset = max(0, min(scroll_offset, max_offset))
 
-    def run_playbook_live(self, file_path, package_name, user, panel):
+    def prompt_passphrase(self, package_name):
+        """Prompt for a passphrase in the TUI. Returns string or None if cancelled."""
+        passphrase = ""
+        self.stdscr.timeout(-1)
+
+        while True:
+            rows, cols = self.stdscr.getmaxyx()
+            self.stdscr.erase()
+
+            msg = f"'{package_name}' requires a passphrase to decrypt."
+            y = rows // 2 - 2
+            x = max(0, (cols - len(msg)) // 2)
+            try:
+                self.stdscr.addstr(y, x, msg, curses.A_BOLD)
+            except curses.error:
+                pass
+
+            prompt = "Passphrase: " + "*" * len(passphrase) + "_"
+            y2 = rows // 2
+            x2 = max(0, (cols - len(prompt)) // 2)
+            try:
+                self.stdscr.addstr(y2, x2, prompt)
+            except curses.error:
+                pass
+
+            try:
+                self.stdscr.addstr(rows - 1, 0, "Enter: confirm  Esc: skip", curses.A_DIM)
+            except curses.error:
+                pass
+
+            self.stdscr.refresh()
+            c = self.stdscr.getch()
+
+            if c == 27:  # Escape
+                return None
+            elif c == curses.KEY_ENTER or c == 10:
+                return passphrase if passphrase else None
+            elif c in (127, curses.KEY_BACKSPACE, 8):
+                passphrase = passphrase[:-1]
+            elif 32 <= c <= 126:
+                passphrase += chr(c)
+
+    def run_playbook_live(self, file_path, package_name, user, panel, env_extra=None):
         """Run an ansible-playbook in a subprocess, streaming output to an OutputPanel.
 
         Returns the process return code.
         """
+        env = None
+        if env_extra:
+            env = {**os.environ, **env_extra}
+
         proc = subprocess.Popen(
             ["ansible-playbook", file_path],
             user=user,
@@ -228,6 +274,7 @@ class curses_cli:
             stderr=subprocess.STDOUT,
             text=True,
             bufsize=1,
+            env=env,
         )
 
         def reader():
@@ -284,8 +331,44 @@ class curses_cli:
                 t.join()
                 break
 
+        # Post-completion: let the user scroll through the final output
+        rc = proc.returncode
+        if rc == 0:
+            panel.set_status("Done — press q or Enter to continue", "GREEN")
+        else:
+            panel.set_status("Failed — scroll with j/k/PgUp/PgDn, press q or Enter to continue", "RED")
+
+        panel.buffer.auto_scroll = False
         self.stdscr.timeout(-1)
-        return proc.returncode
+
+        while True:
+            rows, cols = self.stdscr.getmaxyx()
+            content_height = max(0, rows - 3)
+
+            self.stdscr.erase()
+            panel.draw(self.stdscr, rows, cols, scroll_offset)
+            self.stdscr.refresh()
+
+            c = self.stdscr.getch()
+            if c == ord("q") or c == 27 or c == curses.KEY_ENTER or c == 10:
+                break
+            elif c == curses.KEY_UP or c == ord("k"):
+                scroll_offset = max(0, scroll_offset - 1)
+            elif c == curses.KEY_DOWN or c == ord("j"):
+                scroll_offset += 1
+            elif c == curses.KEY_PPAGE:
+                scroll_offset = max(0, scroll_offset - content_height)
+            elif c == curses.KEY_NPAGE:
+                scroll_offset += content_height
+            elif c == curses.KEY_HOME:
+                scroll_offset = 0
+            elif c == curses.KEY_END:
+                scroll_offset = max(0, panel.buffer.total_lines() - content_height)
+
+            max_offset = max(0, panel.buffer.total_lines() - content_height)
+            scroll_offset = max(0, min(scroll_offset, max_offset))
+
+        return rc
 
     def create_ansible_data_structure(self):
         # `categories` defines the possible pages available to `expand`:
@@ -432,14 +515,12 @@ class curses_cli:
                 self.filter_mode = False
                 self.filter_active = False
                 self.filter_query = ""
-                #selections.clear()
             elif c == curses.KEY_LEFT:
                 current_category -= 1
                 hover = 0
                 self.filter_mode = False
                 self.filter_active = False
                 self.filter_query = ""
-                #selections.clear()
             elif c == ord("h"):
                 self.show_hidden = not self.show_hidden
                 hover = 0
@@ -478,7 +559,17 @@ class curses_cli:
                     file_path = os.path.abspath(current_display[i.selection].file_path)
                     package_name = current_display[i.selection].name
 
-                    priviledge = ExpansionCard(file_path).get_priviledge_level()
+                    card = ExpansionCard(file_path)
+                    priviledge = card.get_priviledge_level()
+
+                    # Check if this playbook needs a passphrase (e.g. EncryptedProbe)
+                    env_extra = None
+                    if card.requires_passphrase():
+                        passphrase = self.prompt_passphrase(package_name)
+                        if passphrase is None:
+                            total -= 1
+                            continue
+                        env_extra = {"EXPAND_PASSPHRASE": passphrase}
 
                     # The choices I made here a bit confusing so I'll try to explain.
                     #
@@ -502,7 +593,7 @@ class curses_cli:
                         tmp = pwd.getpwuid(os.getuid()).pw_name
 
                     panel = OutputPanel(format_install_title(counter, total, package_name))
-                    rc = self.run_playbook_live(file_path, package_name, tmp, panel)
+                    rc = self.run_playbook_live(file_path, package_name, tmp, panel, env_extra=env_extra)
 
                     # For some reason the Ansible tmp files are owned by root
                     # when run with EUID 0. Just clear out cache to avoid

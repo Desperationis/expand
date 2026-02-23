@@ -83,6 +83,15 @@ class ExpansionCard:
                     return result
         return []
 
+    def requires_passphrase(self) -> bool:
+        """Check if the header contains a @passphrase tag."""
+        for line in self.content.split("\n"):
+            if not line.startswith("#"):
+                break
+            if "@passphrase" in line:
+                return True
+        return False
+
     def get_ansible_description(self, max_length: int) -> list[str]:
         """
         Given the CONTENT (string form) of a ansible file specifically made for

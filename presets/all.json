@@ -1,6 +1,7 @@
 {
   "name": "All Packages",
   "packages": [
+    "age.yaml",
     "alacritty_config.yaml",
     "alacritty.yaml",
     "anaconda.yaml",
@@ -38,6 +39,7 @@
     "posting.yaml",
     "rust.yaml",
     "scripts.yaml",
+    "ssh.yaml",
     "tldr.yaml",
     "tlp_config.yaml",
     "tmux_config.yaml",

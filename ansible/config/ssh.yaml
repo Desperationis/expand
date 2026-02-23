@@ -1,0 +1,76 @@
+# AnyUserNoEscalation()
+# [WhichProbe("age")]
+# [FileProbe("~/.ssh/*.pub")]
+# @passphrase Decrypts and installs your encrypted .ssh directory using age. Place your encrypted archive at data/ssh/ssh.tar.age.
+
+- name: "Install SSH keys from encrypted archive"
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    user_home: "{{ lookup('env', 'HOME') }}"
+    passphrase: "{{ lookup('env', 'EXPAND_PASSPHRASE') }}"
+    archive: "{{ playbook_dir }}/../../data/ssh/ssh.tar.age"
+  tasks:
+    - name: "Verify encrypted archive exists"
+      stat:
+        path: "{{ archive }}"
+      register: archive_stat
+
+    - name: "Fail if archive missing"
+      fail:
+        msg: "Encrypted SSH archive not found. Place your ssh.tar.age in data/ssh/"
+      when: not archive_stat.stat.exists
+
+    - name: "Create temp directory"
+      tempfile:
+        state: directory
+      register: tmpdir
+
+    - name: "Decrypt SSH archive"
+      shell: printf '%s\n' "{{ passphrase }}" | script -qec "age -d -o '{{ tmpdir.path }}/ssh.tar' '{{ archive }}'" /dev/null
+      no_log: true
+
+    - name: "Extract SSH archive"
+      unarchive:
+        src: "{{ tmpdir.path }}/ssh.tar"
+        dest: "{{ user_home }}"
+
+    - name: "Set .ssh directory permissions"
+      file:
+        path: "{{ user_home }}/.ssh"
+        mode: '0700'
+
+    - name: "Find all files in .ssh"
+      find:
+        paths: "{{ user_home }}/.ssh"
+        file_type: file
+        recurse: true
+      register: ssh_files
+
+    - name: "Set private key permissions (600)"
+      file:
+        path: "{{ item.path }}"
+        mode: '0600'
+      loop: "{{ ssh_files.files }}"
+      when: >
+        not item.path.endswith('.pub') and
+        'known_hosts' not in item.path and
+        'config' not in item.path and
+        'authorized_keys' not in item.path
+
+    - name: "Set public key and config permissions (644)"
+      file:
+        path: "{{ item.path }}"
+        mode: '0644'
+      loop: "{{ ssh_files.files }}"
+      when: >
+        item.path.endswith('.pub') or
+        'known_hosts' in item.path or
+        'config' in item.path or
+        'authorized_keys' in item.path
+
+    - name: "Clean up temp files"
+      file:
+        path: "{{ tmpdir.path }}"
+        state: absent
