@@ -1,7 +1,6 @@
 import os
 import pytest
 import expand
-import datetime
 
 
 def test_brew_probe():
@@ -422,20 +421,6 @@ def test_select_all_visible():
     # Now toggle off category 0 — category 1 items should remain
     result2 = cli.select_all_visible(visible, 0, result)
     assert result2 == other_cat
-
-
-def test_ansible_description():
-    from expand import util
-
-    assert util.get_ansible_description("# Test", 50) == ["N/A"]
-    assert util.get_ansible_description("\nhehe", 50) == ["N/A"]
-    assert util.get_ansible_description("2234wfsd", 0) == ["N/A"]
-    assert util.get_ansible_description("2234wfsd\n#asdflhalsdf", 4) == ["N/A"]
-    assert util.get_ansible_description("# Test\n#This is the first line.", 50) == ["This is the first line."]
-    assert util.get_ansible_description("# Test\n#This is the first line.\n#This is the second line.", 50) == ["This is the first line.", "This is the second line."]
-    assert util.get_ansible_description("# Test\n#Hello, World!", 3) == ["Hel", "lo,", " Wo", "rld", "!"]
-    assert util.get_ansible_description("# Test\n#he\n#Hello, World!", 3) == ["he", "Hel", "lo,", " Wo", "rld", "!"]
-    assert util.get_ansible_description("# Test\n#he\n#Hello, World!\n#\n#", 3) == ["he", "Hel", "lo,", " Wo", "rld", "!", "", ""]
 
 
 def test_install_progress_title():
@@ -2575,3 +2560,177 @@ def test_preset_end_to_end(tmp_path):
     for sel in result:
         choice = categories[sel.category][1][sel.selection]
         assert len(choice.failing_probes()) == 0
+
+
+def test_no_unused_imports():
+    """Ensure test.py has no unused imports (e.g. datetime was removed)."""
+    import ast
+
+    with open(os.path.join(os.path.dirname(__file__), "test.py")) as f:
+        tree = ast.parse(f.read())
+
+    imported_names = set()
+    for node in ast.iter_child_nodes(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                imported_names.add(alias.name if alias.asname is None else alias.asname)
+        elif isinstance(node, ast.ImportFrom):
+            for alias in node.names:
+                imported_names.add(alias.name if alias.asname is None else alias.asname)
+
+    assert "datetime" not in imported_names, "datetime is imported but unused in test.py"
+
+
+def test_gui_elements_no_unused_imports():
+    """Ensure gui_elements.py does not import pwd (it's unused there)."""
+    import ast
+
+    gui_elements_path = os.path.join(
+        os.path.dirname(__file__), "expand", "gui_elements.py"
+    )
+    with open(gui_elements_path) as f:
+        tree = ast.parse(f.read())
+
+    imported_names = set()
+    for node in ast.iter_child_nodes(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                imported_names.add(alias.name if alias.asname is None else alias.asname)
+        elif isinstance(node, ast.ImportFrom):
+            for alias in node.names:
+                imported_names.add(alias.name if alias.asname is None else alias.asname)
+
+    assert "pwd" not in imported_names, "pwd is imported but unused in gui_elements.py"
+
+
+def test_priviledge_no_unused_imports():
+    """Ensure priviledge.py only imports ABC from abc, not abstractmethod."""
+    import ast
+
+    priviledge_path = os.path.join(
+        os.path.dirname(__file__), "expand", "priviledge.py"
+    )
+    with open(priviledge_path) as f:
+        tree = ast.parse(f.read())
+
+    for node in ast.iter_child_nodes(tree):
+        if isinstance(node, ast.ImportFrom) and node.module == "abc":
+            imported_names = [alias.name for alias in node.names]
+            assert "abstractmethod" not in imported_names, \
+                "abstractmethod is imported but unused in priviledge.py"
+
+
+def test_color_palette_no_cyan():
+    """Ensure CYAN is not defined in the color palette after init_colors()."""
+    from unittest.mock import patch, MagicMock
+    from expand.colors import init_colors, expand_color_palette
+
+    expand_color_palette.clear()
+
+    with patch("expand.colors.curses") as mock_curses:
+        mock_curses.COLOR_RED = 1
+        mock_curses.COLOR_GREEN = 2
+        mock_curses.COLOR_YELLOW = 3
+        mock_curses.color_pair = lambda x: x
+        init_colors()
+
+    assert "CYAN" not in expand_color_palette, \
+        "CYAN should not be in expand_color_palette — it is unused"
+    assert "RED" in expand_color_palette
+    assert "GREEN" in expand_color_palette
+    assert "YELLOW" in expand_color_palette
+    assert "NORMAL" in expand_color_palette
+
+
+def test_no_unused_dependencies():
+    """Every package in requirements.txt should be imported somewhere in expand/."""
+    import re
+
+    with open("requirements.txt") as f:
+        lines = f.read().strip().splitlines()
+
+    pkg_names = []
+    for line in lines:
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        # Extract package name before any version specifier
+        name = re.split(r"[=<>!~]", line)[0].strip()
+        pkg_names.append(name)
+
+    expand_dir = os.path.join(os.path.dirname(__file__), "expand")
+    source_files = []
+    for root, _dirs, files in os.walk(expand_dir):
+        for fname in files:
+            if fname.endswith(".py"):
+                source_files.append(os.path.join(root, fname))
+
+    all_source = ""
+    for path in source_files:
+        with open(path) as f:
+            all_source += f.read() + "\n"
+
+    for pkg in pkg_names:
+        # Normalize: package names use hyphens but imports use underscores
+        import_name = pkg.replace("-", "_")
+        assert (
+            f"import {import_name}" in all_source
+            or f"from {import_name}" in all_source
+        ), f"Package '{pkg}' is listed in requirements.txt but never imported in expand/"
+
+
+def test_failure_cache_not_in_top_namespace():
+    """FailureCache should not be accessible via expand.FailureCache after removing the re-export."""
+    import expand
+    assert "FailureCache" not in dir(expand), \
+        "FailureCache should not be in the top-level expand namespace"
+    # Direct import still works
+    from expand.failure_cache import FailureCache
+    assert FailureCache is not None
+
+
+def test_gui_classes_not_in_top_namespace():
+    """GUI classes should not be accessible via the top-level expand namespace."""
+    import expand
+    for name in ("ChoicePreview", "Choice", "OutputPanel"):
+        assert name not in dir(expand), \
+            f"{name} should not be in the top-level expand namespace"
+
+
+def test_colors_not_in_top_namespace():
+    """Color symbols should not be accessible via the top-level expand namespace."""
+    import expand
+    for name in ("init_colors", "expand_color_palette"):
+        assert name not in dir(expand), \
+            f"{name} should not be in the top-level expand namespace"
+
+
+def test_expansion_card_not_in_top_namespace():
+    """ExpansionCard should not be accessible via the top-level expand namespace."""
+    import expand
+    assert "ExpansionCard" not in dir(expand), \
+        "ExpansionCard should not be in the top-level expand namespace"
+
+
+def test_presets_accessible_via_submodule():
+    """Presets should still be importable directly without the __init__.py re-export."""
+    from expand.presets import list_presets
+    assert callable(list_presets)
+
+
+def test_example_yaml_probes_are_valid():
+    """All probe class names referenced in ansible/example.yaml should exist in expand.probes."""
+    import re
+    import expand.probes
+
+    example_path = os.path.join(os.path.dirname(__file__), "ansible", "example.yaml")
+    with open(example_path) as f:
+        lines = f.readlines()
+
+    # Lines 2 and 3 contain probe references in comments like ProbeClass(...)
+    probe_lines = lines[1] + lines[2]
+    probe_names = re.findall(r'(\w+Probe)\(', probe_lines)
+
+    for name in probe_names:
+        assert hasattr(expand.probes, name), \
+            f"Probe '{name}' referenced in example.yaml does not exist in expand.probes"

@@ -6,45 +6,8 @@ import os
 import re
 import pwd
 import requests
-import humanize
-from datetime import datetime, timedelta
 from typing import Optional
 from expand.probes import *
-
-
-def timedelta_since_last_update(file_path: str):
-    """
-    Return datetime.timedelta of a file. Raise FileNotFoundError if file
-    doesn't exist.
-    """
-
-    if not os.path.exists(file_path):
-        raise FileNotFoundError
-
-    # Get the last modification time of the file
-    last_update_timestamp = os.path.getmtime(file_path)
-    last_update_datetime = datetime.fromtimestamp(last_update_timestamp)
-
-    # Calculate the time difference from now
-    time_difference = datetime.now() - last_update_datetime
-
-    return time_difference
-
-
-def timedelta_pretty(time_difference: timedelta):
-    """
-    Return prettified version of a datetime.timedelta in the form:
-
-    "x year(s) ago"
-    "x months(s) ago"
-    "x weeks(s) ago"
-    "x days(s) ago"
-    "x hours(s) ago"
-    "x minutes(s) ago"
-    """
-
-    # I'm just going to have this library do the heavy lifting for me
-    return humanize.naturaltime(time_difference)
 
 
 def get_failing_probes(probes: list[CompatibilityProbe]) -> list[CompatibilityProbe]:
@@ -160,41 +123,6 @@ def get_formatted_columns(
         next_index += sizes[i]
 
     return output
-
-def get_ansible_description(content: str, max_length: int) -> list[str]:
-    """
-    Given the raw content of an ansible file, extract its description.
-    The first comment line is treated as a header and skipped.
-    All subsequent consecutive comment lines are the description.
-    Lines longer than `max_length` are split at that boundary.
-    Returns ["N/A"] if no description is found.
-    """
-
-    lines = content.split("\n")
-    comments = []
-    for line in lines:
-        if line.startswith("#"):
-            comments.append(line)
-        else:
-            break
-
-    if len(comments) <= 1:
-        return ["N/A"]
-
-    descriptions = [c.lstrip("# \t") for c in comments[1:]]
-
-    if max_length <= 0:
-        return ["N/A"]
-
-    result = []
-    for string in descriptions:
-        while len(string) > max_length:
-            result.append(string[:max_length])
-            string = string[max_length:]
-        result.append(string)
-
-    return result
-
 
 def strip_ansi(text: str) -> str:
     """

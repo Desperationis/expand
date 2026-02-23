@@ -2,7 +2,7 @@
 Classes that determine who can run ansible files.
 """
 
-from abc import ABC, abstractmethod
+from abc import ABC
 
 class PriviledgeLevel(ABC):
     pass

@@ -27,14 +27,6 @@ class AmdProbe(CompatibilityProbe):
         machine = platform.machine().lower()
         return machine in {'x86_64', 'amd64', 'x86', 'i386'}
 
-class ArmProbe(CompatibilityProbe):
-    def get_error_message(self) -> str:
-        return "Not on arm."
-
-    def is_compatible(self) -> bool:
-        machine = platform.machine().lower()
-        return machine in {'arm64', 'aarch64', 'armv7l', 'arm'}
-
 # Used to be DebianProbe
 class AptProbe(CompatibilityProbe):
     def get_error_message(self) -> str:
@@ -80,17 +72,6 @@ class WhichProbe(CompatibilityProbe):
             f"which {self.command} > /dev/null 2>&1", shell=True, check=False
         )
         return result.returncode == 0
-
-
-class ExistenceProbe(CompatibilityProbe):
-    def __init__(self, path) -> None:
-        self.path = os.path.expanduser(path)
-
-    def get_error_message(self) -> str:
-        return f"{self.path} does not exist."
-
-    def is_compatible(self) -> bool:
-        return os.path.exists(self.path)
 
 
 class DisplayProbe(CompatibilityProbe):
@@ -139,13 +120,14 @@ class CommandProbe(InstalledProbe):
 
 
 class FileProbe(InstalledProbe):
-    """Check if a file or directory exists."""
+    """Check if a file or directory exists. Supports glob patterns."""
 
     def __init__(self, path: str) -> None:
         self.path = os.path.expanduser(path)
 
     def is_installed(self) -> bool:
-        return os.path.exists(self.path)
+        import glob
+        return len(glob.glob(self.path)) > 0
 
 
 class AptPackageProbe(InstalledProbe):
@@ -262,6 +244,7 @@ class FileMatchProbe(InstalledProbe):
                 return sf.read() == df.read()
         except (IOError, OSError):
             return False
+
 
 
 class GrepProbe(InstalledProbe):

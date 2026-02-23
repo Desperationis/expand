@@ -1,9 +1,8 @@
 import os
-import pwd
 import curses
 import threading
 from expand import util
-from expand.probes import CompatibilityProbe, InstalledProbe
+from expand.probes import CompatibilityProbe
 from expand.failure_cache import FailureCache
 from expand.colors import expand_color_palette
 from expand.expansion_card import ExpansionCard
