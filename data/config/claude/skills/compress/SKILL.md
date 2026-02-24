@@ -1,12 +1,16 @@
 ---
 name: compress
-description: Looks at CLAUDE.md for a checklist. If there is a completed checklist, it compresses it down.
+description: Merges the details of a CHECKLIST.md file to CLAUDE.md
 ---
 
-When "compressing" the CLAUDE.md checklist:
-1. Make sure there is a CLAUDE.md file and that there is a completed checklist. If either the CLAUDE.md file doesn't exist, or there isn't a checklist, or the checklist isn't complete, stop and let the user know. 
-2. Delete the entire checklist and anything related to it. 
-3. If you think it would help the next reader in the future, include a short summary / description of the added features to CLAUDE.md. Just choose the best logical spots, the goal is to update, not append.
+Only compress CHECKLIST.md if all entries are crossed out. If not, stop immediately. 
+
+
+To "compress" CHECKLIST.md:
+1. If CLAUDE.md doesn't exist, use /init .
+2. Think about what CHECKLIST.md added to the project. If it changed something substantial to the project, modify the details in CLAUDE.md to support it. Do not write a summary of your changes. In cases where nothing project-changing or substantial was added, do not modify CLAUDE.md.
+3. Delete CHECKLIST.md
+
 
 
 
